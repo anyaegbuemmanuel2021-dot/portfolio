@@ -9,7 +9,7 @@
   var esc = function (value) { return String(value || '').replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); }); };
   var list = function (v) { if (Array.isArray(v)) return v; return String(v || '').split(/[,|]/).map(function (x) { return x.trim(); }).filter(Boolean); };
   function makeProject(p, i) {
-    var card = document.createElement('article'); card.className = 'project-card'; card.setAttribute('data-reveal', 'fade-up');
+    var card = document.createElement('article'); card.className = 'project-card'; card.setAttribute('data-reveal', 'fade-up'); card.classList.add('revealed');
     var thumb = document.createElement('div'); thumb.className = 'project-card__thumb';
     if (p.cover_url) { var img = document.createElement('img'); img.src = safeUrl(p.cover_url); img.alt = p.title || 'Project preview'; img.loading = 'lazy'; img.decoding = 'async'; img.style.cssText = 'width:100%;height:100%;object-fit:cover'; thumb.appendChild(img); }
     else { var face = document.createElement('div'); face.className = 'project-card__thumb-inner project-card__thumb-inner--' + (i % 6 + 1); face.textContent = p.title || 'PROJECT'; thumb.appendChild(face); }
