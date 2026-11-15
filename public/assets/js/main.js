@@ -343,27 +343,38 @@ const Typer = {
    8. PROJECT FILTER (projects page)
    ───────────────────────────────────────── */
 const ProjectFilter = {
+  activeFilter: 'all',
+
+  apply() {
+    const cards = document.querySelectorAll('.projects-full-grid .project-card, .featured-projects__grid .project-card');
+    cards.forEach(card => {
+      const category = (card.dataset.category || '').toLowerCase();
+      const show = this.activeFilter === 'all' || category === this.activeFilter;
+      card.hidden = !show;
+      card.setAttribute('aria-hidden', show ? 'false' : 'true');
+    });
+  },
+
   init() {
     const filterBtns = document.querySelectorAll('.filter-btn');
-    const projectCards = document.querySelectorAll('[data-category]');
-
     if (!filterBtns.length) return;
 
     filterBtns.forEach(btn => {
+      btn.setAttribute('aria-pressed', btn.dataset.filter === 'all' ? 'true' : 'false');
       btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const filter = btn.dataset.filter;
-
-        projectCards.forEach(card => {
-          const show = filter === 'all' || card.dataset.category === filter;
-          card.style.opacity = show ? '1' : '0';
-          card.style.pointerEvents = show ? 'auto' : 'none';
-          card.style.transform = show ? 'scale(1)' : 'scale(0.95)';
+        this.activeFilter = btn.dataset.filter || 'all';
+        filterBtns.forEach(b => {
+          const active = b === btn;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
+        this.apply();
       });
     });
+
+    // CMS content can replace project cards after this module initializes.
+    document.addEventListener('projects:updated', () => this.apply());
+    this.apply();
   }
 };
 
