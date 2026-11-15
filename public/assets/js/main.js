@@ -512,3 +512,12 @@ document.addEventListener('DOMContentLoaded', () => {
     obs.observe(bar, { attributes: true, attributeFilter: ['class'] });
   });
 });
+
+/* Progressive Web App: install support and safe offline caching. */
+if ('serviceWorker' in navigator && window.isSecureContext) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(error => {
+      console.warn('PWA service worker registration failed:', error);
+    });
+  }, { once: true });
+}
