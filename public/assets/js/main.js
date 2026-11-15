@@ -350,7 +350,7 @@ const ProjectFilter = {
     cards.forEach(card => {
       const category = (card.dataset.category || '').toLowerCase();
       const show = this.activeFilter === 'all' || category === this.activeFilter;
-      card.hidden = !show;
+      card.style.display = show ? '' : 'none';
       card.setAttribute('aria-hidden', show ? 'false' : 'true');
     });
   },
