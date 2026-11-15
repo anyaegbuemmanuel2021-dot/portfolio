@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Anyaegbu Emmanuel | Portfolio",
+  "short_name": "AEI Portfolio",
+  "description": "Portfolio, projects, services and articles by Anyaegbu Emmanuel Ikenna.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "categories": ["portfolio", "business", "productivity"],
+  "icons": [
+    { "src": "/assets/icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/assets/icons/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
