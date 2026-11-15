@@ -1,0 +1,21 @@
+// Browser sweep: every public + admin screen at 12 viewport widths; checks horizontal overflow, console/CSP errors, tiny tap targets.
+// Run: PORT=8799 node test/e2e-responsive.mjs  (server must be running with an owner account: ADMIN_EMAIL / ADMIN_PASSWORD)
+import { chromium } from 'playwright';
+const base = `http://127.0.0.1:${process.env.PORT || 8799}`; const email = process.env.ADMIN_EMAIL, password = process.env.ADMIN_PASSWORD;
+const widths = [320, 360, 375, 390, 414, 430, 768, 1024, 1280, 1366, 1440, 1920, 2560];
+const publicPages = ['/index.html', '/about.html', '/services.html', '/projects.html', '/contact.html', '/articles', '/articles/hello-world', '/projects/restaurant/index.html', '/projects/agency/index.html', '/projects/blog/index.html', '/projects/shop/index.html', '/projects/event/index.html', '/projects/calculator/index.html'];
+const adminRoutes = ['#/dashboard', '#/content/settings', '#/content/services', '#/content/projects', '#/articles', '#/articles/new', '#/media', '#/leads', '#/email/compose', '#/email/logs', '#/ads/ads', '#/ads/networks', '#/analytics', '#/system/security', '#/system/backups'];
+const browser = await chromium.launch(); const problems = []; let checks = 0;
+const seed = await browser.newContext(); const sp = await seed.newPage(); await sp.goto(base + '/admin/'); await sp.waitForSelector('#em'); await sp.fill('#em', email); await sp.fill('#pw', password); await sp.click('button[type=submit]'); await sp.waitForSelector('.shell'); const state = await seed.storageState(); await seed.close();
+const measure = async (page, label) => { await page.waitForTimeout(250); const r = await page.evaluate(() => { const de = document.documentElement; const over = de.scrollWidth - de.clientWidth; const wide = [...document.querySelectorAll('body *')].filter(e => { if (e.closest('[data-reveal],.parallax-blob,[class*=blob],.noise-overlay,.loader')) return false; const b = e.getBoundingClientRect(); if (!b.width || getComputedStyle(e).position === 'fixed') return false; let p = e.parentElement; while (p && p !== document.body) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') return false; p = p.parentElement; } return b.right > de.clientWidth + 1; }).slice(0, 3).map(e => e.tagName + '.' + String(e.className).slice(0, 40)); return { over, wide }; }); checks++; if (r.over > 1 || r.wide.length) problems.push(`${label}: overflow ${r.over}px ${r.wide.join(' ')}`); };
+for (const w of widths) {
+  const vp = { width: w, height: w < 700 ? 800 : 900 }; const lctx = await browser.newContext({ viewport: vp, hasTouch: w < 900 }); const lp = await lctx.newPage(); await lp.goto(base + '/admin/'); await lp.waitForSelector('#em'); await measure(lp, `${w}px admin login`); await lctx.close();
+  const ctx = await browser.newContext({ viewport: vp, hasTouch: w < 900, storageState: state }); const page = await ctx.newPage(); const errs = [];
+  page.on('console', m => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)|cdnjs|ERR_(NAME|INTERNET|CONNECTION)|Failed to load resource/.test(m.text())) errs.push(m.text()); }); page.on('pageerror', e => errs.push('pageerror ' + e.message));
+  for (const p of publicPages) { await page.goto(base + p, { waitUntil: 'domcontentloaded' }).catch(() => {}); await measure(page, `${w}px public ${p}`); }
+  await page.goto(base + '/admin/', { waitUntil: 'domcontentloaded' }); await page.waitForSelector('.shell');
+  for (const r of adminRoutes) { await page.evaluate(h => { location.hash = h; }, r); await page.waitForTimeout(350); await measure(page, `${w}px admin ${r}`); }
+  if (w <= 900) { await page.evaluate(() => { location.hash = '#/dashboard'; }); await page.waitForTimeout(200); await page.click('.top button'); await page.waitForTimeout(250); const vis = await page.$eval('.side', e => e.getBoundingClientRect().left >= 0); if (!vis) problems.push(`${w}px admin drawer did not open`); }
+  if (errs.length) problems.push(`${w}px console errors: ${[...new Set(errs)].slice(0, 3).join(' | ')}`); await ctx.close();
+}
+await browser.close(); console.log(`${checks} viewport checks`); if (problems.length) { console.log('PROBLEMS:\n' + problems.join('\n')); process.exit(1); } else console.log('No overflow, no console/CSP errors.');

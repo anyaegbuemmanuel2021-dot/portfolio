@@ -1,0 +1,64 @@
+# Render Blueprint: one Node.js web service serves the existing public site,
+# admin dashboard and API from the same origin. PostgreSQL remains on Neon.
+services:
+  - type: web
+    name: portfolio-platform
+    runtime: node
+    plan: free
+    buildCommand: if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; else npm install --omit=dev --no-audit --no-fund; fi
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: false # GitHub Actions runs tests before triggering the Render deploy hook.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: TRUST_PROXY
+        value: "true"
+      - key: AUTO_MIGRATE
+        value: "true"
+      - key: DB_POOL_MAX
+        value: "3"
+      - key: SESSION_HOURS
+        value: "8"
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: OWNER_EMAIL
+        sync: false
+      - key: WHATSAPP_NUMBER
+        sync: false
+      - key: STORAGE_PROVIDER
+        value: dbrij
+      - key: DBRIJ_S3_ENDPOINT
+        value: https://s3.dbrij.com
+      - key: DBRIJ_S3_REGION
+        value: auto
+      - key: DBRIJ_BUCKET
+        sync: false
+      - key: DBRIJ_KEY_ID
+        sync: false
+      - key: DBRIJ_KEY_SECRET
+        sync: false
+      - key: DBRIJ_MEDIA_PUBLIC_BASE
+        sync: false
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: ENFORCE_SITE_HOST
+        value: "false"
+      - key: SITE_HOST_ALLOWLIST
+        sync: false
+      - key: MAX_UPLOAD_MB
+        value: "8"
+      - key: EMAIL_PROVIDER
+        value: log
+      - key: EMAIL_FROM_NAME
+        value: Portfolio Website
+      - key: AI_PROVIDER
+        value: rules
+      - key: RETENTION_DAYS
+        value: "400"

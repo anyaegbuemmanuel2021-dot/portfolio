@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Chidi & Amaka — Wedding Celebration 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--gold:#b8922e;--cream:#fdf8f2;--dark:#1a1209;--rose:#c8826e;--border:rgba(184,146,46,.2)}
+    body{font-family:'Jost',sans-serif;background:var(--cream);color:#3a2a1a;overflow-x:hidden}
+    /* HERO */
+    .hero{min-height:100vh;background:linear-gradient(160deg,#1a1209 0%,#2d1f0a 60%,#1a0f05 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 5%;text-align:center;position:relative;overflow:hidden}
+    .petals{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+    .petal{position:absolute;font-size:1.5rem;animation:fall linear infinite;opacity:.15}
+    @keyframes fall{0%{transform:translateY(-50px) rotate(0deg);opacity:.3}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+    .hero-tag{font-family:'Jost',sans-serif;font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem}
+    .hero-tag::before,.hero-tag::after{content:'—';color:rgba(184,146,46,.4)}
+    h1{font-family:'Cormorant Garamond',serif;font-size:clamp(3.5rem,10vw,8rem);font-weight:400;color:#fff;line-height:1;letter-spacing:-.02em;margin-bottom:.5rem}
+    h1 span{color:var(--gold)}
+    .hero-and{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,5vw,4rem);font-weight:400;font-style:italic;color:rgba(184,146,46,.7);display:block;margin:.3rem 0}
+    .hero-date{font-size:.9rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);margin:2rem 0}
+    .hero-location{color:rgba(255,255,255,.4);font-size:.9rem;letter-spacing:.08em}
+    .countdown{display:flex;gap:2rem;justify-content:center;margin:3rem 0;flex-wrap:wrap}
+    .cd-block{text-align:center}
+    .cd-num{font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:600;color:var(--gold);line-height:1}
+    .cd-lbl{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-top:.2rem}
+    .divider{font-family:'Cormorant Garamond',serif;font-size:2rem;color:rgba(184,146,46,.3);align-self:center;margin-top:-1.5rem}
+    .rsvp-btn{display:inline-block;background:var(--gold);color:#fff;padding:1rem 3rem;font-size:.9rem;letter-spacing:.15em;text-transform:uppercase;transition:transform .3s,box-shadow .3s;margin-top:1rem}
+    .rsvp-btn:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(184,146,46,.3)}
+    /* SECTION */
+    .section{padding:6rem 8%;text-align:center}
+    .s-eyebrow{font-family:'Jost',sans-serif;font-size:.7rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+    h2{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,4vw,3.5rem);font-weight:400;color:var(--dark);line-height:1.2;margin-bottom:1rem}
+    p.lead{color:#7a5a3a;max-width:600px;margin:0 auto;line-height:1.9;font-size:1rem}
+    .divider-line{display:flex;align-items:center;gap:1rem;justify-content:center;margin:2rem auto;max-width:300px}
+    .divider-line::before,.divider-line::after{content:'';flex:1;height:1px;background:var(--border)}
+    .divider-icon{color:var(--gold);font-size:1.2rem}
+    /* STORY */
+    .story{background:#fff;padding:6rem 8%}
+    .story-grid{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;max-width:1000px;margin:0 auto}
+    .story-emoji{font-size:8rem;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f8f0e0,#ecdfc4);border-radius:30px;height:300px}
+    .story-text{text-align:left}
+    .story-text h3{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--dark);margin-bottom:1rem}
+    .story-text p{color:#7a5a3a;line-height:1.9;margin-bottom:1rem}
+    /* SCHEDULE */
+    .schedule{padding:6rem 8%;background:linear-gradient(135deg,#1a1209,#2d1f0a);color:#fff}
+    .schedule h2{color:#fff}
+    .schedule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:2rem;margin-top:3rem;max-width:900px;margin-inline:auto}
+    .event-block{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:16px;padding:2rem;text-align:center;transition:background .3s}
+    .event-block:hover{background:rgba(184,146,46,.08)}
+    .event-time{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--gold);margin-bottom:.5rem}
+    .event-name{font-size:1rem;font-weight:500;color:#fff;margin-bottom:.4rem}
+    .event-venue{font-size:.8rem;color:rgba(255,255,255,.4)}
+    /* GALLERY */
+    .gallery{padding:6rem 8%}
+    .gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,180px);gap:1rem;margin-top:3rem}
+    .gallery-item{border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:4rem;cursor:pointer;transition:transform .3s,filter .3s;overflow:hidden}
+    .gallery-item:hover{transform:scale(1.03);filter:brightness(1.1)}
+    .gallery-item:first-child{grid-row:span 2;font-size:6rem}
+    .gi1{background:linear-gradient(135deg,#2a1a0a,#5a3a18)}
+    .gi2{background:linear-gradient(135deg,#1a0a1a,#4a1844)}
+    .gi3{background:linear-gradient(135deg,#0a1a0a,#1a5a1a)}
+    .gi4{background:linear-gradient(135deg,#1a1a0a,#4a4a18)}
+    .gi5{background:linear-gradient(135deg,#0a0a1a,#1a1a5a)}
+    /* RSVP */
+    .rsvp-section{padding:6rem 8%;background:#fff;text-align:center}
+    .rsvp-form{max-width:500px;margin:2rem auto 0;display:flex;flex-direction:column;gap:1rem}
+    .rsvp-input{border:1px solid #e0d0c0;padding:1rem 1.5rem;font-size:.95rem;background:var(--cream);font-family:'Jost',sans-serif;transition:border-color .3s}
+    .rsvp-input:focus{outline:none;border-color:var(--gold)}
+    .rsvp-select{border:1px solid #e0d0c0;padding:1rem 1.5rem;font-size:.95rem;background:var(--cream);font-family:'Jost',sans-serif;cursor:pointer}
+    footer{background:var(--dark);padding:3rem 8%;text-align:center;color:rgba(255,255,255,.4)}
+    footer h3{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:400;color:#fff;margin-bottom:.5rem}
+    @media(max-width:768px){.story-grid{grid-template-columns:1fr}.story-emoji{display:none}.gallery-grid{grid-template-columns:repeat(2,1fr)}.gallery-item:first-child{grid-row:span 1}}
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="petals" id="petals"></div>
+  <div class="hero-tag">We're getting married</div>
+  <h1>Chidi<span class="hero-and">&amp;</span>Amaka</h1>
+  <div class="hero-date">Saturday · 14th June · 2025</div>
+  <div class="hero-location">📍 Transcorp Hilton, Abuja, Nigeria</div>
+  <div class="countdown">
+    <div class="cd-block"><div class="cd-num" id="cdD">--</div><div class="cd-lbl">Days</div></div>
+    <div class="divider">·</div>
+    <div class="cd-block"><div class="cd-num" id="cdH">--</div><div class="cd-lbl">Hours</div></div>
+    <div class="divider">·</div>
+    <div class="cd-block"><div class="cd-num" id="cdM">--</div><div class="cd-lbl">Minutes</div></div>
+    <div class="divider">·</div>
+    <div class="cd-block"><div class="cd-num" id="cdS">--</div><div class="cd-lbl">Seconds</div></div>
+  </div>
+  <a href="#rsvp" class="rsvp-btn">RSVP Now</a>
+</section>
+
+<section class="section">
+  <div class="s-eyebrow">Our Journey</div>
+  <h2>A Love Story</h2>
+  <div class="divider-line"><span class="divider-icon">💍</span></div>
+  <p class="lead">What started as a chance meeting at a Lagos tech conference in 2021 turned into a love story neither of us planned — but both of us are grateful for.</p>
+</section>
+
+<section class="story">
+  <div class="story-grid">
+    <div class="story-emoji">💑</div>
+    <div class="story-text">
+      <h3>How We Met</h3>
+      <p>Chidi was speaking at a tech panel. Amaka was in the front row, skeptical about every point he made. After the session, she walked up to challenge him — and he was completely disarmed by her intelligence.</p>
+      <p>He asked for her number "to continue the debate." Three years later, he's still losing arguments — and loving every minute of it.</p>
+      <p style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-style:italic">— A match made in disagreement 💛</p>
+    </div>
+  </div>
+</section>
+
+<section class="schedule" id="schedule">
+  <div class="s-eyebrow" style="color:rgba(184,146,46,.7)">June 14, 2025</div>
+  <h2>Wedding Day Schedule</h2>
+  <div class="schedule-grid">
+    <div class="event-block"><div class="event-time">10:00 AM</div><div class="event-name">🕊 Traditional Ceremony</div><div class="event-venue">Obi Chidi's Compound, Onitsha</div></div>
+    <div class="event-block"><div class="event-time">2:00 PM</div><div class="event-name">⛪ Church Service</div><div class="event-venue">Holy Trinity Cathedral, Abuja</div></div>
+    <div class="event-block"><div class="event-time">5:00 PM</div><div class="event-name">🥂 Cocktail Hour</div><div class="event-venue">Transcorp Hilton Garden</div></div>
+    <div class="event-block"><div class="event-time">7:00 PM</div><div class="event-name">🎊 Reception & Dance</div><div class="event-venue">Grand Ballroom, Transcorp</div></div>
+  </div>
+</section>
+
+<section class="gallery">
+  <div class="s-eyebrow" style="color:var(--gold)">Our Moments</div>
+  <h2>Photo Gallery</h2>
+  <div class="gallery-grid">
+    <div class="gallery-item gi1">💏</div>
+    <div class="gallery-item gi2">🌹</div>
+    <div class="gallery-item gi3">🥂</div>
+    <div class="gallery-item gi4">💍</div>
+    <div class="gallery-item gi5">🎊</div>
+  </div>
+</section>
+
+<section class="rsvp-section" id="rsvp">
+  <div class="s-eyebrow">Kindly Confirm</div>
+  <h2>Will You Join Us?</h2>
+  <p class="lead" style="margin-bottom:0">We'd love to have you celebrate with us. Please RSVP before May 30th, 2025.</p>
+  <div class="rsvp-form">
+    <input class="rsvp-input" type="text" placeholder="Your Full Name" />
+    <input class="rsvp-input" type="email" placeholder="Email Address" />
+    <input class="rsvp-input" type="number" placeholder="Number of Guests" min="1" max="6"/>
+    <select class="rsvp-select"><option>Will you attend? — Please select</option><option>Yes, I'll be there! 🎉</option><option>I'll attend virtually</option><option>Regretfully unable to attend</option></select>
+    <button onclick="alert('Thank you! 💛 Your RSVP has been received. See you on June 14th!')" class="rsvp-btn" style="cursor:pointer;border:none;font-family:inherit">Confirm RSVP</button>
+  </div>
+</section>
+
+<footer>
+  <h3>Chidi & Amaka</h3>
+  <p>14th June 2025 · Abuja, Nigeria</p>
+  <p style="margin-top:1rem;font-size:.75rem">With love ❤️ — Website by Anyaegbu Emmanuel</p>
+</footer>
+
+<script>
+  // Countdown
+  function tick(){
+    const target=new Date('2025-06-14T10:00:00');
+    const now=new Date();
+    const diff=target-now;
+    if(diff<=0)return;
+    const d=Math.floor(diff/86400000);
+    const h=Math.floor((diff%86400000)/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    const s=Math.floor((diff%60000)/1000);
+    document.getElementById('cdD').textContent=String(d).padStart(2,'0');
+    document.getElementById('cdH').textContent=String(h).padStart(2,'0');
+    document.getElementById('cdM').textContent=String(m).padStart(2,'0');
+    document.getElementById('cdS').textContent=String(s).padStart(2,'0');
+  }
+  tick();setInterval(tick,1000);
+  // Petals
+  const petals=['🌸','🌺','🌹','💐','🌼'];
+  const container=document.getElementById('petals');
+  for(let i=0;i<15;i++){
+    const p=document.createElement('div');
+    p.className='petal';
+    p.textContent=petals[i%petals.length];
+    p.style.left=Math.random()*100+'%';
+    p.style.animationDuration=(8+Math.random()*8)+'s';
+    p.style.animationDelay=-(Math.random()*12)+'s';
+    container.appendChild(p);
+  }
+</script>
+</body>
+</html>

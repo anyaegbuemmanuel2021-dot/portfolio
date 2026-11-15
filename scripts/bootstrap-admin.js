@@ -1,0 +1,4 @@
+// One-time owner creation. Usage: ADMIN_EMAIL=you@x.com ADMIN_PASSWORD='long-Pass-123' npm run bootstrap-admin
+import '../server/config.js'; import { config, assertConfig } from '../server/config.js'; import { connect } from '../server/db.js'; import { migrate } from '../server/migrate.js'; import { seed } from '../server/seed.js'; import { authService } from '../server/services/auth.js';
+assertConfig(); const db = await connect(); await migrate(db); await seed(db);
+try { const id = await authService(db, { real: false }).bootstrap({ email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD, name: process.env.ADMIN_NAME || 'Owner' }); console.log('Owner created:', id, '\nNext: sign in at /admin with your email and password.'); } catch (e) { console.error('Failed:', e.message); process.exitCode = 1; } await db.close();

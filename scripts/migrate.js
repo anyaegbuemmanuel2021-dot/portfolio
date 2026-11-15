@@ -1,0 +1,2 @@
+import '../server/config.js'; import { connect } from '../server/db.js'; import { migrate, migrationStatus } from '../server/migrate.js';
+const db = await connect(process.env.TARGET_DATABASE_URL); const done = await migrate(db); console.log(done.length ? 'Applied: ' + done.join(', ') : 'Database is up to date'); console.log(JSON.stringify((await migrationStatus(db)).applied.map(a => a.name))); await db.close();

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CalcKit — Multi-Tool Calculator App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#111;--card:#1a1a1a;--border:#2a2a2a;--text:#f0f0f0;--muted:#888;--accent:#c8a96e;--green:#10b981;--red:#ef4444;--blue:#3b82f6}
+    body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center}
+    header{width:100%;max-width:800px;padding:2rem 1.5rem 1rem;display:flex;justify-content:space-between;align-items:center}
+    .brand{font-size:1.3rem;font-weight:700;letter-spacing:-.02em}
+    .brand span{color:var(--accent)}
+    .mode-toggle{display:flex;gap:.5rem}
+    .mode-btn{padding:.4rem 1rem;border-radius:50px;border:1px solid var(--border);font-size:.8rem;font-weight:600;cursor:pointer;background:transparent;color:var(--muted);font-family:inherit;transition:all .2s}
+    .mode-btn.active{background:var(--accent);color:#111;border-color:var(--accent)}
+    .app{width:100%;max-width:480px;padding:0 1.5rem 3rem}
+    /* CALCULATOR */
+    .calc{background:var(--card);border-radius:24px;border:1px solid var(--border);overflow:hidden;margin-bottom:2rem}
+    .display{padding:1.5rem;background:rgba(0,0,0,.3);border-bottom:1px solid var(--border)}
+    .display-expr{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--muted);min-height:1.2em;text-align:right;overflow:hidden;text-overflow:ellipsis}
+    .display-val{font-family:'Space Mono',monospace;font-size:2.8rem;font-weight:700;text-align:right;color:var(--text);overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+    .history{font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);text-align:right;min-height:1em;margin-top:.3rem}
+    .buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border)}
+    .btn{padding:1.3rem;font-size:1.1rem;font-weight:600;cursor:pointer;border:none;background:var(--card);color:var(--text);font-family:inherit;transition:background .15s,transform .1s;user-select:none}
+    .btn:hover{background:#222}
+    .btn:active{transform:scale(.94)}
+    .btn.op{color:var(--accent)}
+    .btn.eq{background:var(--accent);color:#111}
+    .btn.eq:hover{background:#d4b47a}
+    .btn.clr{color:var(--red)}
+    .btn.util{color:var(--muted)}
+    .btn.span2{grid-column:span 2;border-radius:0}
+    /* CONVERTER */
+    .converter{background:var(--card);border-radius:24px;border:1px solid var(--border);padding:1.5rem;display:none}
+    .converter.active{display:block}
+    .conv-title{font-size:1rem;font-weight:600;margin-bottom:1.2rem;color:var(--accent)}
+    .conv-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+    .conv-tab{padding:.4rem 1rem;border-radius:50px;border:1px solid var(--border);font-size:.8rem;cursor:pointer;background:transparent;color:var(--muted);font-family:inherit;transition:all .2s}
+    .conv-tab.active{background:var(--accent);color:#111;border-color:var(--accent)}
+    .conv-row{display:grid;grid-template-columns:1fr auto 1fr;gap:.8rem;align-items:end;margin-bottom:1rem}
+    .conv-group label{display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem}
+    .conv-input{width:100%;padding:.8rem 1rem;background:#111;border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Mono',monospace;font-size:1rem;transition:border-color .2s}
+    .conv-input:focus{outline:none;border-color:var(--accent)}
+    .conv-select{width:100%;padding:.5rem .8rem;background:#111;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.85rem;cursor:pointer}
+    .swap-btn{background:var(--border);border:none;color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0;font-family:inherit}
+    .swap-btn:hover{background:var(--accent);color:#111}
+    .conv-result{background:#111;border-radius:12px;padding:1rem;text-align:center;border:1px solid var(--border)}
+    .conv-result-num{font-family:'Space Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--accent)}
+    .conv-result-label{font-size:.75rem;color:var(--muted);margin-top:.3rem}
+    /* TIPS */
+    .tips{margin-top:1.5rem;background:rgba(200,169,110,.06);border:1px solid rgba(200,169,110,.15);border-radius:12px;padding:1rem 1.2rem}
+    .tips-title{font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
+    .tip{font-size:.8rem;color:var(--muted);padding:.3rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .tip:last-child{border-bottom:none}
+    .tip span{color:var(--text)}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Calc<span>Kit</span></div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="showMode('calc',this)">Calculator</button>
+    <button class="mode-btn" onclick="showMode('conv',this)">Converter</button>
+  </div>
+</header>
+
+<div class="app">
+  <!-- CALCULATOR -->
+  <div class="calc" id="calcMode">
+    <div class="display">
+      <div class="display-expr" id="expr"></div>
+      <div class="display-val" id="disp">0</div>
+      <div class="history" id="hist"></div>
+    </div>
+    <div class="buttons">
+      <button class="btn util" onclick="calcAC()">AC</button>
+      <button class="btn util" onclick="calcToggleSign()">+/-</button>
+      <button class="btn util" onclick="calcPercent()">%</button>
+      <button class="btn op" onclick="calcOp('/')">÷</button>
+      <button class="btn" onclick="calcNum('7')">7</button>
+      <button class="btn" onclick="calcNum('8')">8</button>
+      <button class="btn" onclick="calcNum('9')">9</button>
+      <button class="btn op" onclick="calcOp('*')">×</button>
+      <button class="btn" onclick="calcNum('4')">4</button>
+      <button class="btn" onclick="calcNum('5')">5</button>
+      <button class="btn" onclick="calcNum('6')">6</button>
+      <button class="btn op" onclick="calcOp('-')">−</button>
+      <button class="btn" onclick="calcNum('1')">1</button>
+      <button class="btn" onclick="calcNum('2')">2</button>
+      <button class="btn" onclick="calcNum('3')">3</button>
+      <button class="btn op" onclick="calcOp('+')">+</button>
+      <button class="btn span2" onclick="calcNum('0')">0</button>
+      <button class="btn" onclick="calcDot()">.</button>
+      <button class="btn eq" onclick="calcEquals()">=</button>
+    </div>
+  </div>
+
+  <!-- CONVERTER -->
+  <div class="converter" id="convMode">
+    <div class="conv-title">Unit Converter</div>
+    <div class="conv-tabs">
+      <button class="conv-tab active" onclick="setConv('currency',this)">💰 Currency</button>
+      <button class="conv-tab" onclick="setConv('length',this)">📏 Length</button>
+      <button class="conv-tab" onclick="setConv('weight',this)">⚖️ Weight</button>
+      <button class="conv-tab" onclick="setConv('temp',this)">🌡 Temp</button>
+      <button class="conv-tab" onclick="setConv('data',this)">💾 Data</button>
+    </div>
+    <div class="conv-row">
+      <div class="conv-group">
+        <label>From</label>
+        <input class="conv-input" id="convFrom" type="number" value="1" oninput="doConvert()"/>
+        <select class="conv-select" id="selFrom" onchange="doConvert()" style="margin-top:.4rem"></select>
+      </div>
+      <button class="swap-btn" onclick="swapUnits()">⇄</button>
+      <div class="conv-group">
+        <label>To</label>
+        <input class="conv-input" id="convTo" type="number" readonly/>
+        <select class="conv-select" id="selTo" onchange="doConvert()" style="margin-top:.4rem"></select>
+      </div>
+    </div>
+    <div class="conv-result">
+      <div class="conv-result-num" id="convResultBig">—</div>
+      <div class="conv-result-label" id="convResultLabel">Enter a value to convert</div>
+    </div>
+  </div>
+
+  <div class="tips">
+    <div class="tips-title">⌨️ Keyboard Shortcuts</div>
+    <div class="tip"><span>0–9</span> — Type numbers directly</div>
+    <div class="tip"><span>+ - * /</span> — Operators</div>
+    <div class="tip"><span>Enter</span> — Calculate result</div>
+    <div class="tip"><span>Backspace</span> — Delete last digit</div>
+    <div class="tip"><span>Escape</span> — Clear all</div>
+  </div>
+</div>
+
+<script>
+// CALCULATOR
+let cur='0',prev='',op='',newNum=true;
+const disp=document.getElementById('disp');
+const expr=document.getElementById('expr');
+const hist=document.getElementById('hist');
+function update(v){disp.textContent=parseFloat(v).toLocaleString('en',{maximumFractionDigits:10});}
+function calcNum(n){
+  if(newNum){cur=n;newNum=false;}
+  else{cur=cur==='0'?n:cur+n;}
+  update(cur);
+}
+function calcDot(){if(newNum){cur='0.';newNum=false;}else if(!cur.includes('.')){cur+='.'}update(cur);}
+function calcOp(o){
+  if(op&&!newNum){calcEquals();}
+  prev=cur;op=o;newNum=true;
+  const sym={'+':'+','-':'−','*':'×','/':'÷'}[o];
+  expr.textContent=prev+' '+sym;
+}
+function calcEquals(){
+  if(!op||!prev)return;
+  const a=parseFloat(prev),b=parseFloat(cur);
+  let r;
+  if(op==='/')r=b===0?'Error':a/b;
+  else if(op==='*')r=a*b;
+  else if(op==='+')r=a+b;
+  else if(op==='-')r=a-b;
+  hist.textContent=prev+' '+(op==='*'?'×':op==='/'?'÷':op)+' '+cur+' =';
+  expr.textContent='';
+  cur=String(r);prev='';op='';newNum=true;
+  if(cur==='Error'){disp.textContent='Error';cur='0';}else update(cur);
+}
+function calcAC(){cur='0';prev='';op='';newNum=true;expr.textContent='';hist.textContent='';update('0');}
+function calcToggleSign(){cur=String(-parseFloat(cur));update(cur);}
+function calcPercent(){cur=String(parseFloat(cur)/100);update(cur);}
+document.addEventListener('keydown',e=>{
+  if(e.key>='0'&&e.key<='9')calcNum(e.key);
+  else if(e.key==='.')calcDot();
+  else if(['+','-','*','/'].includes(e.key))calcOp(e.key);
+  else if(e.key==='Enter'||e.key==='=')calcEquals();
+  else if(e.key==='Backspace'){if(!newNum&&cur.length>1)cur=cur.slice(0,-1);else{cur='0';newNum=true;}update(cur);}
+  else if(e.key==='Escape')calcAC();
+});
+
+// CONVERTER
+const convData={
+  currency:{units:['NGN (₦)','USD ($)','EUR (€)','GBP (£)','GHS (₵)'],rates:{0:1,1:1600,2:1750,3:2100,4:110}},
+  length:{units:['Meters','Kilometers','Miles','Feet','Inches','Centimeters'],rates:{0:1,1:1000,2:1609.34,3:.3048,4:.0254,5:.01}},
+  weight:{units:['Kilograms','Grams','Pounds','Ounces','Tonnes'],rates:{0:1,1:.001,2:.453592,3:.0283495,4:1000}},
+  temp:{units:['Celsius','Fahrenheit','Kelvin'],rates:{0:'C',1:'F',2:'K'}},
+  data:{units:['Bytes','Kilobytes','Megabytes','Gigabytes','Terabytes'],rates:{0:1,1:1024,2:1048576,3:1073741824,4:1099511627776}}
+};
+let convType='currency';
+function setConv(type,btn){
+  convType=type;
+  document.querySelectorAll('.conv-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const d=convData[type];
+  const sf=document.getElementById('selFrom'),st=document.getElementById('selTo');
+  sf.innerHTML='';st.innerHTML='';
+  d.units.forEach((u,i)=>{sf.add(new Option(u,i));st.add(new Option(u,i));});
+  st.selectedIndex=1;
+  doConvert();
+}
+function doConvert(){
+  const val=parseFloat(document.getElementById('convFrom').value)||0;
+  const fi=+document.getElementById('selFrom').value;
+  const ti=+document.getElementById('selTo').value;
+  const d=convData[convType];
+  let result;
+  if(convType==='temp'){
+    const fromUnit=d.rates[fi],toUnit=d.rates[ti];
+    let c=fromUnit==='C'?val:fromUnit==='F'?(val-32)*5/9:val-273.15;
+    result=toUnit==='C'?c:toUnit==='F'?c*9/5+32:c+273.15;
+  }else{
+    const base=val*d.rates[fi];result=base/d.rates[ti];
+  }
+  result=+result.toFixed(6);
+  document.getElementById('convTo').value=result;
+  document.getElementById('convResultBig').textContent=result.toLocaleString();
+  document.getElementById('convResultLabel').textContent=`${val} ${d.units[fi]} = ${result} ${d.units[ti]}`;
+}
+function swapUnits(){
+  const sf=document.getElementById('selFrom'),st=document.getElementById('selTo');
+  const tmp=sf.value;sf.value=st.value;st.value=tmp;doConvert();
+}
+function showMode(m,btn){
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('calcMode').style.display=m==='calc'?'block':'none';
+  document.getElementById('convMode').classList.toggle('active',m==='conv');
+}
+setConv('currency',document.querySelector('.conv-tab'));
+</script>
+</body>
+</html>

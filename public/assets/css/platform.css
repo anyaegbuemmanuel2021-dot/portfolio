@@ -1,0 +1,43 @@
+/* Additions for articles, ad slots and contact hand-off. Uses the existing design tokens; mobile-first. */
+.ad-slot{max-width:100%;margin:var(--space-6,1.5rem) auto;text-align:center;overflow:hidden;min-height:0}
+.ad-slot[hidden]{display:none}
+.ad-slot__link{display:block}.ad-slot img{max-width:100%;height:auto;border-radius:12px;display:block;margin:0 auto}
+.ad-slot__tag{display:block;font-family:var(--font-mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--color-text-muted);margin-bottom:.35rem}
+.articles-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:2rem}
+@media(min-width:960px){.articles-layout{grid-template-columns:minmax(0,1fr) 300px}}
+.articles-tools{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem}
+.articles-tools input,.articles-tools select{flex:1 1 180px;min-width:0;min-height:44px}
+.article-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:1.25rem}
+.article-card{display:flex;flex-direction:column;background:var(--color-surface,#111);border:1px solid var(--color-border);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;transition:transform .25s,border-color .25s}
+.article-card:hover,.article-card:focus-visible{transform:translateY(-3px);border-color:var(--color-gold)}
+.article-card__img{aspect-ratio:16/9;width:100%;object-fit:cover;background:var(--color-bg-alt)}
+.article-card__body{padding:1rem 1.1rem 1.25rem}
+.article-card__meta{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--color-gold);margin-bottom:.4rem}
+.article-card__title{font-family:var(--font-display);font-size:1.35rem;line-height:1.2;margin:0 0 .5rem;overflow-wrap:anywhere}
+.article-card__excerpt{color:var(--color-text-muted);font-size:.95rem;margin:0}
+.pager{display:flex;justify-content:center;gap:.75rem;margin-top:2rem;flex-wrap:wrap}
+.article{max-width:760px;margin:0 auto;padding-inline:var(--space-4,1rem)}
+.article__title{font-family:var(--font-display);font-size:clamp(1.9rem,6vw,3.2rem);line-height:1.1;overflow-wrap:anywhere}
+.article__meta{font-family:var(--font-mono);font-size:.75rem;color:var(--color-text-muted);margin:.75rem 0 1.5rem;display:flex;flex-wrap:wrap;gap:.5rem 1rem}
+.article__hero{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:16px;margin-bottom:1.5rem}
+.article__body{font-size:clamp(1rem,2.6vw,1.12rem);line-height:1.8;overflow-wrap:anywhere}
+.article__body img{max-width:100%;height:auto;border-radius:12px}
+.article__body pre{overflow-x:auto;padding:1rem;border-radius:12px;background:var(--color-bg-alt);max-width:100%}
+.article__body table{display:block;overflow-x:auto;max-width:100%}
+.article__body blockquote{border-left:3px solid var(--color-gold);margin:1.2rem 0;padding:.25rem 1rem;color:var(--color-text-muted)}
+.article__body a{color:var(--color-gold)}
+.article__tags{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem}
+.article__tag{font-family:var(--font-mono);font-size:.72rem;border:1px solid var(--color-border);border-radius:999px;padding:.3rem .7rem}
+.article__share{display:flex;flex-wrap:wrap;gap:.75rem;margin:2rem 0}
+.wa-handoff{margin-top:1rem;padding:1rem;border:1px solid var(--color-gold);border-radius:12px;text-align:center}
+.wa-handoff p{margin:0 0 .75rem}
+.hp-field{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+.nav__links{flex-wrap:nowrap}
+@media(max-width:1100px){.nav__links{gap:.9rem}}
+/* Scroll-reveal elements start translated off-screen (slide-left/right); clip them so mobile never scrolls sideways.
+   `clip` (unlike `hidden`) does not create a scroll container, so sticky nav and anchors keep working. */
+html,body{overflow-x:clip;max-width:100%}
+img,video,iframe,svg{max-width:100%}
+.article__body ul{list-style:disc;padding-left:1.4rem}.article__body ol{list-style:decimal;padding-left:1.4rem}
+.article__body h2,.article__body h3,.article__body h4{font-family:var(--font-display);margin:1.6rem 0 .6rem}
+.article__body p,.article__body li{color:var(--color-text)}

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>TechNaija Blog — Tech, Dev & Design for Nigerians</title>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#fff;--bg2:#f8f9fa;--dark:#0f0f11;--body:#374151;--border:#e5e7eb;--accent:#f59e0b;--blue:#3b82f6;--green:#10b981}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--body);line-height:1.6}
+    a{color:inherit;text-decoration:none}
+    /* NAV */
+    nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:1rem 5%;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-family:'Merriweather',serif;font-size:1.4rem;font-weight:900;color:var(--dark)}
+    .logo span{color:var(--accent)}
+    .nav-items{display:flex;align-items:center;gap:2rem}
+    .nav-items a{color:var(--body);font-size:.9rem;font-weight:500;transition:color .2s}
+    .nav-items a:hover{color:var(--accent)}
+    .nav-badge{background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;padding:.3rem .8rem;border-radius:50px;letter-spacing:.04em}
+    /* HERO */
+    .hero{background:linear-gradient(135deg,#0f0f11 0%,#1a1a2e 50%,#16213e 100%);padding:5rem 5%;color:#fff;position:relative;overflow:hidden}
+    .hero::after{content:'';position:absolute;right:0;top:0;bottom:0;width:40%;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(59,130,246,.05));clip-path:polygon(20% 0%,100% 0%,100% 100%,0% 100%)}
+    .hero-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+    .hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);padding:.4rem 1rem;border-radius:50px;font-size:.75rem;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.5rem}
+    .hero h1{font-family:'Merriweather',serif;font-size:clamp(2rem,4vw,3rem);font-weight:900;color:#fff;line-height:1.2;margin-bottom:1rem}
+    .hero p{color:rgba(255,255,255,.65);line-height:1.8;margin-bottom:2rem}
+    .hero-featured{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:2rem}
+    .featured-label{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:1rem}
+    .featured-title{font-family:'Merriweather',serif;font-size:1.3rem;font-weight:700;color:#fff;line-height:1.4;margin-bottom:.8rem}
+    .featured-meta{display:flex;gap:1rem;font-size:.8rem;color:rgba(255,255,255,.4)}
+    .tag{display:inline-block;background:rgba(245,158,11,.15);color:var(--accent);font-size:.7rem;font-weight:600;padding:.25rem .7rem;border-radius:50px;margin-right:.4rem}
+    .read-btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--accent);color:#fff;padding:.7rem 1.5rem;border-radius:8px;font-weight:600;font-size:.85rem;margin-top:1.2rem;transition:transform .3s}
+    .read-btn:hover{transform:translateX(4px)}
+    /* CONTENT */
+    .container{max-width:1200px;margin:0 auto;padding:0 5%}
+    .main-grid{display:grid;grid-template-columns:2fr 1fr;gap:3rem;padding:4rem 0}
+    /* POSTS */
+    .section-title{font-family:'Merriweather',serif;font-size:1.4rem;font-weight:700;color:var(--dark);margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid var(--accent)}
+    .post-card{display:grid;grid-template-columns:120px 1fr;gap:1.5rem;padding:1.5rem 0;border-bottom:1px solid var(--border)}
+    .post-card:last-child{border-bottom:none}
+    .post-thumb{height:90px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;flex-shrink:0}
+    .pt1{background:linear-gradient(135deg,#1a1a2e,#3d1a7a)}
+    .pt2{background:linear-gradient(135deg,#0f3460,#e94560)}
+    .pt3{background:linear-gradient(135deg,#0d3b2e,#1a7a4a)}
+    .pt4{background:linear-gradient(135deg,#3a1a00,#c8500a)}
+    .pt5{background:linear-gradient(135deg,#0a0a2a,#1a1a60)}
+    .post-content .tag{margin-bottom:.5rem}
+    .post-title{font-family:'Merriweather',serif;font-size:1.05rem;font-weight:700;color:var(--dark);line-height:1.4;margin-bottom:.5rem;transition:color .2s;cursor:pointer}
+    .post-title:hover{color:var(--accent)}
+    .post-excerpt{font-size:.85rem;color:#6b7280;line-height:1.6;margin-bottom:.5rem}
+    .post-meta{font-size:.75rem;color:#9ca3af;display:flex;gap:1rem;align-items:center}
+    .post-meta .dot{width:3px;height:3px;background:#d1d5db;border-radius:50%}
+    /* SIDEBAR */
+    .widget{background:var(--bg2);border-radius:16px;padding:1.5rem;margin-bottom:2rem}
+    .widget-title{font-family:'Merriweather',serif;font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:1.2rem;padding-bottom:.8rem;border-bottom:1px solid var(--border)}
+    .categories{display:flex;flex-direction:column;gap:.6rem}
+    .cat-item{display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;border-radius:8px;cursor:pointer;transition:background .2s}
+    .cat-item:hover{background:#fff}
+    .cat-name{font-size:.9rem;font-weight:500;color:var(--dark)}
+    .cat-count{background:var(--border);color:#6b7280;font-size:.75rem;font-weight:600;padding:.15rem .5rem;border-radius:50px}
+    .newsletter{background:linear-gradient(135deg,var(--dark),#1a1a2e);color:#fff;border-radius:16px;padding:1.5rem}
+    .newsletter h4{font-family:'Merriweather',serif;font-size:1.1rem;color:#fff;margin-bottom:.5rem}
+    .newsletter p{color:rgba(255,255,255,.6);font-size:.85rem;margin-bottom:1rem}
+    .nl-input{width:100%;padding:.75rem 1rem;border:none;border-radius:8px;font-size:.9rem;margin-bottom:.8rem;background:rgba(255,255,255,.1);color:#fff}
+    .nl-input::placeholder{color:rgba(255,255,255,.4)}
+    .nl-btn{width:100%;padding:.75rem;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:background .3s}
+    .nl-btn:hover{background:#d97706}
+    .trending-item{display:flex;gap:.8rem;align-items:flex-start;padding:.6rem 0;border-bottom:1px solid var(--border)}
+    .trending-num{font-size:1.5rem;font-weight:800;color:var(--border);font-family:'Merriweather',serif;line-height:1;flex-shrink:0;width:28px}
+    .trending-title{font-size:.85rem;font-weight:600;color:var(--dark);line-height:1.4;cursor:pointer;transition:color .2s}
+    .trending-title:hover{color:var(--accent)}
+    /* FOOTER */
+    footer{background:var(--dark);color:rgba(255,255,255,.6);padding:3rem 5%;text-align:center}
+    footer .logo{display:block;margin-bottom:.5rem}
+    @media(max-width:768px){.hero-inner,.main-grid{grid-template-columns:1fr}.post-card{grid-template-columns:1fr}.post-thumb{height:160px}}
+      /* responsive fix (platform audit) */
+    @media(max-width:640px){.nav-items{gap:.9rem;flex-wrap:wrap;justify-content:flex-end;min-width:0}.nav-items a{font-size:.8rem}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Tech<span>Naija</span></div>
+  <div class="nav-items">
+    <a href="#posts">Articles</a>
+    <a href="#sidebar">Categories</a>
+    <a href="#newsletter">Newsletter</a>
+    <span class="nav-badge">🔥 Hot</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-tag">📰 Nigeria's Top Tech Blog</div>
+      <h1>Tech, Dev & Design — Made for Nigerians</h1>
+      <p>Tutorials, career tips, industry news and insights tailored for the Nigerian developer and tech professional. Updated weekly.</p>
+      <a href="#posts" class="read-btn">Browse All Articles →</a>
+    </div>
+    <div class="hero-featured">
+      <div class="featured-label">📌 Featured Article</div>
+      <div><span class="tag">Career</span></div>
+      <div class="featured-title">How to Land a Remote Dev Job from Nigeria in 2025</div>
+      <div class="featured-meta"><span>Emmanuel A.</span><span>·</span><span>8 min read</span><span>·</span><span>Jan 2025</span></div>
+      <a href="#" class="read-btn" onclick="alert('Full article coming soon!')">Read Article →</a>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="main-grid">
+    <!-- POSTS -->
+    <main id="posts">
+      <div class="section-title">Latest Articles</div>
+      <div class="post-card">
+        <div class="post-thumb pt1">💻</div>
+        <div class="post-content">
+          <span class="tag">Frontend</span>
+          <div class="post-title" onclick="alert('Full article coming soon!')">10 CSS Tricks Every Nigerian Frontend Dev Must Know in 2025</div>
+          <div class="post-excerpt">Level up your CSS game with these practical techniques — from custom properties to container queries — that will make your layouts stand out.</div>
+          <div class="post-meta"><span>Jan 15, 2025</span><span class="dot"></span><span>6 min read</span><span class="dot"></span><span>⭐ 142 likes</span></div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-thumb pt2">🚀</div>
+        <div class="post-content">
+          <span class="tag">Career</span>
+          <div class="post-title" onclick="alert('Full article coming soon!')">From NYSC to Full-Time Remote — My $3k/Month Developer Journey</div>
+          <div class="post-excerpt">A real account of how I went from an NYSC batch to earning in dollars fully remotely — the platforms, skills, and mindset shifts that made the difference.</div>
+          <div class="post-meta"><span>Jan 10, 2025</span><span class="dot"></span><span>12 min read</span><span class="dot"></span><span>⭐ 398 likes</span></div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-thumb pt3">🤖</div>
+        <div class="post-content">
+          <span class="tag">AI & Tools</span>
+          <div class="post-title" onclick="alert('Full article coming soon!')">Using AI to Speed Up Development: A Practical Guide for Developers</div>
+          <div class="post-excerpt">How modern developers use AI tools in their daily workflow — not to replace code skills, but to move faster and solve problems smarter.</div>
+          <div class="post-meta"><span>Jan 5, 2025</span><span class="dot"></span><span>8 min read</span><span class="dot"></span><span>⭐ 276 likes</span></div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-thumb pt4">🎨</div>
+        <div class="post-content">
+          <span class="tag">Design</span>
+          <div class="post-title" onclick="alert('Full article coming soon!')">UI Design Principles Every Nigerian Dev Needs to Learn Now</div>
+          <div class="post-excerpt">You don't need to be a designer to build beautiful interfaces. These fundamental principles will transform how you think about the web.</div>
+          <div class="post-meta"><span>Dec 28, 2024</span><span class="dot"></span><span>7 min read</span><span class="dot"></span><span>⭐ 189 likes</span></div>
+        </div>
+      </div>
+      <div class="post-card">
+        <div class="post-thumb pt5">📱</div>
+        <div class="post-content">
+          <span class="tag">JavaScript</span>
+          <div class="post-title" onclick="alert('Full article coming soon!')">Build a Responsive Portfolio That Gets You Hired — Complete Tutorial</div>
+          <div class="post-excerpt">Step-by-step guide to building a standout developer portfolio using HTML, CSS, and vanilla JavaScript. No frameworks required.</div>
+          <div class="post-meta"><span>Dec 20, 2024</span><span class="dot"></span><span>15 min read</span><span class="dot"></span><span>⭐ 520 likes</span></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="newsletter" id="newsletter">
+        <h4>📬 Get the Newsletter</h4>
+        <p>Weekly tech tips, job alerts, and tutorials — straight to your inbox.</p>
+        <input class="nl-input" type="email" placeholder="your@email.com"/>
+        <button class="nl-btn" onclick="alert('You\'re subscribed! 🎉')">Subscribe Free</button>
+      </div>
+      <div class="widget">
+        <div class="widget-title">📂 Categories</div>
+        <div class="categories">
+          <div class="cat-item"><span class="cat-name">Frontend Dev</span><span class="cat-count">24</span></div>
+          <div class="cat-item"><span class="cat-name">Career & Jobs</span><span class="cat-count">18</span></div>
+          <div class="cat-item"><span class="cat-name">AI & Tools</span><span class="cat-count">15</span></div>
+          <div class="cat-item"><span class="cat-name">UI/UX Design</span><span class="cat-count">12</span></div>
+          <div class="cat-item"><span class="cat-name">JavaScript</span><span class="cat-count">30</span></div>
+          <div class="cat-item"><span class="cat-name">Nigeria Tech</span><span class="cat-count">9</span></div>
+        </div>
+      </div>
+      <div class="widget">
+        <div class="widget-title">🔥 Trending</div>
+        <div class="trending-item"><div class="trending-num">01</div><div class="trending-title">How to get your first freelance client as a dev in Nigeria</div></div>
+        <div class="trending-item"><div class="trending-num">02</div><div class="trending-title">CSS Grid vs Flexbox — which should you use?</div></div>
+        <div class="trending-item"><div class="trending-num">03</div><div class="trending-title">Best platforms to find remote jobs in 2025</div></div>
+        <div class="trending-item"><div class="trending-num">04</div><div class="trending-title">Building with AI: prompts that actually work for devs</div></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer>
+  <div class="logo">Tech<span style="color:var(--accent)">Naija</span></div>
+  <p>© 2025 TechNaija Blog. Empowering Nigerian Developers 🇳🇬</p>
+</footer>
+</body>
+</html>

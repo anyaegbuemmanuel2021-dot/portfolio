@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>StyleBox NG — Premium Fashion Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#fafaf8;--dark:#111;--body:#444;--border:#e8e8e8;--accent:#c8972e;--tag-bg:#f5f5f5}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--body);overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    /* NAV */
+    nav{background:#fff;border-bottom:1px solid var(--border);padding:1.2rem 5%;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+    .logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--dark);letter-spacing:-.02em}
+    .logo span{color:var(--accent)}
+    .nav-mid{display:flex;gap:2rem}
+    .nav-mid a{font-size:.85rem;font-weight:500;color:var(--body);transition:color .2s}
+    .nav-mid a:hover{color:var(--dark)}
+    .nav-right{display:flex;align-items:center;gap:1.5rem}
+    .nav-icon{position:relative;cursor:pointer;font-size:1.3rem}
+    .cart-count{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#fff;font-size:.6rem;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    /* BANNER */
+    .top-banner{background:var(--dark);color:rgba(255,255,255,.8);text-align:center;padding:.6rem;font-size:.8rem;letter-spacing:.06em}
+    .top-banner span{color:var(--accent);font-weight:600}
+    /* HERO */
+    .hero{display:grid;grid-template-columns:1fr 1fr;min-height:90vh;overflow:hidden}
+    .hero-left{background:linear-gradient(135deg,#1a1209,#3a2a10);display:flex;flex-direction:column;justify-content:center;padding:6rem 6% 6rem 8%;position:relative;overflow:hidden}
+    .hero-left::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;color:var(--accent);font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;margin-bottom:1.5rem}
+    .hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent)}
+    .hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4.5rem);color:#fff;line-height:1.1;letter-spacing:-.02em;margin-bottom:1.5rem}
+    .hero h1 em{font-style:italic;color:var(--accent)}
+    .hero-desc{color:rgba(255,255,255,.6);line-height:1.8;max-width:400px;margin-bottom:2.5rem}
+    .hero-btns{display:flex;gap:1rem;flex-wrap:wrap}
+    .btn-shop{background:var(--accent);color:#fff;padding:.9rem 2.2rem;border-radius:6px;font-weight:600;font-size:.9rem;transition:transform .3s,box-shadow .3s;display:inline-flex;align-items:center;gap:.5rem}
+    .btn-shop:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(200,151,46,.4)}
+    .btn-ghost{border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:.9rem 2.2rem;border-radius:6px;font-size:.9rem;transition:border-color .3s}
+    .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+    .hero-right{background:linear-gradient(160deg,#f0e8d8,#e8dcc8);display:flex;align-items:center;justify-content:center;font-size:12rem;position:relative}
+    .hero-badge{position:absolute;top:2rem;right:2rem;background:var(--accent);color:#fff;border-radius:50%;width:80px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;text-align:center;line-height:1.2}
+    /* CATEGORIES */
+    .cats{padding:4rem 5%;display:flex;gap:1.5rem;overflow-x:auto;scrollbar-width:none}
+    .cats::-webkit-scrollbar{display:none}
+    .cat-pill{display:flex;align-items:center;gap:.5rem;background:#fff;border:1.5px solid var(--border);border-radius:50px;padding:.7rem 1.5rem;white-space:nowrap;cursor:pointer;font-weight:500;font-size:.9rem;transition:border-color .3s,color .3s;flex-shrink:0}
+    .cat-pill.active,.cat-pill:hover{border-color:var(--accent);color:var(--accent)}
+    /* PRODUCTS */
+    .products{padding:0 5% 5rem}
+    .products-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
+    .products-title{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--dark)}
+    .sort-select{border:1px solid var(--border);border-radius:8px;padding:.5rem 1rem;font-size:.85rem;background:#fff;cursor:pointer}
+    .products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2rem}
+    .product-card{background:#fff;border-radius:16px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:transform .4s,box-shadow .4s}
+    .product-card:hover{transform:translateY(-8px);box-shadow:0 20px 50px rgba(0,0,0,.1)}
+    .product-img{height:280px;display:flex;align-items:center;justify-content:center;font-size:6rem;position:relative;background:#f8f5f0}
+    .product-img.a1{background:linear-gradient(135deg,#f8f0e0,#ecdfc4)}
+    .product-img.a2{background:linear-gradient(135deg,#e8f0f8,#c4d4e8)}
+    .product-img.a3{background:linear-gradient(135deg,#f8e8e8,#e8c4c4)}
+    .product-img.a4{background:linear-gradient(135deg,#e8f8e8,#c4e8c4)}
+    .product-img.a5{background:linear-gradient(135deg,#f0e8f8,#d4c4e8)}
+    .product-img.a6{background:linear-gradient(135deg,#f8f8e8,#e8e4c4)}
+    .wishlist-btn{position:absolute;top:1rem;right:1rem;background:#fff;border:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:background .2s}
+    .wishlist-btn:hover{background:var(--accent);color:#fff}
+    .product-badge{position:absolute;top:1rem;left:1rem;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;padding:.25rem .7rem;border-radius:50px}
+    .product-body{padding:1.2rem}
+    .product-brand{font-size:.75rem;color:#999;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3rem}
+    .product-name{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:.5rem}
+    .product-rating{color:var(--accent);font-size:.8rem;margin-bottom:.8rem}
+    .product-footer{display:flex;justify-content:space-between;align-items:center}
+    .product-price{font-size:1.1rem;font-weight:600;color:var(--dark)}
+    .product-old{font-size:.85rem;color:#aaa;text-decoration:line-through;margin-left:.4rem}
+    .add-cart{background:var(--dark);color:#fff;border:none;padding:.6rem 1.2rem;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .3s}
+    .add-cart:hover{background:var(--accent)}
+    /* PROMO BANNER */
+    .promo{margin:0 5% 4rem;background:linear-gradient(135deg,var(--dark),#2d1a00);border-radius:20px;padding:3rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:2rem;color:#fff}
+    .promo h2{font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:.5rem}
+    .promo p{color:rgba(255,255,255,.6)}
+    /* FOOTER */
+    footer{background:var(--dark);color:rgba(255,255,255,.6);padding:3rem 5%;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2rem}
+    .footer-col h4{font-family:'DM Serif Display',serif;font-size:1rem;color:#fff;margin-bottom:1rem}
+    .footer-col p,.footer-col a{font-size:.85rem;line-height:2;display:block;color:rgba(255,255,255,.5);transition:color .2s}
+    .footer-col a:hover{color:var(--accent)}
+    @media(max-width:768px){.hero{grid-template-columns:1fr}.hero-right{display:none}.nav-mid{display:none}}
+  </style>
+</head>
+<body>
+
+<div class="top-banner">Free delivery on orders over <span>₦15,000</span> · Use code <span>NAIJA25</span> for 25% off</div>
+
+<nav>
+  <div class="logo">Style<span>Box</span></div>
+  <div class="nav-mid">
+    <a href="#">Women</a><a href="#">Men</a><a href="#">Accessories</a><a href="#">Sale</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-icon">❤️</div>
+    <div class="nav-icon">🛍<span class="cart-count" id="cartNum">0</span></div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">New Season Collection</div>
+    <h1>Wear Your <em>Story</em> With Confidence</h1>
+    <p class="hero-desc">Premium African-inspired fashion for the modern Nigerian. Bold prints, quality fabrics, and cuts that celebrate who you are.</p>
+    <div class="hero-btns">
+      <a href="#products" class="btn-shop">🛍 Shop Now</a>
+      <a href="#" class="btn-ghost">See Lookbook</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <span>👗</span>
+    <div class="hero-badge">NEW<br/>2025<br/>DROP</div>
+  </div>
+</section>
+
+<div class="cats">
+  <div class="cat-pill active">✨ All Items</div>
+  <div class="cat-pill">👗 Dresses</div>
+  <div class="cat-pill">👕 Tops</div>
+  <div class="cat-pill">👖 Bottoms</div>
+  <div class="cat-pill">👟 Footwear</div>
+  <div class="cat-pill">💍 Accessories</div>
+  <div class="cat-pill">🧥 Outerwear</div>
+</div>
+
+<div class="products" id="products">
+  <div class="products-header">
+    <div class="products-title">Featured Products</div>
+    <select class="sort-select"><option>Sort: Featured</option><option>Price: Low to High</option><option>Price: High to Low</option><option>Newest First</option></select>
+  </div>
+  <div class="products-grid">
+    <div class="product-card">
+      <div class="product-img a1"><span>👗</span><span class="product-badge">NEW</span><button class="wishlist-btn">🤍</button></div>
+      <div class="product-body"><div class="product-brand">StyleBox Originals</div><div class="product-name">Ankara Wrap Dress</div><div class="product-rating">★★★★★ (42)</div><div class="product-footer"><span class="product-price">₦18,500<span class="product-old">₦24,000</span></span><button class="add-cart" onclick="addToCart(this)">Add to Cart</button></div></div>
+    </div>
+    <div class="product-card">
+      <div class="product-img a2"><span>👔</span><button class="wishlist-btn">🤍</button></div>
+      <div class="product-body"><div class="product-brand">Men's Collection</div><div class="product-name">Linen Senator Set</div><div class="product-rating">★★★★☆ (28)</div><div class="product-footer"><span class="product-price">₦22,000</span><button class="add-cart" onclick="addToCart(this)">Add to Cart</button></div></div>
+    </div>
+    <div class="product-card">
+      <div class="product-img a3"><span>👠</span><span class="product-badge">-30%</span><button class="wishlist-btn">🤍</button></div>
+      <div class="product-body"><div class="product-brand">Footwear</div><div class="product-name">Leather Block Heels</div><div class="product-rating">★★★★★ (67)</div><div class="product-footer"><span class="product-price">₦14,000<span class="product-old">₦20,000</span></span><button class="add-cart" onclick="addToCart(this)">Add to Cart</button></div></div>
+    </div>
+    <div class="product-card">
+      <div class="product-img a4"><span>👜</span><button class="wishlist-btn">🤍</button></div>
+      <div class="product-body"><div class="product-brand">Accessories</div><div class="product-name">Kente Shoulder Bag</div><div class="product-rating">★★★★☆ (19)</div><div class="product-footer"><span class="product-price">₦12,500</span><button class="add-cart" onclick="addToCart(this)">Add to Cart</button></div></div>
+    </div>
+    <div class="product-card">
+      <div class="product-img a5"><span>🧣</span><span class="product-badge">HOT</span><button class="wishlist-btn">🤍</button></div>
+      <div class="product-body"><div class="product-brand">Women's Collection</div><div class="product-name">Aso-Oke Headwrap</div><div class="product-rating">★★★★★ (88)</div><div class="product-footer"><span class="product-price">₦5,500</span><button class="add-cart" onclick="addToCart(this)">Add to Cart</button></div></div>
+    </div>
+    <div class="product-card">
+      <div class="product-img a6"><span>🧥</span><button class="wishlist-btn">🤍</button></div>
+      <div class="product-body"><div class="product-brand">Men's Collection</div><div class="product-name">Agbada Embroidered Set</div><div class="product-rating">★★★★★ (35)</div><div class="product-footer"><span class="product-price">₦45,000</span><button class="add-cart" onclick="addToCart(this)">Add to Cart</button></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="promo">
+  <div><h2>End of Season Sale</h2><p>Up to 40% off on selected items. Limited time only!</p></div>
+  <a href="#products" class="btn-shop">Shop the Sale →</a>
+</div>
+
+<footer>
+  <div class="footer-col"><div class="logo" style="font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:1rem">Style<span style="color:var(--accent)">Box</span></div><p>Premium Nigerian fashion for the modern wardrobe.</p></div>
+  <div class="footer-col"><h4>Shop</h4><a href="#">Women</a><a href="#">Men</a><a href="#">Accessories</a><a href="#">Sale</a></div>
+  <div class="footer-col"><h4>Help</h4><a href="#">Shipping Info</a><a href="#">Returns</a><a href="#">Size Guide</a><a href="#">Contact</a></div>
+  <div class="footer-col"><h4>Follow Us</h4><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">WhatsApp</a></div>
+</footer>
+
+<script>
+  let count=0;
+  function addToCart(btn){
+    count++;
+    document.getElementById('cartNum').textContent=count;
+    btn.textContent='✓ Added!';
+    btn.style.background='#10b981';
+    setTimeout(()=>{btn.textContent='Add to Cart';btn.style.background='';},2000);
+  }
+</script>
+</body>
+</html>

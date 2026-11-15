@@ -1,0 +1,136 @@
+/* ============================================================
+   ANIMATIONS.CSS — Premium Animation System
+   ============================================================ */
+
+/* 1. PAGE LOADER */
+.loader {
+  position: fixed; inset: 0; z-index: var(--z-loader);
+  background-color: var(--color-bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-6);
+  transition: opacity 0.6s var(--ease-smooth), visibility 0.6s var(--ease-smooth);
+}
+.loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+/* Spinner loader - clean and minimal */
+.loader__spinner {
+  width: 44px; height: 44px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-gold);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader__wordmark { display: none !important; }
+.loader__bar-wrap { display: none !important; }
+@keyframes loaderPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+@keyframes loaderBar { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+
+/* 2. PAGE FADE-IN */
+.page-enter { animation: pageFadeIn 0.8s var(--ease-out-expo) both; }
+@keyframes pageFadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* 3. SCROLL REVEAL */
+[data-reveal] {
+  opacity: 0; will-change: transform, opacity;
+  transition: opacity 0.9s var(--ease-out-expo), transform 0.9s var(--ease-out-expo);
+}
+[data-reveal].revealed { opacity: 1; transform: none !important; }
+[data-reveal="fade-up"]    { transform: translateY(48px); }
+[data-reveal="fade-down"]  { transform: translateY(-48px); }
+[data-reveal="slide-left"] { transform: translateX(60px); }
+[data-reveal="slide-right"]{ transform: translateX(-60px); }
+[data-reveal="fade"]       { transform: none; }
+[data-reveal="scale"]      { transform: scale(0.92); }
+
+[data-delay="100"]{transition-delay:100ms} [data-delay="200"]{transition-delay:200ms}
+[data-delay="300"]{transition-delay:300ms} [data-delay="400"]{transition-delay:400ms}
+[data-delay="500"]{transition-delay:500ms} [data-delay="600"]{transition-delay:600ms}
+[data-delay="700"]{transition-delay:700ms} [data-delay="800"]{transition-delay:800ms}
+
+/* 4. ANIMATED GRADIENT BACKGROUND */
+.bg-gradient-animated { position: relative; isolation: isolate; }
+.bg-gradient-animated::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(200,169,110,0.06) 0%, transparent 70%);
+  animation: gradientShift 12s ease-in-out infinite alternate;
+}
+@keyframes gradientShift {
+  0%  {transform:translate(0,0) scale(1);opacity:0.5}
+  33% {transform:translate(-3%,2%) scale(1.05);opacity:0.8}
+  66% {transform:translate(3%,-2%) scale(0.97);opacity:0.6}
+  100%{transform:translate(0,0) scale(1);opacity:0.5}
+}
+
+/* 5. CARD HOVER LIFT */
+.card {
+  background-color: var(--color-bg-card); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: transform 0.4s var(--ease-out-expo), border-color 0.4s var(--ease-smooth), box-shadow 0.4s var(--ease-smooth);
+  will-change: transform;
+}
+.card:hover {
+  transform: translateY(-6px);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,169,110,0.06);
+}
+
+/* 6. ICON MICRO-INTERACTIONS */
+.icon-hover { display: inline-flex; transition: transform 0.3s var(--ease-spring), color 0.3s var(--ease-smooth); }
+.icon-hover:hover { transform: scale(1.15) rotate(-5deg); color: var(--color-gold); }
+
+/* 7. TYPING CURSOR */
+.typing-cursor::after { content:'|'; color:var(--color-gold); animation:blink 1s step-end infinite; margin-left:2px; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* 8. PARALLAX BLOBS */
+.parallax-blob {
+  position: absolute; border-radius: 50%; filter: blur(80px);
+  pointer-events: none; will-change: transform;
+  animation: blobFloat 8s ease-in-out infinite;
+}
+.parallax-blob--1 {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(200,169,110,0.05) 0%, transparent 70%);
+  top: -200px; right: -200px; animation-duration: 10s;
+}
+.parallax-blob--2 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(200,169,110,0.04) 0%, transparent 70%);
+  bottom: 0; left: -100px; animation-duration: 14s; animation-delay: -4s;
+}
+@keyframes blobFloat {
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(20px,-30px) scale(1.03)}
+  66%{transform:translate(-15px,15px) scale(0.97)}
+}
+
+/* 9. GOLD LINE */
+.gold-line { width:0; height:1px; background-color:var(--color-gold); animation:goldLineExpand 1.4s var(--ease-out-expo) 0.6s forwards; }
+@keyframes goldLineExpand { to{width:60px} }
+
+/* 10. SKILL BAR */
+.skill-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--color-gold-dark), var(--color-gold));
+  border-radius: 9999px; transform-origin: left; transform: scaleX(0);
+  transition: transform 1.2s var(--ease-out-expo);
+}
+.skill-bar-fill.revealed { transform: scaleX(1); }
+
+/* 11. FORM INPUT GLOW */
+.input-glow { transition: border-color 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth); }
+.input-glow:focus { border-color: var(--color-gold-dark); box-shadow: 0 0 0 3px rgba(200,169,110,0.1); outline: none; }
+
+/* 12. NOISE TEXTURE OVERLAY */
+.noise-overlay {
+  position: absolute; inset: 0; z-index: 0; opacity: 0.025; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+}
+
+/* 13. PREFERS-REDUCED-MOTION */
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  [data-reveal] { opacity:1; transform:none; }
+  .loader { display:none; }
+  .page-enter { animation:none; }
+}

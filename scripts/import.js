@@ -1,0 +1,4 @@
+// Usage: TARGET_DATABASE_URL=postgres://... npm run import -- backup.json [--force]
+import '../server/config.js'; import { readFileSync } from 'node:fs'; import { connect } from '../server/db.js'; import { importAll } from '../server/services/backup.js';
+const [file, flag] = process.argv.slice(2); if (!file || !process.env.TARGET_DATABASE_URL) { console.error('Usage: TARGET_DATABASE_URL=... npm run import -- <file.json> [--force]'); process.exit(1); }
+const t = await connect(process.env.TARGET_DATABASE_URL); const r = await importAll(t, readFileSync(file, 'utf8'), { force: flag === '--force' }); console.log(r.steps.join('\n')); console.log('\nCounts:', r.counts); if (r.errors.length) { console.error('\nERRORS:\n' + r.errors.join('\n')); process.exitCode = 1; } else console.log('\nMigration summary: OK'); await t.close();

@@ -1,0 +1,23 @@
+HOW TO ADD YOUR PROFILE PHOTO
+==============================
+
+1. Get a professional photo (square or portrait format works best)
+2. Save it as:  profile.jpg  (or profile.png)
+3. Place it in this folder:  assets/images/
+
+4. Then in index.html, find this comment:
+   <!-- ── SWAP THIS BLOCK WITH YOUR PHOTO ── -->
+   
+   Replace the entire <div class="profile-photo__placeholder"> block with:
+   <img src="assets/images/profile.jpg" alt="Anyaegbu Emmanuel Ikenna" />
+
+5. Do the same on about.html inside the <div class="about-photo-frame">
+
+RECOMMENDED PHOTO SPECS:
+  - Minimum: 600 × 800 px
+  - Ideal:    1000 × 1300 px
+  - Format:   JPG or WebP
+  - Lighting: Clean background, good lighting
+  - Style:    Professional but relaxed
+
+You can use a free background remover at: remove.bg

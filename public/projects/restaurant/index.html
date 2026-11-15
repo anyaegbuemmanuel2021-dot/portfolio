@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Nneka's Kitchen — Authentic Nigerian Cuisine</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --green:#1a5c2a;--gold:#c8972e;--cream:#fdf8f0;--dark:#0f1a0f;
+      --text:#2a2a2a;--light:#f5f0e8;
+    }
+    body{font-family:'Lato',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden}
+    /* NAV */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.2rem 5%;background:rgba(15,26,15,0.95);backdrop-filter:blur(10px)}
+    .logo{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;color:#fff;letter-spacing:-0.02em}
+    .logo span{color:var(--gold)}
+    .nav-links{display:flex;gap:2rem;list-style:none}
+    .nav-links a{color:rgba(255,255,255,0.8);text-decoration:none;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;transition:color .3s}
+    .nav-links a:hover{color:var(--gold)}
+    .nav-btn{background:var(--gold);color:#fff;border:none;padding:.7rem 1.6rem;border-radius:50px;font-size:.85rem;font-weight:700;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:transform .3s,box-shadow .3s}
+    .nav-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(200,151,46,.4)}
+
+    /* HERO */
+    .hero{min-height:100vh;display:flex;align-items:center;background:linear-gradient(135deg,var(--dark) 0%,#1a3d1a 100%);padding:0 5%;padding-top:80px;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+    .hero-food-circles{position:absolute;right:-5%;top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;opacity:.15;font-size:8rem;line-height:1}
+    .hero-content{position:relative;z-index:2;max-width:600px}
+    .hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:rgba(200,151,46,.15);border:1px solid rgba(200,151,46,.3);padding:.4rem 1rem;border-radius:50px;font-size:.8rem;color:var(--gold);letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.5rem}
+    .hero-tag::before{content:'';width:8px;height:8px;background:var(--gold);border-radius:50%;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
+    h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,7vw,5.5rem);font-weight:900;color:#fff;line-height:1.05;margin-bottom:1.5rem}
+    h1 em{color:var(--gold);font-style:italic}
+    .hero-desc{color:rgba(255,255,255,.7);font-size:1.1rem;line-height:1.8;max-width:500px;margin-bottom:2.5rem}
+    .hero-btns{display:flex;gap:1rem;flex-wrap:wrap}
+    .btn-gold{background:var(--gold);color:#fff;padding:.9rem 2.2rem;border-radius:50px;text-decoration:none;font-weight:700;font-size:.9rem;letter-spacing:.06em;text-transform:uppercase;transition:transform .3s,box-shadow .3s;display:inline-flex;align-items:center;gap:.5rem}
+    .btn-gold:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(200,151,46,.4)}
+    .btn-outline{border:1px solid rgba(255,255,255,.3);color:#fff;padding:.9rem 2.2rem;border-radius:50px;text-decoration:none;font-weight:400;font-size:.9rem;letter-spacing:.06em;text-transform:uppercase;transition:border-color .3s,color .3s}
+    .btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+    .hero-stats{display:flex;gap:3rem;margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.1)}
+    .stat-num{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--gold)}
+    .stat-lbl{font-size:.8rem;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase;margin-top:.2rem}
+
+    /* MENU */
+    .section{padding:6rem 5%}
+    .section-eyebrow{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:.8rem;margin-bottom:1rem}
+    .section-eyebrow::before{content:'';display:block;width:30px;height:1px;background:var(--gold)}
+    h2{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;color:var(--dark);line-height:1.2;margin-bottom:1rem}
+    .menu-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem;margin-top:3rem}
+    .menu-card{background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);transition:transform .4s,box-shadow .4s}
+    .menu-card:hover{transform:translateY(-8px);box-shadow:0 20px 60px rgba(0,0,0,.15)}
+    .menu-card-img{height:200px;display:flex;align-items:center;justify-content:center;font-size:5rem;position:relative}
+    .menu-card-img.jollof{background:linear-gradient(135deg,#8b1a1a,#c0392b)}
+    .menu-card-img.egusi{background:linear-gradient(135deg,#2d5a1b,#4a8c2a)}
+    .menu-card-img.suya{background:linear-gradient(135deg,#6b3a1f,#a0522d)}
+    .menu-card-img.pepper{background:linear-gradient(135deg,#4a1942,#8e2178)}
+    .menu-card-img.pounded{background:linear-gradient(135deg,#5c4a1e,#8b7035)}
+    .menu-card-img.chin{background:linear-gradient(135deg,#1a4a6b,#2980b9)}
+    .menu-badge{position:absolute;top:.8rem;right:.8rem;background:var(--gold);color:#fff;font-size:.7rem;font-weight:700;padding:.2rem .8rem;border-radius:50px;letter-spacing:.05em;text-transform:uppercase}
+    .menu-body{padding:1.5rem}
+    .menu-name{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--dark);margin-bottom:.5rem}
+    .menu-desc{font-size:.9rem;color:#666;line-height:1.6;margin-bottom:1rem}
+    .menu-footer{display:flex;justify-content:space-between;align-items:center}
+    .menu-price{font-size:1.2rem;font-weight:700;color:var(--green)}
+    .add-btn{background:var(--green);color:#fff;border:none;padding:.5rem 1.2rem;border-radius:50px;font-size:.8rem;font-weight:700;cursor:pointer;transition:background .3s,transform .3s}
+    .add-btn:hover{background:var(--gold);transform:scale(1.05)}
+
+    /* ABOUT */
+    .about-section{background:var(--dark);color:#fff;padding:6rem 5%;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center}
+    .about-emoji-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+    .about-emoji-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1.5rem;text-align:center;font-size:2.5rem;transition:background .3s}
+    .about-emoji-card:hover{background:rgba(200,151,46,.1);border-color:rgba(200,151,46,.3)}
+    .about-text h2{color:#fff}
+    .about-text p{color:rgba(255,255,255,.7);line-height:1.8;margin-bottom:1.5rem}
+
+    /* TESTIMONIALS */
+    .testimonials{background:var(--light);padding:6rem 5%;text-align:center}
+    .testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem;margin-top:3rem;text-align:left}
+    .testi-card{background:#fff;border-radius:20px;padding:2rem;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+    .testi-stars{color:var(--gold);font-size:1.1rem;margin-bottom:1rem}
+    .testi-text{color:#555;line-height:1.7;font-style:italic;margin-bottom:1.5rem}
+    .testi-author{display:flex;align-items:center;gap:.8rem}
+    .testi-avatar{width:44px;height:44px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#fff;font-weight:700}
+    .testi-name{font-weight:700;color:var(--dark);font-size:.95rem}
+    .testi-loc{font-size:.8rem;color:#999}
+
+    /* RESERVATION */
+    .reservation{background:var(--green);padding:5rem 5%;text-align:center;color:#fff}
+    .reservation h2{color:#fff;margin-bottom:1rem}
+    .reservation p{color:rgba(255,255,255,.8);max-width:500px;margin:0 auto 2.5rem}
+    .res-form{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;max-width:700px;margin:0 auto}
+    .res-input{flex:1;min-width:200px;padding:.9rem 1.5rem;border:none;border-radius:50px;font-size:.95rem;background:rgba(255,255,255,.15);color:#fff;backdrop-filter:blur(4px)}
+    .res-input::placeholder{color:rgba(255,255,255,.6)}
+    .res-input:focus{outline:2px solid var(--gold)}
+
+    /* FOOTER */
+    footer{background:var(--dark);color:#fff;padding:3rem 5%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:2rem}
+    .footer-logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:#fff}
+    .footer-logo span{color:var(--gold)}
+    .footer-links{display:flex;gap:1.5rem}
+    .footer-links a{color:rgba(255,255,255,.6);text-decoration:none;font-size:.9rem;transition:color .3s}
+    .footer-links a:hover{color:var(--gold)}
+    .footer-copy{color:rgba(255,255,255,.4);font-size:.8rem;width:100%;text-align:center;padding-top:2rem;border-top:1px solid rgba(255,255,255,.08);margin-top:1rem}
+
+    @media(max-width:768px){
+      .nav-links{display:none}.about-section{grid-template-columns:1fr}
+      .hero-food-circles{display:none}
+    }
+      /* responsive fix (platform audit) */
+    @media(max-width:380px){.about-emoji-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Nneka's<span>Kitchen</span></div>
+  <ul class="nav-links">
+    <li><a href="#menu">Menu</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#reviews">Reviews</a></li>
+  </ul>
+  <button class="nav-btn" onclick="document.getElementById('reservation').scrollIntoView({behavior:'smooth'})">Reserve Table</button>
+</nav>
+
+<section class="hero">
+  <div class="hero-food-circles" aria-hidden="true">
+    <span>🍛</span><span>🥘</span><span>🌶</span><span>🍖</span>
+  </div>
+  <div class="hero-content">
+    <div class="hero-tag">⭐ Est. 2015 · Lagos, Nigeria</div>
+    <h1>Taste the <em>Soul</em> of Nigeria</h1>
+    <p class="hero-desc">Authentic Nigerian cuisine crafted with love, using fresh local ingredients and generations-old recipes. Every plate tells a story.</p>
+    <div class="hero-btns">
+      <a href="#menu" class="btn-gold">🍽 Explore Menu</a>
+      <a href="#reservation" class="btn-outline">Reserve a Table</a>
+    </div>
+    <div class="hero-stats">
+      <div><div class="stat-num">500+</div><div class="stat-lbl">Daily Guests</div></div>
+      <div><div class="stat-num">40+</div><div class="stat-lbl">Menu Items</div></div>
+      <div><div class="stat-num">9yr</div><div class="stat-lbl">In Business</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="menu">
+  <div style="text-align:center">
+    <div class="section-eyebrow" style="justify-content:center">Our Specialties</div>
+    <h2>Signature Dishes</h2>
+    <p style="color:#666;max-width:500px;margin:0 auto">Handcrafted from recipes passed down through generations</p>
+  </div>
+  <div class="menu-grid">
+    <div class="menu-card">
+      <div class="menu-card-img jollof"><span>🍚</span><span class="menu-badge">Best Seller</span></div>
+      <div class="menu-body">
+        <div class="menu-name">Party Jollof Rice</div>
+        <div class="menu-desc">Smoky, perfectly seasoned jollof rice cooked over firewood, served with your choice of protein.</div>
+        <div class="menu-footer"><span class="menu-price">₦3,500</span><button class="add-btn">Order Now</button></div>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-card-img egusi"><span>🥣</span><span class="menu-badge">Chef's Pick</span></div>
+      <div class="menu-body">
+        <div class="menu-name">Egusi Soup & Pounded Yam</div>
+        <div class="menu-desc">Rich egusi soup loaded with assorted meats, served with freshly pounded yam. A true Nigerian classic.</div>
+        <div class="menu-footer"><span class="menu-price">₦4,200</span><button class="add-btn">Order Now</button></div>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-card-img suya"><span>🍢</span></div>
+      <div class="menu-body">
+        <div class="menu-name">Suya Platter</div>
+        <div class="menu-desc">Northern-style spiced beef skewers, grilled to perfection and served with onions, tomatoes and yaji spice.</div>
+        <div class="menu-footer"><span class="menu-price">₦2,800</span><button class="add-btn">Order Now</button></div>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-card-img pepper"><span>🍲</span><span class="menu-badge">Spicy 🌶</span></div>
+      <div class="menu-body">
+        <div class="menu-name">Pepper Soup</div>
+        <div class="menu-desc">Bold, spicy broth with tender goat meat, fragrant spices, and fresh herbs — the ultimate comfort soup.</div>
+        <div class="menu-footer"><span class="menu-price">₦3,000</span><button class="add-btn">Order Now</button></div>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-card-img pounded"><span>🫙</span></div>
+      <div class="menu-body">
+        <div class="menu-name">Ofe Onugbu (Bitter Leaf Soup)</div>
+        <div class="menu-desc">Traditional Igbo soup with cocoyam, stock fish, and assorted meats. Authentic Southeastern flavours.</div>
+        <div class="menu-footer"><span class="menu-price">₦4,000</span><button class="add-btn">Order Now</button></div>
+      </div>
+    </div>
+    <div class="menu-card">
+      <div class="menu-card-img chin"><span>🥤</span></div>
+      <div class="menu-body">
+        <div class="menu-name">Zobo Drink & Chin Chin</div>
+        <div class="menu-desc">Refreshing hibiscus drink served cold, paired with crispy homemade chin chin — a perfect Nigerian snack combo.</div>
+        <div class="menu-footer"><span class="menu-price">₦1,200</span><button class="add-btn">Add to Order</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="about-section" id="about">
+  <div class="about-emoji-grid">
+    <div class="about-emoji-card">🫙</div><div class="about-emoji-card">🌿</div><div class="about-emoji-card">🔥</div>
+    <div class="about-emoji-card">👩‍🍳</div><div class="about-emoji-card">🌶</div><div class="about-emoji-card">🍽</div>
+  </div>
+  <div class="about-text">
+    <div class="section-eyebrow">Our Story</div>
+    <h2>Cooking With Love Since 2015</h2>
+    <p>What started as Mama Nneka's home kitchen in Lagos has grown into one of the most beloved Nigerian restaurants in the city. We use only the freshest local ingredients, sourced daily from Bodija Market.</p>
+    <p>Every dish is a tribute to the rich culinary heritage of Nigeria — from the smoky jollof to the bold flavours of our soups. We believe good food is the language of home.</p>
+    <a href="#reservation" class="btn-gold" style="text-decoration:none">Book a Table →</a>
+  </div>
+</section>
+
+<section class="testimonials" id="reviews">
+  <div class="section-eyebrow" style="justify-content:center">Happy Customers</div>
+  <h2>What People Say</h2>
+  <div class="testi-grid">
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"Best jollof rice in Lagos. The smoky flavour is unmatched — I brought my entire family and everyone left happy!"</p>
+      <div class="testi-author"><div class="testi-avatar">C</div><div><div class="testi-name">Chukwuemeka O.</div><div class="testi-loc">Lekki, Lagos</div></div></div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"The egusi soup took me back home immediately. Genuine, authentic taste that you rarely find in a restaurant. Highly recommended!"</p>
+      <div class="testi-author"><div class="testi-avatar">A</div><div><div class="testi-name">Adaeze N.</div><div class="testi-loc">Ikeja, Lagos</div></div></div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"Came for suya, stayed for everything. The ambiance, the service, and most importantly the food — all 10/10. My new weekly spot!"</p>
+      <div class="testi-author"><div class="testi-avatar">T</div><div><div class="testi-name">Tolu Adeyemi</div><div class="testi-loc">Victoria Island</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="reservation" id="reservation">
+  <div class="section-eyebrow" style="justify-content:center;color:rgba(255,255,255,.7)">Make a Reservation</div>
+  <h2>Book Your Table</h2>
+  <p>Reserve your spot for an unforgettable dining experience. We're open daily from 10am to 10pm.</p>
+  <div class="res-form">
+    <input class="res-input" type="text" placeholder="Your Name" />
+    <input class="res-input" type="tel" placeholder="Phone Number" />
+    <input class="res-input" type="date" />
+    <button class="btn-gold" onclick="alert('Thank you! We will confirm your reservation shortly. 🍽')">Book Now</button>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Nneka's<span>Kitchen</span></div>
+  <div class="footer-links">
+    <a href="#menu">Menu</a><a href="#about">About</a><a href="#reviews">Reviews</a><a href="#reservation">Reserve</a>
+  </div>
+  <p class="footer-copy">© 2025 Nneka's Kitchen. Crafted with ❤️ · Lagos, Nigeria</p>
+</footer>
+</body>
+</html>

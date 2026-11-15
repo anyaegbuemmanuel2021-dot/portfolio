@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Services by Anyaegbu Emmanuel — Website Development, Responsive Design, CSS Animations, AI-Assisted Development, SEO, Deployment." />
+  <title>Services — Anyaegbu Emmanuel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="assets/css/global.css" />
+  <link rel="stylesheet" href="assets/css/animations.css" />
+  <link rel="stylesheet" href="assets/css/home.css" />
+  <link rel="stylesheet" href="assets/css/about.css" />
+  <link rel="stylesheet" href="assets/css/platform.css" />
+  <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+  <div class="loader" role="status" aria-label="Loading"><div class="loader__spinner"></div></div>
+  <header>
+    <nav class="nav"><div class="nav__inner">
+      <a href="index.html" class="nav__logo">AEI<span>.</span></a>
+      <ul class="nav__links">
+        <li><a href="index.html" class="nav__link">Home</a></li>
+        <li><a href="about.html" class="nav__link">About</a></li>
+        <li><a href="projects.html" class="nav__link">Projects</a></li>
+        <li><a href="services.html" class="nav__link active">Services</a></li>
+        <li><a href="contact.html" class="nav__link">Contact</a></li>
+        <li><a href="articles.html" class="nav__link">Articles</a></li>
+        <li><button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle dark/light mode">🌙</button></li>
+        <li><a href="assets/files/Emmanuel_Anyaegbu_CV.pdf" download class="btn btn--cv btn--sm nav__cv"><span class="cv-icon">↓</span> CV</a></li>
+      </ul>
+      <button class="nav__hamburger" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div></nav>
+    <div class="nav__mobile">
+      <a href="index.html" class="nav__mobile-link">Home</a>
+      <a href="about.html" class="nav__mobile-link">About</a>
+      <a href="projects.html" class="nav__mobile-link">Projects</a>
+      <a href="services.html" class="nav__mobile-link">Services</a>
+      <a href="contact.html" class="nav__mobile-link">Contact</a>
+      <a href="articles.html" class="nav__mobile-link">Articles</a>
+      <a href="assets/files/Emmanuel_Anyaegbu_CV.pdf" download class="btn btn--cv" style="margin-top:1rem"><span class="cv-icon">↓</span> Download CV</a>
+    </div>
+  </header>
+
+  <section class="page-hero bg-gradient-animated">
+    <div class="noise-overlay"></div>
+    <div class="parallax-blob parallax-blob--1"></div>
+    <div class="container">
+      <span class="section-label page-hero__label">What I Offer</span>
+      <h1 class="page-hero__heading">My <em style="color:var(--color-gold);font-style:normal">Services</em></h1>
+      <p class="page-hero__sub">Clean code. Responsive layouts. Fast delivery. Built with HTML, CSS & JavaScript.</p>
+    </div>
+  </section>
+
+  <section class="services-detailed section">
+    <div class="container">
+      <span class="section-label" data-reveal="fade">Core Services</span>
+      <h2 style="margin-bottom:var(--space-12)" data-reveal="fade-up">What I Build</h2>
+
+      <div class="services-list">
+
+        <div class="service-row" data-reveal="slide-right">
+          <span class="service-row__num">01</span>
+          <div>
+            <h3 class="service-row__title">💻 Website Development</h3>
+            <p class="service-row__desc">Responsive, fast, and accessible websites built with HTML5, CSS3, and JavaScript. From simple landing pages to full multi-page business websites — mobile-first, cross-browser compatible, and deployed on Netlify or Vercel. I organise all projects with clear folder structures and modular CSS for easy maintenance.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">HTML5</span><span class="tag">CSS3</span><span class="tag">JavaScript</span><span class="tag">Multi-Page Sites</span><span class="tag">Landing Pages</span></div>
+          </div>
+          <span class="service-row__arrow">→</span>
+        </div>
+
+        <div class="service-row" data-reveal="slide-right" data-delay="100">
+          <span class="service-row__num">02</span>
+          <div>
+            <h3 class="service-row__title">📱 Responsive Web Design</h3>
+            <p class="service-row__desc">Layouts that look perfect on every screen size — mobile, tablet, and desktop. Using Flexbox and CSS Grid to build fluid, adaptive designs that maintain clean structure and great readability across all devices. I test across multiple screen sizes and browsers before delivery.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">Flexbox</span><span class="tag">CSS Grid</span><span class="tag">Mobile-First</span><span class="tag">Cross-Browser</span><span class="tag">Media Queries</span></div>
+          </div>
+          <span class="service-row__arrow">→</span>
+        </div>
+
+        <div class="service-row" data-reveal="slide-right" data-delay="200">
+          <span class="service-row__num">03</span>
+          <div>
+            <h3 class="service-row__title">✨ CSS Animations & Interactive UI</h3>
+            <p class="service-row__desc">Smooth CSS animations, hover effects, transitions, and interactive elements that elevate the user experience. From simple button hovers to complex page entrance animations — making your website feel modern and engaging without heavy JavaScript libraries.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">CSS Animations</span><span class="tag">Hover Effects</span><span class="tag">Transitions</span><span class="tag">Interactive UI</span><span class="tag">Keyframes</span></div>
+          </div>
+          <span class="service-row__arrow">→</span>
+        </div>
+
+        <div class="service-row" data-reveal="slide-right" data-delay="300">
+          <span class="service-row__num">04</span>
+          <div>
+            <h3 class="service-row__title">🤖 AI-Assisted Development</h3>
+            <p class="service-row__desc">I leverage AI tools (ChatGPT, Claude) with strong prompt engineering skills to build faster, debug smarter, and deliver higher quality code. This means quicker turnaround times and more polished output for your project — without compromising on clean, maintainable code.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">ChatGPT</span><span class="tag">Claude</span><span class="tag">Prompt Engineering</span><span class="tag">AI Debugging</span><span class="tag">Faster Delivery</span></div>
+          </div>
+          <span class="service-row__arrow">→</span>
+        </div>
+
+        <div class="service-row" data-reveal="slide-right" data-delay="400">
+          <span class="service-row__num">05</span>
+          <div>
+            <h3 class="service-row__title">🚀 Website Deployment</h3>
+            <p class="service-row__desc">Get your site live fast. I deploy websites on Netlify and Vercel with custom domain setup, HTTPS, and performance optimisation. Your site will be accessible, fast-loading, and ready for visitors — fully tested before go-live.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">Netlify</span><span class="tag">Vercel</span><span class="tag">Git & GitHub</span><span class="tag">Custom Domain</span><span class="tag">HTTPS</span></div>
+          </div>
+          <span class="service-row__arrow">→</span>
+        </div>
+
+        <div class="service-row" data-reveal="slide-right" data-delay="500">
+          <span class="service-row__num">06</span>
+          <div>
+            <h3 class="service-row__title">🔍 Basic SEO & Performance</h3>
+            <p class="service-row__desc">Foundational SEO best practices — proper meta tags, semantic HTML structure, clean headings, and image optimisation — so your website has the best possible chance of ranking well and loading fast for every visitor.</p>
+            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">Meta Tags</span><span class="tag">Semantic HTML</span><span class="tag">Performance</span><span class="tag">Image Optimisation</span><span class="tag">Accessibility</span></div>
+          </div>
+          <span class="service-row__arrow">→</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING SECTION -->
+  <section class="section" style="background-color:var(--color-bg-alt)">
+    <div class="container">
+      <span class="section-label" data-reveal="fade">Pricing</span>
+      <h2 style="margin-bottom:var(--space-4)" data-reveal="fade-up">Simple, Transparent Pricing</h2>
+      <p style="margin-bottom:var(--space-12);color:var(--color-text-secondary)" data-reveal="fade-up" data-delay="100">Every project is unique — contact me to get a custom quote for your needs.</p>
+      <div class="grid-3" data-cms-pricing>
+        <div class="service-card" data-reveal="fade-up" style="position:relative">
+          <div class="service-card__icon">🌱</div>
+          <h3 class="service-card__title">Starter</h3>
+          <p style="font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0">₦30,000+</p>
+          <p class="service-card__desc">Single-page website — responsive, clean, and deployed. Great for portfolios, personal pages, or simple business landing pages.</p>
+          <ul style="margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)">
+            <li>✓ 1 page — mobile responsive</li>
+            <li>✓ Contact form</li>
+            <li>✓ Netlify deployment</li>
+            <li>✓ Delivered in 3–5 days</li>
+          </ul>
+          <span class="service-card__number">01</span>
+        </div>
+        <div class="service-card" data-reveal="fade-up" data-delay="200" style="border-color:var(--color-gold);position:relative">
+          <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--color-gold);color:#080808;font-size:var(--text-xs);font-weight:600;padding:3px 14px;border-radius:var(--radius-full);white-space:nowrap">Most Popular</div>
+          <div class="service-card__icon">💼</div>
+          <h3 class="service-card__title">Business</h3>
+          <p style="font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0">₦80,000+</p>
+          <p class="service-card__desc">Multi-page website with full responsive design, animations, and basic SEO — ideal for small businesses and startups.</p>
+          <ul style="margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)">
+            <li>✓ 3–5 pages — fully responsive</li>
+            <li>✓ CSS animations & effects</li>
+            <li>✓ Contact form + WhatsApp link</li>
+            <li>✓ Basic SEO setup</li>
+            <li>✓ Delivered in 7–10 days</li>
+          </ul>
+          <span class="service-card__number">02</span>
+        </div>
+        <div class="service-card" data-reveal="fade-up" data-delay="400" style="position:relative">
+          <div class="service-card__icon">🚀</div>
+          <h3 class="service-card__title">Custom</h3>
+          <p style="font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0">Let's Talk</p>
+          <p class="service-card__desc">Have unique requirements? Let's discuss a custom scope, timeline, and price for your specific project needs.</p>
+          <ul style="margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)">
+            <li>✓ Tailored to your needs</li>
+            <li>✓ Flexible scope & timeline</li>
+            <li>✓ Regular progress updates</li>
+            <li>✓ Post-delivery support</li>
+          </ul>
+          <span class="service-card__number">03</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section class="section">
+    <div class="container">
+      <span class="section-label" data-reveal="fade">My Process</span>
+      <h2 style="margin-bottom:var(--space-12)" data-reveal="fade-up">How I Work</h2>
+      <div class="grid-3" data-cms-process>
+        <div class="service-card" data-reveal="fade-up">
+          <div class="service-card__icon">💬</div>
+          <h3 class="service-card__title">1. Discover</h3>
+          <p class="service-card__desc">We start with a conversation about your goals, target audience, and timeline. I listen carefully so there are no surprises later.</p>
+          <span class="service-card__number">01</span>
+        </div>
+        <div class="service-card" data-reveal="fade-up" data-delay="200">
+          <div class="service-card__icon">🗺️</div>
+          <h3 class="service-card__title">2. Plan & Design</h3>
+          <p class="service-card__desc">I plan the structure, layout, and content flow of your site — before writing a single line of code, so we're aligned on the result.</p>
+          <span class="service-card__number">02</span>
+        </div>
+        <div class="service-card" data-reveal="fade-up" data-delay="400">
+          <div class="service-card__icon">🚀</div>
+          <h3 class="service-card__title">3. Build & Deliver</h3>
+          <p class="service-card__desc">Clean code, thorough cross-browser and cross-device testing, then deployment. I don't consider it done until it's pixel-perfect on every screen.</p>
+          <span class="service-card__number">03</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact-cta section" style="text-align:center">
+    <div class="container">
+      <span class="section-label" data-reveal="fade" style="justify-content:center">Ready?</span>
+      <h2 class="contact-cta__heading" data-reveal="fade-up" data-cms-setting="service_cta_title">Let's work <em>together</em></h2>
+      <p class="contact-cta__sub" data-reveal="fade-up" data-delay="200" data-cms-setting="service_cta_body">All service inquiries go directly to my email. Quick questions? WhatsApp is faster.</p>
+      <div class="contact-cta__actions" data-reveal="fade-up" data-delay="400">
+        <a href="mailto:anyaegbuemmanuel2021@gmail.com" class="btn btn--primary">Email Me</a>
+        <a href="https://wa.me/2347046947391?text=Hi%20Emmanuel%2C%20I%27d%20like%20to%20discuss%20a%20service." target="_blank" rel="noopener" class="btn btn--ghost">WhatsApp Me →</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer"><div class="container">
+    <div class="footer__inner">
+      <div><p class="footer__brand">AEI<span style="color:var(--color-gold)">.</span></p><p class="footer__tagline" data-cms-setting="footer_tagline">Frontend Developer · Responsive Design · AI-Assisted Development</p></div>
+      <nav class="footer__links"><a href="about.html" class="footer__nav-link">About</a><a href="projects.html" class="footer__nav-link">Projects</a><a href="services.html" class="footer__nav-link">Services</a><a href="contact.html" class="footer__nav-link">Contact</a>
+          <a href="articles.html" class="footer__nav-link">Articles</a></nav>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 Anyaegbu Emmanuel Ikenna. All rights reserved.</p>
+      <div class="footer__socials">
+        <a href="https://wa.me/2347046947391" target="_blank" rel="noopener" class="footer__social" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        <a href="https://linkedin.com/in/anyaegbu-emmanuel" target="_blank" rel="noopener" class="footer__social" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+        <a href="https://github.com/anyaegbu-emmanuel" target="_blank" rel="noopener" class="footer__social" aria-label="GitHub"><i class="fab fa-github"></i></a>
+        <a href="https://instagram.com/anyaegbu_emmanuel" target="_blank" rel="noopener" class="footer__social" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+        <a href="https://tiktok.com/@anyaegbu_emmanuel" target="_blank" rel="noopener" class="footer__social" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+        <a href="mailto:anyaegbuemmanuel2021@gmail.com" class="footer__social" aria-label="Email"><i class="fas fa-envelope"></i></a>
+      </div>
+    </div>
+  </div></footer>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/main.js"></script>
+  <script src="assets/js/site.js"></script>
+  <script src="/assets/js/cms.js" defer></script>
+
+  <script>
+    // Theme toggle
+    (function(){
+      const saved = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+    })();
+    document.addEventListener('DOMContentLoaded', function() {
+      const btn = document.getElementById('themeToggle');
+      if(!btn) return;
+      function applyTheme(t) {
+        document.documentElement.setAttribute('data-theme', t);
+        localStorage.setItem('theme', t);
+        btn.textContent = t === 'dark' ? '🌙' : '☀️';
+        btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      }
+      applyTheme(localStorage.getItem('theme') || 'dark');
+      btn.addEventListener('click', function() {
+        const cur = document.documentElement.getAttribute('data-theme');
+        applyTheme(cur === 'dark' ? 'light' : 'dark');
+      });
+    });
+  </script>
+</body>
+</html>
