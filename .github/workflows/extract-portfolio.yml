@@ -1,0 +1,34 @@
+name: Temporary portfolio ZIP extraction
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/extract-portfolio.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Extract and verify portfolio archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="portfolio-xoft-dbrij-no-card (1).zip"
+          test -f "$archive"
+          mkdir extracted
+          unzip -q "$archive" -d extracted
+          unzip -t "$archive"
+          echo "Extracted file listing:"
+          find extracted -maxdepth 4 -type f -printf '%P (%s bytes)\n' | sort
+      - name: Upload extracted project
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-extracted-source
+          path: extracted/
+          if-no-files-found: error
+          retention-days: 1
