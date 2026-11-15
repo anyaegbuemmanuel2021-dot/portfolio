@@ -1,0 +1,62 @@
+name: Extract portfolio source into repository
+
+on:
+  push:
+    paths:
+      - "extract-portfolio-source.yml"
+      - ".github/workflows/extract-portfolio-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Extract project archive into repository root
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="portfolio-xoft-dbrij-no-card (1).zip"
+          test -f "$ARCHIVE"
+          mkdir -p /tmp/portfolio-source
+          unzip -q "$ARCHIVE" -d /tmp/portfolio-source
+          test -f /tmp/portfolio-source/package.json
+          test -d /tmp/portfolio-source/server
+          test -d /tmp/portfolio-source/admin
+          rsync -a --exclude='.git/' /tmp/portfolio-source/ ./
+
+      - name: Configure production Docker image
+        shell: bash
+        run: |
+          cat > Dockerfile <<'EOF'
+          FROM node:22-alpine
+          WORKDIR /app
+          COPY package*.json ./
+          RUN npm install --omit=dev --no-audit --no-fund
+          COPY . .
+          ENV NODE_ENV=production
+          EXPOSE 10000
+          CMD ["npm", "start"]
+          EOF
+
+      - name: Commit extracted source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f "portfolio-xoft-dbrij-no-card (1).zip"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No extracted source changes to commit."
+            exit 0
+          fi
+          git commit -m "Extract portfolio application source into repository"
+          git push
