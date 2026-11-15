@@ -10,6 +10,12 @@
   var list = function (v) { if (Array.isArray(v)) return v; return String(v || '').split(/[,|]/).map(function (x) { return x.trim(); }).filter(Boolean); };
   function makeProject(p, i) {
     var card = document.createElement('article'); card.className = 'project-card'; card.setAttribute('data-reveal', 'fade-up'); card.classList.add('revealed');
+    var rawCategory = String(p.category || '').trim().toLowerCase();
+    var category = rawCategory.replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (/business|company|corporate|commerce|shop|store|restaurant|blog/.test(category)) category = 'business';
+    else if (/portfolio|agency|personal|creative/.test(category)) category = 'portfolio';
+    else if (/javascript|\bjs\b|app|tool|ui|interface/.test(category)) category = 'ui';
+    card.dataset.category = category;
     var thumb = document.createElement('div'); thumb.className = 'project-card__thumb';
     if (p.cover_url) { var img = document.createElement('img'); img.src = safeUrl(p.cover_url); img.alt = p.title || 'Project preview'; img.loading = 'lazy'; img.decoding = 'async'; img.style.cssText = 'width:100%;height:100%;object-fit:cover'; thumb.appendChild(img); }
     else { var face = document.createElement('div'); face.className = 'project-card__thumb-inner project-card__thumb-inner--' + (i % 6 + 1); face.textContent = p.title || 'PROJECT'; thumb.appendChild(face); }
@@ -95,6 +101,7 @@
     var projects = data.projects || []; var featured = projects.filter(function (p) { return p.is_featured; }); if (!featured.length) featured = projects.slice(0, 3);
     var homeGrid = $('.featured-projects__grid'); if (homeGrid && featured.length) { homeGrid.replaceChildren(); featured.slice(0, 3).forEach(function (p, i) { homeGrid.appendChild(makeProject(p, i)); }); }
     var projectGrid = $('.projects-full-grid'); if (projectGrid && projects.length) { projectGrid.replaceChildren(); projects.forEach(function (p, i) { projectGrid.appendChild(makeProject(p, i)); }); }
+    document.dispatchEvent(new CustomEvent('projects:updated'));
     renderServices(data.services || []); renderSkills(data.skills || []); renderExperience(data.experience || []); renderSocial(data.social_links || [], data.settings || {}); renderNavigation(data.navigation || []);
     (data.homepage_sections || []).forEach(function (section) { var root = $('[data-cms-section="' + String(section.key).replace(/[^a-z0-9_-]/gi, '') + '"]'); if (!root) return; var heading = $('[data-cms-title]', root); var body = $('[data-cms-body]', root); text(heading, section.title); text(body, section.body); });
     var settings = data.settings || {}; if (settings.site_title) document.title = settings.site_title; applySettings(settings); renderTestimonials(data.testimonials || []);
