@@ -30,7 +30,7 @@ jobs:
           test -f /tmp/portfolio-source/package.json
           test -d /tmp/portfolio-source/server
           test -d /tmp/portfolio-source/admin
-          rsync -a --exclude='.git/' /tmp/portfolio-source/ ./
+          rsync -a --exclude='.git/' --exclude='.github/' /tmp/portfolio-source/ ./
 
       - name: Configure production Docker image
         shell: bash
