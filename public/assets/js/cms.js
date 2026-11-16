@@ -19,13 +19,13 @@
     var thumb = document.createElement('div'); thumb.className = 'project-card__thumb';
     if (p.cover_url) { var img = document.createElement('img'); img.src = safeUrl(p.cover_url); img.alt = p.title || 'Project preview'; img.loading = 'lazy'; img.decoding = 'async'; img.style.cssText = 'width:100%;height:100%;object-fit:cover'; thumb.appendChild(img); }
     else { var face = document.createElement('div'); face.className = 'project-card__thumb-inner project-card__thumb-inner--' + (i % 6 + 1); face.textContent = p.title || 'PROJECT'; thumb.appendChild(face); }
-    var icon = document.createElement('span'); icon.className = 'project-card__link-icon'; icon.textContent = '↗'; thumb.appendChild(icon);
+    var icon = document.createElement('span'); icon.className = 'project-card__link-icon'; icon.textContent = '<i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>'; thumb.appendChild(icon);
     var body = document.createElement('div'); body.className = 'project-card__body';
     var tags = document.createElement('div'); tags.className = 'project-card__tags'; list(p.tags).forEach(function (tag) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; tags.appendChild(t); });
     var h = document.createElement('h3'); h.className = 'project-card__title'; h.textContent = p.title || 'Project';
     var d = document.createElement('p'); d.className = 'project-card__desc'; d.textContent = p.summary || p.description || '';
     var actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:var(--space-3);margin-top:var(--space-4);flex-wrap:wrap';
-    var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = safeUrl(p.url || ('projects/' + (p.slug || '') + '/index.html')); live.textContent = 'View Live ↗';
+    var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = safeUrl(p.url || ('projects/' + (p.slug || '') + '/index.html')); live.textContent = 'View Live <i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>';
     if (live.href === '#') live.hidden = true; else { live.target = '_blank'; live.rel = 'noopener'; }
     actions.appendChild(live);
     if (p.repo_url) { var repo = document.createElement('a'); repo.className = 'btn btn--ghost btn--sm'; repo.href = safeUrl(p.repo_url); repo.target = '_blank'; repo.rel = 'noopener'; repo.textContent = 'GitHub'; actions.appendChild(repo); }
@@ -92,7 +92,7 @@
     if (settings.footer_text) $$('.footer__copy, .footer__copyright, .footer__bottom p').forEach(function (el) { text(el, settings.footer_text); });
     if (settings.pricing_json) renderCards($('[data-cms-pricing]'), parseArray(settings.pricing_json), 'pricing');
     if (settings.process_json) renderCards($('[data-cms-process]'), parseArray(settings.process_json), 'process');
-    if (settings.certifications_json) { var root = $('[data-cms-certifications]'), rows = parseArray(settings.certifications_json); if (root && rows.length) { root.replaceChildren(); rows.forEach(function (x) { var box = document.createElement('div'); box.style.cssText = 'padding:var(--space-5);background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-lg)'; var title = document.createElement('div'); title.style.fontWeight = '600'; title.textContent = '🏆 ' + (x.title || 'Certification'); var issuer = document.createElement('div'); issuer.style.cssText = 'font-size:var(--text-sm);color:var(--color-gold);margin-top:var(--space-1)'; issuer.textContent = x.issuer || ''; box.append(title, issuer); root.appendChild(box); }); } }
+    if (settings.certifications_json) { var root = $('[data-cms-certifications]'), rows = parseArray(settings.certifications_json); if (root && rows.length) { root.replaceChildren(); rows.forEach(function (x) { var box = document.createElement('div'); box.style.cssText = 'padding:var(--space-5);background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-lg)'; var title = document.createElement('div'); title.style.fontWeight = '600'; title.textContent = '<i class="fa-solid fa-award emoji-replacement-icon" aria-hidden="true"></i> ' + (x.title || 'Certification'); var issuer = document.createElement('div'); issuer.style.cssText = 'font-size:var(--text-sm);color:var(--color-gold);margin-top:var(--space-1)'; issuer.textContent = x.issuer || ''; box.append(title, issuer); root.appendChild(box); }); } }
   }
   function apply(data) {
     var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = bio.headline; var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = bio.headline; }
