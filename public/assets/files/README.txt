@@ -1,7 +1,3 @@
-Place your CV PDF file named 'Emmanuel_Anyaegbu_CV.pdf' in this directory.
-You can export your CV from:
-- Canva (canva.com) 
-- Google Docs (File > Download > PDF)
-- Microsoft Word (Save As > PDF)
+The previous PDF and Word CV files were retired because they contained claims that had not been verified.
 
-The download button in the portfolio will automatically use this file.
+The current portfolio resume is maintained at /resume.html. Visitors can use the Print / Save as PDF button to create a current PDF copy from their browser.
