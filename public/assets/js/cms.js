@@ -95,7 +95,7 @@
     root.replaceChildren(); rows.forEach(function (item) { var card = document.createElement('article'); card.className = 'service-card'; var quote = document.createElement('p'); quote.className = 'service-card__desc'; quote.textContent = '“' + (item.quote || '') + '”'; var name = document.createElement('h3'); name.className = 'service-card__title'; name.textContent = item.author_name || 'Client'; var role = document.createElement('p'); role.className = 'muted'; role.textContent = item.author_role || ''; var rating = document.createElement('p'); rating.textContent = '★'.repeat(Math.max(0, Math.min(5, Number(item.rating) || 0))); rating.setAttribute('aria-label', (Number(item.rating) || 0) + ' out of 5 stars'); card.append(quote, name, role, rating); root.appendChild(card); }); section.hidden = false;
   }
   function applySettings(settings) {
-    Object.keys(settings || {}).forEach(function (key) { $$('[data-cms-setting="' + key.replace(/[^a-z0-9_-]/gi, '') + '"]').forEach(function (el) { if (settings[key] != null && settings[key] !== '') text(el, settings[key]); }); });
+    Object.keys(settings || {}).forEach(function (key) { $$('[data-cms-setting="' + key.replace(/[^a-z0-9_-]/gi, '') + '"]').forEach(function (el) { if (settings[key] != null && settings[key] !== '') text(el, safeCopy(settings[key])); }); });
     if (settings.contact_email) $$('a[href^="mailto:"]').forEach(function (a) { a.href = 'mailto:' + settings.contact_email; });
     if (settings.whatsapp_number) $$('a[href*="wa.me/"]').forEach(function (a) { a.href = 'https://wa.me/' + String(settings.whatsapp_number).replace(/\D/g, ''); });
     if (settings.portfolio_url) $$('a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) { a.href = safeUrl(settings.portfolio_url); });
@@ -107,7 +107,7 @@
   }
   function apply(data) {
     var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = safeCopy(bio.headline); var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = bio.headline; }
-    if (bio.body) { text($('.hero__desc'), safeCopy(bio.body)); text($('.about-preview__text'), safeCopy(bio.body)); var story = $('.about-content'); if (story) { var first = $('p', story); if (first) first.textContent = bio.body; } }
+    if (bio.body) { text($('.hero__desc'), safeCopy(bio.body)); text($('.about-preview__text'), safeCopy(bio.body)); var story = $('.about-content'); if (story) { var first = $('p', story); if (first) first.textContent = safeCopy(bio.body); } }
     if (bio.photo_url) { var photo = safeUrl(bio.photo_url); var wrap = $('.profile-photo'); if (wrap) { wrap.style.backgroundImage = 'url("' + photo.replace(/"/g, '') + '")'; wrap.style.backgroundSize = 'cover'; wrap.style.backgroundPosition = 'center'; } var img = $('.about-avatar img'); if (img) img.src = photo; }
     var projects = data.projects || []; var featured = projects.filter(function (p) { return p.is_featured; }); if (!featured.length) featured = projects.slice(0, 3);
     var homeGrid = $('.featured-projects__grid'); if (homeGrid && featured.length) { homeGrid.replaceChildren(); featured.slice(0, 3).forEach(function (p, i) { homeGrid.appendChild(makeProject(p, i)); }); }
