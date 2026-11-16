@@ -292,7 +292,7 @@ const Typer = {
     'Full-Stack Developer',
     'Responsive Design Specialist',
     'UI/UX Enthusiast',
-    'AI-Assisted Developer'
+    'AI Expert'
   ],
   currentIndex: 0,
   charIndex: 0,
