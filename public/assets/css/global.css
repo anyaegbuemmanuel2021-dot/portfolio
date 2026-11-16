@@ -244,8 +244,10 @@ code, pre { font-family: var(--font-mono); font-size: 0.9em; }
    ────────────────────────────────────────────── */
 .nav {
   /* Keep the navigation pinned and readable at every scroll position. */
-  position: fixed;
-  inset: 0 0 auto;
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: var(--z-nav);
   height: var(--nav-height);
   display: flex;
@@ -485,6 +487,11 @@ code, pre { font-family: var(--font-mono); font-size: 0.9em; }
   .nav__mobile { display: none; } /* JS adds display:flex via .open class */
   /* Ensure nav is always slightly visible on mobile (even before scroll) */
   .nav {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     background-color: rgba(8,8,8,0.75);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
