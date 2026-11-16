@@ -8,10 +8,10 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 
 test('homepage uses clear frontend positioning and avoids invented metrics', () => {
   const html = read('public/index.html');
-  assert.match(html, /Frontend Developer & Digital Content Creator/);
+  assert.match(html, /Frontend Developer & AI Creative Technologist/);
   assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development|Node\.js|PostgreSQL/);
   assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
-  assert.match(html, /Video & content production/);
+  assert.match(html, /AI Creative Technologist/);\n  assert.match(html, /AI-assisted creative tools/);
 });
 
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
