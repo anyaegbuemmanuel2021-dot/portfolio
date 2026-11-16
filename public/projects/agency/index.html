@@ -77,6 +77,7 @@
     .f-copy{font-family:'Space Mono',monospace;font-size:.75rem;color:rgba(240,238,255,.3)}
     @media(max-width:768px){.nav-links,.cursor,.cursor-ring{display:none}.work-grid{grid-template-columns:1fr}.work-card:first-child{grid-row:span 1}.stats-section{grid-template-columns:repeat(2,1fr)}}
   </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
 <div class="cursor" id="cur"></div>
@@ -162,5 +163,6 @@
   document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';});
   window.addEventListener('scroll',()=>document.getElementById('navbar').classList.toggle('scrolled',scrollY>60));
 </script>
+  <script src="/assets/js/emoji-icons.js" defer></script>
 </body>
 </html>
