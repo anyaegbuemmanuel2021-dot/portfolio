@@ -50,6 +50,18 @@ const Nav = {
 
     if (!this.nav) return;
 
+    // Detach fixed UI from the page header so transformed/contained ancestors
+    // cannot turn position:fixed into a page-relative element (mobile Safari included).
+    if (this.nav.parentElement !== document.body) document.body.appendChild(this.nav);
+    if (this.mobileMenu && this.mobileMenu.parentElement !== document.body) {
+      document.body.appendChild(this.mobileMenu);
+    }
+    this.nav.style.setProperty('position', 'fixed', 'important');
+    this.nav.style.setProperty('top', '0', 'important');
+    this.nav.style.setProperty('left', '0', 'important');
+    this.nav.style.setProperty('right', '0', 'important');
+    this.nav.style.setProperty('width', '100%', 'important');
+
     this.handleScroll();
     this.setActiveLink();
 
