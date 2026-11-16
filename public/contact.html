@@ -30,7 +30,7 @@
         <li><a href="services.html" class="nav__link">Services</a></li>
         <li><a href="contact.html" class="nav__link active">Contact</a></li>
         <li><a href="articles.html" class="nav__link">Articles</a></li>
-        <li><button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle dark/light mode">🌙</button></li>
+        <li><button class="theme-toggle" id="themeToggle" aria-label="Toggle theme" title="Toggle dark/light mode"><i class="fa-solid fa-moon emoji-replacement-icon" aria-hidden="true"></i></button></li>
         <li><a href="assets/files/Emmanuel_Anyaegbu_CV.pdf" download class="btn btn--cv btn--sm nav__cv"><span class="cv-icon">↓</span> CV</a></li>
       </ul>
       <button class="nav__hamburger" aria-label="Toggle menu" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -72,7 +72,7 @@
               <div><div class="contact-method__label">WhatsApp Business (Fastest)</div><div class="contact-method__value" data-cms-setting="contact_phone">+234 704 694 7391</div></div>
             </a>
             <a href="mailto:anyaegbuemmanuel2021@gmail.com" class="contact-method">
-              <div class="contact-method__icon">📧</div>
+              <div class="contact-method__icon"><i class="fa-solid fa-envelope emoji-replacement-icon" aria-hidden="true"></i></div>
               <div><div class="contact-method__label">Email</div><div class="contact-method__value" data-cms-setting="contact_email">anyaegbuemmanuel2021@gmail.com</div></div>
             </a>
             <a href="https://linkedin.com/in/anyaegbu-emmanuel" target="_blank" rel="noopener" class="contact-method">
@@ -84,12 +84,12 @@
               <div><div class="contact-method__label">GitHub</div><div class="contact-method__value">anyaegbu-emmanuel</div></div>
             </a>
             <a href="https://anyaegbuemmanuel.dev" target="_blank" rel="noopener" class="contact-method">
-              <div class="contact-method__icon">🌐</div>
+              <div class="contact-method__icon"><i class="fa-solid fa-globe emoji-replacement-icon" aria-hidden="true"></i></div>
               <div><div class="contact-method__label">Portfolio</div><div class="contact-method__value" data-cms-setting="portfolio_url">anyaegbuemmanuel.dev</div></div>
             </a>
             <div class="contact-method">
-              <div class="contact-method__icon">📍</div>
-              <div><div class="contact-method__label">Location</div><div class="contact-method__value" data-cms-setting="contact_location">Nigeria 🇳🇬 — Open to Remote</div></div>
+              <div class="contact-method__icon"><i class="fa-solid fa-location-dot emoji-replacement-icon" aria-hidden="true"></i></div>
+              <div><div class="contact-method__label">Location</div><div class="contact-method__value" data-cms-setting="contact_location">Nigeria <i class="fa-solid fa-globe emoji-replacement-icon" aria-hidden="true"></i> — Open to Remote</div></div>
             </div>
           </div>
 
@@ -169,7 +169,7 @@
             </div>
 
             <p class="form-note" style="margin-top:var(--space-4)">
-              💡 <strong>WhatsApp</strong> sends directly to my WhatsApp Business number for the fastest reply.<br />
+              <i class="fa-solid fa-lightbulb emoji-replacement-icon" aria-hidden="true"></i> <strong>WhatsApp</strong> sends directly to my WhatsApp Business number for the fastest reply.<br />
               <strong>Email</strong> opens your email client with the message pre-filled.
             </p>
           </form>
@@ -199,7 +199,7 @@
           <a href="articles.html" class="footer__nav-link">Articles</a></nav>
     </div>
     <div class="footer__bottom">
-      <p class="footer__copy">© 2025 Anyaegbu Emmanuel Ikenna. All rights reserved.</p>
+      <p class="footer__copy"><i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i> 2025 Anyaegbu Emmanuel Ikenna. All rights reserved.</p>
       <div class="footer__socials">
         <a href="https://wa.me/2347046947391" target="_blank" rel="noopener" class="footer__social" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
         <a href="https://linkedin.com/in/anyaegbu-emmanuel" target="_blank" rel="noopener" class="footer__social" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
@@ -246,7 +246,7 @@
     }
 
     function directWhatsApp(d) {
-      let waMsg = `*New Portfolio Message* 🌐\n\n*Name:* ${d.name}\n`;
+      let waMsg = `*New Portfolio Message* \n\n*Name:* ${d.name}\n`;
       if (d.email) waMsg += `*Email:* ${d.email}\n`; if (d.phone) waMsg += `*Phone:* ${d.phone}\n`; if (d.service) waMsg += `*Service:* ${d.service}\n`; if (d.budget) waMsg += `*Budget:* ${d.budget}\n`;
       waMsg += `\n*Message:*\n${d.message}`; window.open(`https://wa.me/2347046947391?text=${encodeURIComponent(waMsg)}`, '_blank');
     }
@@ -269,7 +269,7 @@
       waBtn.disabled = true;
       try {
         const r = await window.PortfolioAPI.submitContact(payload); form.reset(); turnstileToken = ''; if (turnstileWidget !== null && window.turnstile) window.turnstile.reset(turnstileWidget);
-        showMsg('✅ Message received. I will get back to you soon.', 'success');
+        showMsg(' Message received. I will get back to you soon.', 'success');
         if (r.data.whatsapp_url) { const box = document.createElement('div'); box.className = 'wa-handoff'; const p = document.createElement('p'); p.textContent = 'Want a faster reply? Continue the conversation on WhatsApp:'; const a = document.createElement('a'); a.className = 'btn btn--primary'; a.target = '_blank'; a.rel = 'noopener'; a.href = r.data.whatsapp_url; a.textContent = 'Continue on WhatsApp'; box.append(p, a); form.querySelector('.wa-handoff')?.remove(); form.appendChild(box); }
       } catch (err) {
         if (err.status >= 400 && err.status < 500) { const first = err.details && Object.values(err.details)[0]; showMsg(first ? String(first) : err.message, 'error'); }
@@ -292,7 +292,7 @@
 
       const mailto = `mailto:anyaegbuemmanuel2021@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.location.href = mailto;
-      showMsg('✅ Opening your email client...', 'success');
+      showMsg(' Opening your email client...', 'success');
       form.reset();
     });
   </script>
@@ -309,7 +309,7 @@
       function applyTheme(t) {
         document.documentElement.setAttribute('data-theme', t);
         localStorage.setItem('theme', t);
-        btn.textContent = t === 'dark' ? '🌙' : '☀️';
+        btn.innerHTML = t === 'dark' ? '<i class="fa-solid fa-moon" aria-hidden="true"></i>' : '<i class="fa-solid fa-sun" aria-hidden="true"></i>';
         btn.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
       }
       applyTheme(localStorage.getItem('theme') || 'dark');
