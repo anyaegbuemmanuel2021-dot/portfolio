@@ -289,6 +289,7 @@ const Typer = {
   el: null,
   phrases: [
     'Frontend Developer',
+    'Full-Stack Developer',
     'Responsive Design Specialist',
     'UI/UX Enthusiast',
     'AI-Assisted Developer'
