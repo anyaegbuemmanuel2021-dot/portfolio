@@ -11,7 +11,8 @@ test('homepage uses clear frontend positioning and avoids invented metrics', () 
   assert.match(html, /Frontend Developer & AI Creative Technologist/);
   assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development|Node\.js|PostgreSQL/);
   assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
-  assert.match(html, /AI Creative Technologist/);\n  assert.match(html, /AI-assisted creative tools/);
+  assert.match(html, /AI Creative Technologist/);
+  assert.match(html, /AI-assisted creative tools/);
 });
 
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
