@@ -1,3 +1,5 @@
+document.querySelectorAll('[data-current-year]').forEach(function (node) { node.textContent = String(new Date().getFullYear()); });
+
 /**
  * main.js — Portfolio JavaScript
  * Anyaegbu Emmanuel Ikenna
@@ -289,10 +291,10 @@ const Typer = {
   el: null,
   phrases: [
     'Frontend Developer',
-    'Full-Stack Developer',
+    'AI Creative Technologist',
     'Responsive Design Specialist',
     'UI/UX Enthusiast',
-    'AI Expert'
+    'AI Video & Content Creator'
   ],
   currentIndex: 0,
   charIndex: 0,

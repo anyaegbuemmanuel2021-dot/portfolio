@@ -14,7 +14,7 @@
       list.setAttribute('aria-busy', 'true');
       var qs = '?page=' + state.page + '&limit=9' + (state.q ? '&q=' + encodeURIComponent(state.q) : '') + (state.category ? '&category=' + encodeURIComponent(state.category) : '');
       API.get('/api/articles' + qs).then(function (r) {
-        list.textContent = ''; if (!r.data.length) list.appendChild(el('p', 'article-card__excerpt', 'No articles found.'));
+        list.textContent = ''; if (!r.data.length) { var empty = el('div', 'article-empty'); empty.appendChild(el('h2', 'article-card__title', 'Articles are on the way')); empty.appendChild(el('p', 'article-card__excerpt', 'I am preparing practical notes on frontend development, responsive design and AI-assisted creative work. In the meantime, explore the project demonstrations or get in touch.')); var projects = el('a', 'btn btn--primary btn--sm', 'Explore projects'); projects.href = '/projects.html'; empty.appendChild(projects); list.appendChild(empty); }
         r.data.forEach(function (a) {
           var c = el('a', 'article-card'); c.href = '/articles/' + encodeURIComponent(a.slug);
           if (safeImg(a.featured_image_url)) { var i = el('img', 'article-card__img'); i.src = a.featured_image_url; i.alt = ''; i.loading = 'lazy'; i.decoding = 'async'; c.appendChild(i); }
@@ -23,7 +23,7 @@
         });
         var pg = $('#pager'); pg.textContent = ''; var pages = Math.ceil(r.meta.total / r.meta.limit);
         if (pages > 1) { var prev = el('button', 'btn btn--ghost btn--sm', '← Newer'), next = el('button', 'btn btn--ghost btn--sm', 'Older →'); prev.disabled = state.page <= 1; next.disabled = state.page >= pages; prev.onclick = function () { state.page--; load(); }; next.onclick = function () { state.page++; load(); }; pg.append(prev, el('span', 'article-card__meta', 'Page ' + state.page + ' / ' + pages), next); }
-      }).catch(function () { list.textContent = ''; list.appendChild(el('p', 'article-card__excerpt', 'Articles are unavailable right now. Please try again later.')); }).then(function () { list.removeAttribute('aria-busy'); });
+      }).catch(function () { list.textContent = ''; var empty = el('div', 'article-empty'); empty.appendChild(el('h2', 'article-card__title', 'Articles could not load')); empty.appendChild(el('p', 'article-card__excerpt', 'Please try again later, or explore the project demonstrations while the publishing service is unavailable.')); var projects = el('a', 'btn btn--primary btn--sm', 'Explore projects'); projects.href = '/projects.html'; empty.appendChild(projects); list.appendChild(empty); }).then(function () { list.removeAttribute('aria-busy'); });
     };
     var t; $('#articleSearch').addEventListener('input', function (e) { clearTimeout(t); t = setTimeout(function () { state.q = e.target.value.trim(); state.page = 1; load(); }, 300); });
     API.get('/api/articles/categories').then(function (r) { var s = $('#articleCategory'); r.data.forEach(function (c) { var o = el('option', '', c.name); o.value = c.slug; s.appendChild(o); }); }).catch(function () {});
