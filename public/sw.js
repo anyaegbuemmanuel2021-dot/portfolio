@@ -1,10 +1,10 @@
 /* AEI Portfolio PWA service worker. Never cache admin, API, auth or private responses. */
 'use strict';
-const VERSION = 'aei-pwa-v2';
+const VERSION = 'aei-pwa-v3';
 const APP_CACHE = VERSION + '-app';
 const ASSET_CACHE = VERSION + '-assets';
 const CORE_PAGES = ['/index.html', '/about.html', '/projects.html', '/services.html', '/contact.html', '/articles.html', '/manifest.webmanifest', '/offline.html'];
-const CORE_ASSETS = ['/assets/css/global.css', '/assets/css/animations.css', '/assets/css/home.css', '/assets/css/about.css', '/assets/css/platform.css', '/assets/js/main.js', '/assets/icons/app-icon.svg'];
+const CORE_ASSETS = ['/assets/css/global.css', '/assets/css/animations.css', '/assets/css/home.css', '/assets/css/about.css', '/assets/css/platform.css', '/assets/js/main.js', '/assets/js/emoji-icons.js', '/assets/icons/app-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
