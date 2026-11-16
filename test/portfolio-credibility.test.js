@@ -6,12 +6,12 @@ import { join } from 'node:path';
 const root = process.cwd();
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('homepage uses accurate hybrid positioning and avoids invented metrics', () => {
+test('homepage uses clear frontend positioning and avoids invented metrics', () => {
   const html = read('public/index.html');
-  assert.match(html, /Frontend Developer & AI Creative Technologist/);
+  assert.match(html, /Frontend Developer & Digital Content Creator/);
   assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development|Node\.js|PostgreSQL/);
   assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
-  assert.match(html, /AI-assisted video & content/);
+  assert.match(html, /Video & content production/);
 });
 
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
