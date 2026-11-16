@@ -521,3 +521,55 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
     });
   }, { once: true });
 }
+
+
+/* PWA install controls: banner above article search + shortcut inside search field. */
+(() => {
+  const initInstallUI = () => {
+    const promptBar = document.getElementById('appInstallPrompt');
+    const installButton = document.getElementById('appInstallButton');
+    const searchInstallButton = document.getElementById('searchInstallButton');
+    const dismissButton = document.getElementById('appInstallDismiss');
+    if (!promptBar || !installButton || !searchInstallButton) return;
+
+    let deferredInstallPrompt = null;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    const dismissed = sessionStorage.getItem('aeiInstallPromptDismissed') === '1';
+    if (isStandalone || dismissed) promptBar.hidden = true;
+
+    const openInstall = async () => {
+      if (isStandalone) return;
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        promptBar.hidden = true;
+        return;
+      }
+      const ua = navigator.userAgent || '';
+      const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const message = isIOS
+        ? 'To install: tap the Share button in Safari, then choose “Add to Home Screen”.'
+        : 'To install: open your browser menu and choose “Install app” or “Add to Home screen”.';
+      window.alert(message);
+    };
+
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      if (!isStandalone && sessionStorage.getItem('aeiInstallPromptDismissed') !== '1') promptBar.hidden = false;
+    });
+    window.addEventListener('appinstalled', () => {
+      promptBar.hidden = true;
+      deferredInstallPrompt = null;
+    });
+    installButton.addEventListener('click', openInstall);
+    searchInstallButton.addEventListener('click', openInstall);
+    dismissButton?.addEventListener('click', () => {
+      promptBar.hidden = true;
+      sessionStorage.setItem('aeiInstallPromptDismissed', '1');
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initInstallUI, { once: true });
+  else initInstallUI();
+})();
