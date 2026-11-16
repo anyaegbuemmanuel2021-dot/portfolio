@@ -23,21 +23,21 @@
     var icon = document.createElement('span'); icon.className = 'project-card__link-icon'; icon.textContent = '<i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>'; thumb.appendChild(icon);
     var body = document.createElement('div'); body.className = 'project-card__body';
     var tags = document.createElement('div'); tags.className = 'project-card__tags'; list(p.tags).forEach(function (tag) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; tags.appendChild(t); });
-    var h = document.createElement('h3'); h.className = 'project-card__title'; h.textContent = p.title || 'Project';
-    var d = document.createElement('p'); d.className = 'project-card__desc'; d.textContent = p.summary || p.description || '';
+    var h = document.createElement('h3'); h.className = 'project-card__title'; h.textContent = safeCopy(p.title || 'Project');
+    var d = document.createElement('p'); d.className = 'project-card__desc'; d.textContent = safeCopy(p.summary || p.description || '') + ' Concept demonstration: sample brand and content are illustrative.';
     var actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:var(--space-3);margin-top:var(--space-4);flex-wrap:wrap';
     var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = safeUrl(p.url || ('projects/' + (p.slug || '') + '/index.html')); live.textContent = 'View Live <i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>';
     if (live.href === '#') live.hidden = true; else { live.target = '_blank'; live.rel = 'noopener'; }
     actions.appendChild(live);
-    if (p.repo_url) { var repo = document.createElement('a'); repo.className = 'btn btn--ghost btn--sm'; repo.href = /^https:\/\/github\.com\/anyaegbuemmanuel2021-dot\/portfolio\/?$/i.test(String(p.repo_url || '')) && p.slug ? 'https://github.com/anyaegbuemmanuel2021-dot/portfolio/tree/main/public/projects/' + encodeURIComponent(p.slug) : safeUrl(p.repo_url); repo.target = '_blank'; repo.rel = 'noopener'; repo.textContent = 'GitHub'; actions.appendChild(repo); }
+    if (p.repo_url) { var repo = document.createElement('a'); repo.className = 'btn btn--ghost btn--sm'; repo.href = p.slug && /^(restaurant|agency|blog|shop|event|calculator)$/.test(String(p.slug)) ? 'https://github.com/anyaegbuemmanuel2021-dot/portfolio/tree/main/public/projects/' + encodeURIComponent(p.slug) : safeUrl(p.repo_url); repo.target = '_blank'; repo.rel = 'noopener'; repo.textContent = 'GitHub'; actions.appendChild(repo); }
     body.append(tags, h, d, actions); card.append(thumb, body); return card;
   }
   function renderServices(rows) {
     var root = $('.services-list'); if (!root || !rows.length) return;
     root.replaceChildren(); rows.forEach(function (s, i) { var row = document.createElement('div'); row.className = 'service-row';
       var num = document.createElement('span'); num.className = 'service-row__num'; num.textContent = String(i + 1).padStart(2, '0');
-      var content = document.createElement('div'); var h = document.createElement('h3'); h.className = 'service-row__title'; h.textContent = (s.icon ? s.icon + ' ' : '') + s.title;
-      var p = document.createElement('p'); p.className = 'service-row__desc'; p.textContent = s.description || s.summary || '';
+      var content = document.createElement('div'); var h = document.createElement('h3'); h.className = 'service-row__title'; h.textContent = (s.icon ? s.icon + ' ' : '') + safeCopy(s.title);
+      var p = document.createElement('p'); p.className = 'service-row__desc'; p.textContent = safeCopy(s.description || s.summary || '');
       var tags = document.createElement('div'); tags.style.cssText = 'display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)';
       list(s.tags).forEach(function (v) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = v; tags.appendChild(t); });
       content.append(h, p); if (tags.childNodes.length) content.appendChild(tags);
@@ -60,7 +60,7 @@
     });
   }
   function renderExperience(rows) {
-    var root = $('.timeline'); if (!root || !rows.length) return; rows = rows.filter(function (x) { return !/freelance|full[\s-]?stack/i.test(String(x.role || '')); }); if (!rows.length) return; root.replaceChildren(); rows.forEach(function (x) { var item = document.createElement('div'); item.className = 'timeline-item'; var dot = document.createElement('div'); dot.className = 'timeline-item__dot'; dot.textContent = '•'; var body = document.createElement('div');
+    var root = $('.timeline'); if (!root || !rows.length) return; rows = rows.filter(function (x) { return !/freelance|full[\s-]?stack|certification/i.test(String(x.role || '')); }); if (!rows.length) return; root.replaceChildren(); rows.forEach(function (x) { var item = document.createElement('div'); item.className = 'timeline-item'; var dot = document.createElement('div'); dot.className = 'timeline-item__dot'; dot.textContent = '•'; var body = document.createElement('div');
       var date = document.createElement('p'); date.className = 'timeline-item__date'; date.textContent = [x.start_date, x.end_date].filter(Boolean).join(' — ');
       var title = document.createElement('h3'); title.className = 'timeline-item__title'; title.textContent = x.role || '';
       var org = document.createElement('p'); org.className = 'timeline-item__org'; org.textContent = [x.organization, x.location].filter(Boolean).join(' · ');
