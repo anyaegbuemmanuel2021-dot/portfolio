@@ -20,13 +20,13 @@
     var thumb = document.createElement('div'); thumb.className = 'project-card__thumb';
     if (p.cover_url) { var img = document.createElement('img'); img.src = safeUrl(p.cover_url); img.alt = p.title || 'Project preview'; img.loading = 'lazy'; img.decoding = 'async'; img.style.cssText = 'width:100%;height:100%;object-fit:cover'; thumb.appendChild(img); }
     else { var face = document.createElement('div'); face.className = 'project-card__thumb-inner project-card__thumb-inner--' + (i % 6 + 1); face.textContent = p.title || 'PROJECT'; thumb.appendChild(face); }
-    var icon = document.createElement('span'); icon.className = 'project-card__link-icon'; icon.textContent = '<i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>'; thumb.appendChild(icon);
+    var icon = document.createElement('span'); icon.className = 'project-card__link-icon'; var iconGlyph = document.createElement('i'); iconGlyph.className = 'fa-solid fa-arrow-up-right-from-square'; iconGlyph.setAttribute('aria-hidden', 'true'); icon.appendChild(iconGlyph); thumb.appendChild(icon);
     var body = document.createElement('div'); body.className = 'project-card__body';
     var tags = document.createElement('div'); tags.className = 'project-card__tags'; list(p.tags).forEach(function (tag) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; tags.appendChild(t); });
     var h = document.createElement('h3'); h.className = 'project-card__title'; h.textContent = safeCopy(p.title || 'Project');
     var d = document.createElement('p'); d.className = 'project-card__desc'; d.textContent = safeCopy(p.summary || p.description || '') + ' Concept demonstration: sample brand and content are illustrative.';
     var actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:var(--space-3);margin-top:var(--space-4);flex-wrap:wrap';
-    var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = safeUrl(p.url || ('projects/' + (p.slug || '') + '/index.html')); live.textContent = 'View Live <i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>';
+    var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = safeUrl(p.url || ('projects/' + (p.slug || '') + '/index.html')); live.appendChild(document.createTextNode('View Live ')); var liveIcon = document.createElement('i'); liveIcon.className = 'fa-solid fa-arrow-up-right-from-square'; liveIcon.setAttribute('aria-hidden', 'true'); live.appendChild(liveIcon);
     if (live.href === '#') live.hidden = true; else { live.target = '_blank'; live.rel = 'noopener'; }
     actions.appendChild(live);
     if (p.repo_url) { var repo = document.createElement('a'); repo.className = 'btn btn--ghost btn--sm'; repo.href = p.slug && /^(restaurant|agency|blog|shop|event|calculator)$/.test(String(p.slug)) ? 'https://github.com/anyaegbuemmanuel2021-dot/portfolio/tree/main/public/projects/' + encodeURIComponent(p.slug) : safeUrl(p.repo_url); repo.target = '_blank'; repo.rel = 'noopener'; repo.textContent = 'GitHub'; actions.appendChild(repo); }
