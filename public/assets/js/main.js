@@ -523,53 +523,63 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
 }
 
 
-/* PWA install controls: banner above article search + shortcut inside search field. */
+/* Site-wide PWA installation prompt and persistent header shortcut. */
 (() => {
-  const initInstallUI = () => {
-    const promptBar = document.getElementById('appInstallPrompt');
-    const installButton = document.getElementById('appInstallButton');
-    const searchInstallButton = document.getElementById('searchInstallButton');
-    const dismissButton = document.getElementById('appInstallDismiss');
-    if (!promptBar || !installButton || !searchInstallButton) return;
+  const initSiteInstall = () => {
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
+    if (sessionStorage.getItem('aeiInstallPromptDismissed') === '1') return;
 
     let deferredInstallPrompt = null;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    const dismissed = sessionStorage.getItem('aeiInstallPromptDismissed') === '1';
-    if (isStandalone || dismissed) promptBar.hidden = true;
+    const banner = document.createElement('aside');
+    banner.className = 'site-install-banner';
+    banner.setAttribute('role', 'region');
+    banner.setAttribute('aria-label', 'Install portfolio app');
+    banner.innerHTML = '<span class="site-install-banner__symbol" aria-hidden="true">↓</span><span class="site-install-banner__message"><strong>Install this website as an app</strong><small>Get faster access from your home screen.</small></span><button class="site-install-banner__action" type="button">Install</button><button class="site-install-banner__close" type="button" aria-label="Dismiss install message">&times;</button>';
+    document.body.appendChild(banner);
 
-    const openInstall = async () => {
-      if (isStandalone) return;
+    const navInner = document.querySelector('.nav__inner');
+    if (navInner && !document.getElementById('siteInstallShortcut')) {
+      const shortcut = document.createElement('button');
+      shortcut.type = 'button';
+      shortcut.id = 'siteInstallShortcut';
+      shortcut.className = 'site-install-shortcut';
+      shortcut.setAttribute('aria-label', 'Install app');
+      shortcut.title = 'Install app';
+      shortcut.textContent = '↓';
+      navInner.appendChild(shortcut);
+      shortcut.addEventListener('click', triggerInstall);
+    }
+
+    async function triggerInstall() {
       if (deferredInstallPrompt) {
         deferredInstallPrompt.prompt();
         await deferredInstallPrompt.userChoice;
         deferredInstallPrompt = null;
-        promptBar.hidden = true;
+        banner.remove();
         return;
       }
       const ua = navigator.userAgent || '';
       const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      const message = isIOS
-        ? 'To install: tap the Share button in Safari, then choose “Add to Home Screen”.'
-        : 'To install: open your browser menu and choose “Install app” or “Add to Home screen”.';
-      window.alert(message);
-    };
+      window.alert(isIOS
+        ? 'To install this app, open this website in Safari, tap the Share button, then choose “Add to Home Screen”.'
+        : 'To install this app, open your browser menu and choose “Install app” or “Add to Home screen”.');
+    }
+
+    banner.querySelector('.site-install-banner__action').addEventListener('click', triggerInstall);
+    banner.querySelector('.site-install-banner__close').addEventListener('click', () => {
+      banner.remove();
+      sessionStorage.setItem('aeiInstallPromptDismissed', '1');
+    });
 
     window.addEventListener('beforeinstallprompt', event => {
       event.preventDefault();
       deferredInstallPrompt = event;
-      if (!isStandalone && sessionStorage.getItem('aeiInstallPromptDismissed') !== '1') promptBar.hidden = false;
     });
     window.addEventListener('appinstalled', () => {
-      promptBar.hidden = true;
-      deferredInstallPrompt = null;
-    });
-    installButton.addEventListener('click', openInstall);
-    searchInstallButton.addEventListener('click', openInstall);
-    dismissButton?.addEventListener('click', () => {
-      promptBar.hidden = true;
-      sessionStorage.setItem('aeiInstallPromptDismissed', '1');
+      banner.remove();
+      document.getElementById('siteInstallShortcut')?.remove();
     });
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initInstallUI, { once: true });
-  else initInstallUI();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSiteInstall, { once: true });
+  else initSiteInstall();
 })();
