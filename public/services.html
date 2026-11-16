@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="assets/css/home.css" />
   <link rel="stylesheet" href="assets/css/about.css" />
   <link rel="stylesheet" href="assets/css/platform.css" />
+  <link rel="stylesheet" href="assets/css/services.css" />
   <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
   <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
   <link rel="shortcut icon" href="/favicon.svg?v=2" type="image/svg+xml" />
@@ -46,163 +47,81 @@
     </div>
   </header>
 
-  <section class="page-hero bg-gradient-animated">
-    <div class="noise-overlay"></div>
-    <div class="parallax-blob parallax-blob--1"></div>
-    <div class="container">
-      <span class="section-label page-hero__label">What I Offer</span>
-      <h1 class="page-hero__heading">My <em style="color:var(--color-gold);font-style:normal">Services</em></h1>
-      <p class="page-hero__sub">Clean code. Responsive layouts. Fast delivery. Built with HTML, CSS & JavaScript.</p>
+  <section class="services-hero">
+    <div class="services-hero__grid"></div>
+    <div class="container services-hero__inner">
+      <div class="services-hero__copy">
+        <span class="section-label">Services · From idea to launch</span>
+        <p class="services-hero__eyebrow">DIGITAL EXPERIENCES BUILT WITH PURPOSE</p>
+        <h1>Make your next<br><em>move online.</em></h1>
+        <p class="services-hero__lead">I design and build thoughtful, responsive websites that help businesses look credible, communicate clearly and turn visitors into enquiries.</p>
+        <div class="services-hero__actions">
+          <a class="btn btn--primary" href="contact.html">Discuss your project <span aria-hidden="true">↗</span></a>
+          <a class="services-hero__text-link" href="projects.html">Explore selected work <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="services-hero__proof"><span class="services-hero__proof-line"></span><span>DESIGN-LED · RESPONSIVE · BUILT FOR REAL USERS</span></div>
+      </div>
+      <div class="services-hero__visual" aria-label="Website interface preview">
+        <div class="services-window">
+          <div class="services-window__bar"><span></span><span></span><span></span><small>yourbusiness.com</small></div>
+          <div class="services-window__body">
+            <div class="services-window__nav"><b>YOUR BRAND.</b><span>ABOUT　 SERVICES　 CONTACT</span></div>
+            <div class="services-window__content"><small>BUILT TO MOVE YOUR BUSINESS FORWARD</small><strong>A better first<br>impression starts here.</strong><i>Clear message. Thoughtful design. Seamless experience.</i><span>LET'S TALK　 ↗</span></div>
+            <div class="services-window__footer"><span>01 / DIGITAL PRESENCE</span><span>DESIGNED WITH INTENTION</span></div>
+          </div>
+        </div>
+        <div class="services-hero__stamp"><b>AEI</b><span>WEB<br>EXPERIENCES</span></div>
+      </div>
     </div>
+    <div class="container services-hero__bottom"><span>WHAT I CAN HELP YOU WITH</span><span>SCROLL TO EXPLORE ↓</span></div>
   </section>
 
-  <section class="services-detailed section">
+  <section class="services-offers section">
     <div class="container">
-      <span class="section-label" data-reveal="fade">Core Services</span>
-      <h2 style="margin-bottom:var(--space-12)" data-reveal="fade-up">What I Build</h2>
-
-      <div class="services-list">
-
-        <div class="service-row" data-reveal="slide-right">
-          <span class="service-row__num">01</span>
-          <div>
-            <h3 class="service-row__title">💻 Website Development</h3>
-            <p class="service-row__desc">Responsive, fast, and accessible websites built with HTML5, CSS3, and JavaScript. From simple landing pages to full multi-page business websites — mobile-first, cross-browser compatible, and deployed on Netlify or Vercel. I organise all projects with clear folder structures and modular CSS for easy maintenance.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">HTML5</span><span class="tag">CSS3</span><span class="tag">JavaScript</span><span class="tag">Multi-Page Sites</span><span class="tag">Landing Pages</span></div>
-          </div>
-          <span class="service-row__arrow">→</span>
-        </div>
-
-        <div class="service-row" data-reveal="slide-right" data-delay="100">
-          <span class="service-row__num">02</span>
-          <div>
-            <h3 class="service-row__title">📱 Responsive Web Design</h3>
-            <p class="service-row__desc">Layouts that look perfect on every screen size — mobile, tablet, and desktop. Using Flexbox and CSS Grid to build fluid, adaptive designs that maintain clean structure and great readability across all devices. I test across multiple screen sizes and browsers before delivery.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">Flexbox</span><span class="tag">CSS Grid</span><span class="tag">Mobile-First</span><span class="tag">Cross-Browser</span><span class="tag">Media Queries</span></div>
-          </div>
-          <span class="service-row__arrow">→</span>
-        </div>
-
-        <div class="service-row" data-reveal="slide-right" data-delay="200">
-          <span class="service-row__num">03</span>
-          <div>
-            <h3 class="service-row__title">✨ CSS Animations & Interactive UI</h3>
-            <p class="service-row__desc">Smooth CSS animations, hover effects, transitions, and interactive elements that elevate the user experience. From simple button hovers to complex page entrance animations — making your website feel modern and engaging without heavy JavaScript libraries.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">CSS Animations</span><span class="tag">Hover Effects</span><span class="tag">Transitions</span><span class="tag">Interactive UI</span><span class="tag">Keyframes</span></div>
-          </div>
-          <span class="service-row__arrow">→</span>
-        </div>
-
-        <div class="service-row" data-reveal="slide-right" data-delay="300">
-          <span class="service-row__num">04</span>
-          <div>
-            <h3 class="service-row__title">🤖 AI-Assisted Development</h3>
-            <p class="service-row__desc">I leverage AI tools (ChatGPT, Claude) with strong prompt engineering skills to build faster, debug smarter, and deliver higher quality code. This means quicker turnaround times and more polished output for your project — without compromising on clean, maintainable code.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">ChatGPT</span><span class="tag">Claude</span><span class="tag">Prompt Engineering</span><span class="tag">AI Debugging</span><span class="tag">Faster Delivery</span></div>
-          </div>
-          <span class="service-row__arrow">→</span>
-        </div>
-
-        <div class="service-row" data-reveal="slide-right" data-delay="400">
-          <span class="service-row__num">05</span>
-          <div>
-            <h3 class="service-row__title">🚀 Website Deployment</h3>
-            <p class="service-row__desc">Get your site live fast. I deploy websites on Netlify and Vercel with custom domain setup, HTTPS, and performance optimisation. Your site will be accessible, fast-loading, and ready for visitors — fully tested before go-live.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">Netlify</span><span class="tag">Vercel</span><span class="tag">Git & GitHub</span><span class="tag">Custom Domain</span><span class="tag">HTTPS</span></div>
-          </div>
-          <span class="service-row__arrow">→</span>
-        </div>
-
-        <div class="service-row" data-reveal="slide-right" data-delay="500">
-          <span class="service-row__num">06</span>
-          <div>
-            <h3 class="service-row__title">🔍 Basic SEO & Performance</h3>
-            <p class="service-row__desc">Foundational SEO best practices — proper meta tags, semantic HTML structure, clean headings, and image optimisation — so your website has the best possible chance of ranking well and loading fast for every visitor.</p>
-            <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)"><span class="tag">Meta Tags</span><span class="tag">Semantic HTML</span><span class="tag">Performance</span><span class="tag">Image Optimisation</span><span class="tag">Accessibility</span></div>
-          </div>
-          <span class="service-row__arrow">→</span>
-        </div>
-
+      <div class="services-section-head">
+        <div><span class="section-label">01 / What I do</span><h2>Digital solutions<br><em>that do the job.</em></h2></div>
+        <p>Every project starts with what your business needs to achieve. The right structure, message and experience come before decoration.</p>
+      </div>
+      <div class="services-offer-grid">
+        <article class="services-offer services-offer--featured">
+          <span class="services-offer__index">01</span><span class="services-offer__icon">↗</span>
+          <p class="services-offer__type">FOR BUSINESSES & BRANDS</p><h3>Business website development</h3>
+          <p>A professional online home that explains what you offer, builds trust and makes it easy for customers to take the next step.</p>
+          <ul><li>Strategic page structure</li><li>Responsive layouts for mobile and desktop</li><li>Clear calls to action and enquiry paths</li><li>Launch support</li></ul>
+          <a href="contact.html" class="services-offer__link">Plan a business website <span>↗</span></a>
+        </article>
+        <article class="services-offer">
+          <span class="services-offer__index">02</span><span class="services-offer__icon">◫</span>
+          <p class="services-offer__type">FOR CAMPAIGNS & NEW IDEAS</p><h3>Landing pages</h3>
+          <p>Focused pages for a product, service, event or campaign—with a clear message and one strong next step.</p>
+          <ul><li>Conversion-focused content flow</li><li>Responsive visual design</li><li>Contact and action links</li><li>Fast, lightweight front end</li></ul>
+          <a href="contact.html" class="services-offer__link">Build a landing page <span>↗</span></a>
+        </article>
+        <article class="services-offer">
+          <span class="services-offer__index">03</span><span class="services-offer__icon">⌘</span>
+          <p class="services-offer__type">FOR PROFESSIONALS</p><h3>Portfolio & personal websites</h3>
+          <p>Present your skills, projects and experience with a distinctive website that gives people a reason to remember you.</p>
+          <ul><li>Personal brand presentation</li><li>Project and case-study layouts</li><li>CV and contact integration</li><li>Mobile-first implementation</li></ul>
+          <a href="contact.html" class="services-offer__link">Create your portfolio <span>↗</span></a>
+        </article>
+        <article class="services-offer">
+          <span class="services-offer__index">04</span><span class="services-offer__icon">✳</span>
+          <p class="services-offer__type">FOR EXISTING WEBSITES</p><h3>Website improvements</h3>
+          <p>Improve an existing website's presentation, usability and front-end experience without rebuilding everything unnecessarily.</p>
+          <ul><li>Responsive layout fixes</li><li>Interface and usability refinement</li><li>Visual consistency improvements</li><li>Front-end performance basics</li></ul>
+          <a href="contact.html" class="services-offer__link">Improve my website <span>↗</span></a>
+        </article>
       </div>
     </div>
   </section>
 
-  <!-- PRICING SECTION -->
-  <section class="section" style="background-color:var(--color-bg-alt)">
-    <div class="container">
-      <span class="section-label" data-reveal="fade">Pricing</span>
-      <h2 style="margin-bottom:var(--space-4)" data-reveal="fade-up">Simple, Transparent Pricing</h2>
-      <p style="margin-bottom:var(--space-12);color:var(--color-text-secondary)" data-reveal="fade-up" data-delay="100">Every project is unique — contact me to get a custom quote for your needs.</p>
-      <div class="grid-3" data-cms-pricing>
-        <div class="service-card" data-reveal="fade-up" style="position:relative">
-          <div class="service-card__icon">🌱</div>
-          <h3 class="service-card__title">Starter</h3>
-          <p style="font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0">₦30,000+</p>
-          <p class="service-card__desc">Single-page website — responsive, clean, and deployed. Great for portfolios, personal pages, or simple business landing pages.</p>
-          <ul style="margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)">
-            <li>✓ 1 page — mobile responsive</li>
-            <li>✓ Contact form</li>
-            <li>✓ Netlify deployment</li>
-            <li>✓ Delivered in 3–5 days</li>
-          </ul>
-          <span class="service-card__number">01</span>
-        </div>
-        <div class="service-card" data-reveal="fade-up" data-delay="200" style="border-color:var(--color-gold);position:relative">
-          <div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--color-gold);color:#080808;font-size:var(--text-xs);font-weight:600;padding:3px 14px;border-radius:var(--radius-full);white-space:nowrap">Most Popular</div>
-          <div class="service-card__icon">💼</div>
-          <h3 class="service-card__title">Business</h3>
-          <p style="font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0">₦80,000+</p>
-          <p class="service-card__desc">Multi-page website with full responsive design, animations, and basic SEO — ideal for small businesses and startups.</p>
-          <ul style="margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)">
-            <li>✓ 3–5 pages — fully responsive</li>
-            <li>✓ CSS animations & effects</li>
-            <li>✓ Contact form + WhatsApp link</li>
-            <li>✓ Basic SEO setup</li>
-            <li>✓ Delivered in 7–10 days</li>
-          </ul>
-          <span class="service-card__number">02</span>
-        </div>
-        <div class="service-card" data-reveal="fade-up" data-delay="400" style="position:relative">
-          <div class="service-card__icon">🚀</div>
-          <h3 class="service-card__title">Custom</h3>
-          <p style="font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0">Let's Talk</p>
-          <p class="service-card__desc">Have unique requirements? Let's discuss a custom scope, timeline, and price for your specific project needs.</p>
-          <ul style="margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)">
-            <li>✓ Tailored to your needs</li>
-            <li>✓ Flexible scope & timeline</li>
-            <li>✓ Regular progress updates</li>
-            <li>✓ Post-delivery support</li>
-          </ul>
-          <span class="service-card__number">03</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PROCESS -->
-  <section class="section">
-    <div class="container">
-      <span class="section-label" data-reveal="fade">My Process</span>
-      <h2 style="margin-bottom:var(--space-12)" data-reveal="fade-up">How I Work</h2>
-      <div class="grid-3" data-cms-process>
-        <div class="service-card" data-reveal="fade-up">
-          <div class="service-card__icon">💬</div>
-          <h3 class="service-card__title">1. Discover</h3>
-          <p class="service-card__desc">We start with a conversation about your goals, target audience, and timeline. I listen carefully so there are no surprises later.</p>
-          <span class="service-card__number">01</span>
-        </div>
-        <div class="service-card" data-reveal="fade-up" data-delay="200">
-          <div class="service-card__icon">🗺️</div>
-          <h3 class="service-card__title">2. Plan & Design</h3>
-          <p class="service-card__desc">I plan the structure, layout, and content flow of your site — before writing a single line of code, so we're aligned on the result.</p>
-          <span class="service-card__number">02</span>
-        </div>
-        <div class="service-card" data-reveal="fade-up" data-delay="400">
-          <div class="service-card__icon">🚀</div>
-          <h3 class="service-card__title">3. Build & Deliver</h3>
-          <p class="service-card__desc">Clean code, thorough cross-browser and cross-device testing, then deployment. I don't consider it done until it's pixel-perfect on every screen.</p>
-          <span class="service-card__number">03</span>
-        </div>
+  <section class="services-engagement section">
+    <div class="container services-engagement__inner">
+      <div><span class="section-label">02 / Working together</span><h2>Clear scope.<br><em>No guesswork.</em></h2><p>I don't force every project into the same package. You get a proposal based on your goals, required pages, functionality and timeline.</p></div>
+      <div class="services-engagement__steps">
+        <div><b>01</b><span><strong>Tell me what you need</strong><small>Share your idea, audience and what success should look like.</small></span></div>
+        <div><b>02</b><span><strong>Get a clear proposal</strong><small>We agree on deliverables, timeline and investment before work begins.</small></span></div>
+        <div><b>03</b><span><strong>Build, review and launch</strong><small>You review progress, give feedback and approve the finished work.</small></span></div>
       </div>
     </div>
   </section>
