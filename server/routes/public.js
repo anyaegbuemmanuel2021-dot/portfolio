@@ -14,7 +14,7 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
   }
   app.invalidate = () => { cache.t = 0; };
   app.get('/api/security/config', async () => ({ turnstile: { enabled: Boolean(config.turnstile.siteKey && config.turnstile.secretKey), siteKey: config.turnstile.siteKey || null } }));
-  app.get('/api/content', async () => ({ data: await content(), headers: { 'Cache-Control': 'public, max-age=30' } }));
+  app.get('/api/content', async () => ({ data: await content(), headers: { 'Cache-Control': 'no-store, max-age=0' } }));
   app.get('/api/services', async () => (await content()).services);
   app.get('/api/projects', async () => (await content()).projects);
   app.get('/api/projects/:slug', async ctx => { const p = (await content()).projects.find(x => x.slug === ctx.params.slug); if (!p) throw new HttpError(404, 'Project not found'); return p; });
