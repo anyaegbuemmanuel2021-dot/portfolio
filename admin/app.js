@@ -1,7 +1,7 @@
 import { h, $, api, session, toast, modal, confirmBox, form, table, badge, fmtDate, bytes, lineChart } from './ui.js';
 import { contentView, articlesView, categoriesTab, mediaView, leadsView, emailView, adsView, analyticsView } from './views.js';
 const app = $('#app');
-const NAV = [['dashboard', 'Dashboard', '▦'], ['content', 'Website content', '✎'], ['articles', 'Articles', '✍'], ['media', 'Media', '🖼'], ['leads', 'Leads & CRM', '☎'], ['email', 'Email', '✉'], ['ads', 'Advertising', '₦'], ['analytics', 'Analytics', '📈'], ['system', 'Security & system', '⚙']];
+const NAV = [['dashboard', 'Dashboard', '▦'], ['content', 'Website content', '✎'], ['articles', 'Articles', '<i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>'], ['media', 'Media', '<i class="fa-solid fa-image emoji-replacement-icon" aria-hidden="true"></i>'], ['leads', 'Leads & CRM', '<i class="fa-solid fa-phone emoji-replacement-icon" aria-hidden="true"></i>'], ['email', 'Email', '<i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>'], ['ads', 'Advertising', '₦'], ['analytics', 'Analytics', '<i class="fa-solid fa-chart-line emoji-replacement-icon" aria-hidden="true"></i>'], ['system', 'Security & system', '<i class="fa-solid fa-gear emoji-replacement-icon" aria-hidden="true"></i>']];
 session.onExpire = () => { session.admin = null; renderLogin('Your session expired. Please sign in again.'); };
 
 // ---------- login / reset ----------
@@ -16,7 +16,7 @@ function renderLogin(note) {
 
 // ---------- shell + router ----------
 function shell(content) {
-  const side = h('nav', { class: 'side', 'aria-label': 'Main' }, h('div', { class: 'brand' }, 'Admin', h('span', {}, '.')), NAV.map(([k, l, i]) => h('a', { class: 'nav', href: '#/' + k, 'aria-current': route()[0] === k ? 'page' : undefined, onclick: () => closeNav() }, h('span', { 'aria-hidden': 'true' }, i), l)), h('a', { class: 'nav', href: '/', target: '_blank', rel: 'noopener' }, h('span', { 'aria-hidden': 'true' }, '↗'), 'View site'), h('button', { class: 'btn', style: undefined, onclick: async () => { await api('POST', '/auth/logout').catch(() => {}); session.admin = null; renderLogin(); } }, 'Sign out'));
+  const side = h('nav', { class: 'side', 'aria-label': 'Main' }, h('div', { class: 'brand' }, 'Admin', h('span', {}, '.')), NAV.map(([k, l, i]) => h('a', { class: 'nav', href: '#/' + k, 'aria-current': route()[0] === k ? 'page' : undefined, onclick: () => closeNav() }, h('span', { 'aria-hidden': 'true' }, i), l)), h('a', { class: 'nav', href: '/', target: '_blank', rel: 'noopener' }, h('span', { 'aria-hidden': 'true' }, '<i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>'), 'View site'), h('button', { class: 'btn', style: undefined, onclick: async () => { await api('POST', '/auth/logout').catch(() => {}); session.admin = null; renderLogin(); } }, 'Sign out'));
   const scrim = h('div', { class: 'scrim', onclick: () => closeNav() }); function closeNav() { side.classList.remove('open'); scrim.classList.remove('open'); }
   const top = h('header', { class: 'top' }, h('button', { class: 'btn sm', 'aria-label': 'Open menu', 'aria-expanded': 'false', onclick: e => { side.classList.add('open'); scrim.classList.add('open'); e.target.setAttribute('aria-expanded', 'true'); } }, '☰'), h('strong', {}, 'Admin'));
   app.replaceChildren(h('div', { class: 'shell' }, side, h('div', {}, top, h('main', { class: 'main', id: 'view', tabindex: '-1' }, content)), scrim));
