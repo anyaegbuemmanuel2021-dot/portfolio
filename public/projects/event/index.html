@@ -11,7 +11,7 @@
     /* HERO */
     .hero{min-height:100vh;background:linear-gradient(160deg,#1a1209 0%,#2d1f0a 60%,#1a0f05 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 5%;text-align:center;position:relative;overflow:hidden}
     .petals{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-    .petal{position:absolute;font-size:1.5rem;animation:fall linear infinite;opacity:.15}
+    .petal{position:absolute;width:12px;height:18px;border-radius:100% 0 100% 0;background:rgba(190,145,82,.35);transform:rotate(35deg);animation:fall linear infinite;opacity:.55}
     @keyframes fall{0%{transform:translateY(-50px) rotate(0deg);opacity:.3}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
     .hero-tag{font-family:'Jost',sans-serif;font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem}
     .hero-tag::before,.hero-tag::after{content:'—';color:rgba(184,146,46,.4)}
@@ -149,12 +149,12 @@
 
 <script>
   // Decorative petals only. Add a configured event date before enabling a countdown.
-  const petals = ['✦', '❀', '✧', '❀', '✦'];
+  const petals = 5;
   const container = document.getElementById('petals');
   for (let i = 0; i < 15; i++) {
     const petal = document.createElement('div');
     petal.className = 'petal';
-    petal.textContent = petals[i % petals.length];
+
     petal.style.left = Math.random() * 100 + '%';
     petal.style.animationDuration = (8 + Math.random() * 8) + 's';
     petal.style.animationDelay = -(Math.random() * 12) + 's';
