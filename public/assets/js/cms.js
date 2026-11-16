@@ -5,7 +5,7 @@
   var $ = function (s, root) { return (root || document).querySelector(s); };
   var $$ = function (s, root) { return Array.prototype.slice.call((root || document).querySelectorAll(s)); };
   var text = function (el, value) { if (el && value != null && value !== '') el.textContent = String(value); };
-  var safeCopy = function (value) { return String(value || '').replace(/full[\s-]?stack\s+developer/gi, 'Frontend Developer').replace(/full[\s-]?stack\s+development/gi, 'Frontend Development').replace(/backend-powered applications/gi, 'responsive websites and digital content').replace(/\b(Node\.?js|PostgreSQL|Django|GraphQL|Redis|WebRTC)\b/gi, 'backend technologies (currently learning)'); };
+  var safeCopy = function (value) { return String(value || '').replace(/full[\s-]?stack\s+developer/gi, 'Frontend Developer').replace(/full[\s-]?stack\s+development/gi, 'Frontend Development').replace(/backend-powered applications/gi, 'responsive websites and digital content').replace(/\b(Node\.?js|PostgreSQL|Django|GraphQL|Redis|WebRTC)\b/gi, 'backend technologies (currently learning)').replace(/I also hold certifications[^.]*\./gi, 'I continue to build skills through practical project work.'); };
   var safeUrl = function (value) { try { var u = new URL(String(value || ''), location.href); return /^(https?:|mailto:|tel:)$/.test(u.protocol) ? u.href : '#'; } catch (_) { return '#'; } };
   var esc = function (value) { return String(value || '').replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); }); };
   var list = function (v) { if (Array.isArray(v)) return v; return String(v || '').split(/[,|]/).map(function (x) { return x.trim(); }).filter(Boolean); };
@@ -99,14 +99,14 @@
     if (settings.contact_email) $$('a[href^="mailto:"]').forEach(function (a) { a.href = 'mailto:' + settings.contact_email; });
     if (settings.whatsapp_number) $$('a[href*="wa.me/"]').forEach(function (a) { a.href = 'https://wa.me/' + String(settings.whatsapp_number).replace(/\D/g, ''); });
     if (settings.portfolio_url) $$('a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) { a.href = safeUrl(settings.portfolio_url); });
-    if (settings.footer_tagline) $$('.footer__tagline').forEach(function (el) { text(el, settings.footer_tagline); });
+    if (settings.footer_tagline) $('.footer__tagline').forEach(function (el) { text(el, safeCopy(settings.footer_tagline)); });
     if (settings.footer_text) $$('.footer__copy, .footer__copyright, .footer__bottom p').forEach(function (el) { text(el, settings.footer_text); });
     if (settings.pricing_json) renderCards($('[data-cms-pricing]'), parseArray(settings.pricing_json), 'pricing');
     if (settings.process_json) renderCards($('[data-cms-process]'), parseArray(settings.process_json), 'process');
-    if (settings.certifications_json) { var root = $('[data-cms-certifications]'), rows = parseArray(settings.certifications_json); if (root && rows.length) { root.replaceChildren(); rows.forEach(function (x) { var box = document.createElement('div'); box.style.cssText = 'padding:var(--space-5);background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-lg)'; var title = document.createElement('div'); title.style.fontWeight = '600'; title.textContent = '<i class="fa-solid fa-award emoji-replacement-icon" aria-hidden="true"></i> ' + (x.title || 'Certification'); var issuer = document.createElement('div'); issuer.style.cssText = 'font-size:var(--text-sm);color:var(--color-gold);margin-top:var(--space-1)'; issuer.textContent = x.issuer || ''; box.append(title, issuer); root.appendChild(box); }); } }
+
   }
   function apply(data) {
-    var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = safeCopy(bio.headline); var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = bio.headline; }
+    var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = safeCopy(bio.headline); var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = safeCopy(bio.headline); }
     if (bio.body) { text($('.hero__desc'), safeCopy(bio.body)); text($('.about-preview__text'), safeCopy(bio.body)); var story = $('.about-content'); if (story) { var first = $('p', story); if (first) first.textContent = safeCopy(bio.body); } }
     if (bio.photo_url) { var photo = safeUrl(bio.photo_url); var wrap = $('.profile-photo'); if (wrap) { wrap.style.backgroundImage = 'url("' + photo.replace(/"/g, '') + '")'; wrap.style.backgroundSize = 'cover'; wrap.style.backgroundPosition = 'center'; } var img = $('.about-avatar img'); if (img) img.src = photo; }
     var projects = data.projects || []; var featured = projects.filter(function (p) { return p.is_featured; }); if (!featured.length) featured = projects.slice(0, 3);
@@ -115,7 +115,7 @@
     document.dispatchEvent(new CustomEvent('projects:updated'));
     renderServices(data.services || []); renderSkills(data.skills || []); renderExperience(data.experience || []); renderSocial(data.social_links || [], data.settings || {}); renderNavigation(data.navigation || []);
     (data.homepage_sections || []).forEach(function (section) { var root = $('[data-cms-section="' + String(section.key).replace(/[^a-z0-9_-]/gi, '') + '"]'); if (!root) return; var heading = $('[data-cms-title]', root); var body = $('[data-cms-body]', root); text(heading, safeCopy(section.title)); text(body, safeCopy(section.body)); });
-    var settings = data.settings || {}; if (settings.site_title) document.title = settings.site_title; applySettings(settings); renderTestimonials(data.testimonials || []);
+    var settings = data.settings || {}; if (settings.site_title) document.title = safeCopy(settings.site_title); applySettings(settings); renderTestimonials(data.testimonials || []);
   }
   function init() { fetch(base + '/api/content', { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error('CMS unavailable'); return r.json(); }).then(function (j) { if (j && j.data) apply(j.data); }).catch(function () { /* original static content remains as offline fallback */ }); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
