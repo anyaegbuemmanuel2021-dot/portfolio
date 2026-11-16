@@ -87,7 +87,7 @@ test('social links from the CMS update footer and contact-page profile links', (
 test('CMS scripts are refreshed and public CMS content is not browser-cached', () => {
   const sw = read('public/sw.js');
   const routes = read('server/routes/public.js');
-  assert.match(sw, /aei-pwa-v5/);
+  assert.match(sw, /aei-pwa-v6/);
   assert.match(sw, /assets\/js\/cms\.js/);
   assert.match(routes, /Cache-Control': 'no-store, max-age=0/);
 });
