@@ -12,6 +12,22 @@
   function parse(r) { return r.json().catch(function () { return { ok: false, error: { message: 'Bad response' } }; }).then(function (j) { if (!r.ok || j.ok === false) { var e = new Error((j.error && j.error.message) || 'Request failed'); e.status = r.status; e.details = j.error && j.error.details; throw e; } return j; }); }
   window.PortfolioAPI = API;
 
+  // Admin-controlled page visibility. Pages remain enabled unless explicitly switched off.
+  function applyPageVisibility(settings) {
+    var page = (document.body && document.body.getAttribute('data-page')) || '';
+    if (!page) return;
+    var key = 'page_' + page + '_visible';
+    if (settings && settings[key] === 'false') {
+      var main = document.querySelector('main') || document.querySelector('[role="main"]');
+      if (main) { main.hidden = true; main.setAttribute('aria-hidden', 'true'); }
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        try { var p = new URL(a.href, location.origin).pathname.replace(/\\/$/, ''); if (p === location.pathname.replace(/\\/$/, '') || (page === 'home' && (p === '/' || p === '/index.html'))) { a.hidden = true; a.setAttribute('aria-hidden', 'true'); } } catch (e) {}
+      });
+      document.title = 'Page temporarily unavailable';
+    }
+  }
+  API.get('/api/content').then(function (r) { applyPageVisibility(r.data && r.data.settings || {}); }).catch(function () {});
+
   // Analytics: no cookies, no raw IPs stored server-side, honours Do Not Track / Global Privacy Control.
   function beacon(payload) {
     if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
