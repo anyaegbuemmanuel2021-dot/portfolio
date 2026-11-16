@@ -537,19 +537,6 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
     banner.innerHTML = '<span class="site-install-banner__symbol" aria-hidden="true">↓</span><span class="site-install-banner__message"><strong>Install this website as an app</strong><small>Get faster access from your home screen.</small></span><button class="site-install-banner__action" type="button">Install</button><button class="site-install-banner__close" type="button" aria-label="Dismiss install message">&times;</button>';
     document.body.appendChild(banner);
 
-    const navInner = document.querySelector('.nav__inner');
-    if (navInner && !document.getElementById('siteInstallShortcut')) {
-      const shortcut = document.createElement('button');
-      shortcut.type = 'button';
-      shortcut.id = 'siteInstallShortcut';
-      shortcut.className = 'site-install-shortcut';
-      shortcut.setAttribute('aria-label', 'Install app');
-      shortcut.title = 'Install app';
-      shortcut.textContent = '↓';
-      navInner.appendChild(shortcut);
-      shortcut.addEventListener('click', triggerInstall);
-    }
-
     async function triggerInstall() {
       if (deferredInstallPrompt) {
         deferredInstallPrompt.prompt();
@@ -577,7 +564,6 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
     });
     window.addEventListener('appinstalled', () => {
       banner.remove();
-      document.getElementById('siteInstallShortcut')?.remove();
     });
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSiteInstall, { once: true });
