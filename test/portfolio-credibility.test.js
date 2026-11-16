@@ -65,3 +65,13 @@ test('CMS skills are allowlisted and testimonials stay hidden until verified', (
   assert.match(cms, /var allowed =/);
   assert.match(cms, /Keep testimonials hidden until every quote and attribution has been verified/);
 });
+
+
+test('primary navigation stays fixed and readable while scrolling', () => {
+  const css = read('public/assets/css/global.css');
+  const nav = css.match(/\\.nav \\{([\\s\\S]*?)\\n\\}/);
+  assert.ok(nav, 'navigation CSS rule exists');
+  assert.match(nav[1], /position:\\s*fixed/);
+  assert.match(nav[1], /background-color:\\s*rgba\\(8,8,8,0\\.94\\)/);
+  assert.match(nav[1], /backdrop-filter:\\s*blur\\(20px\\)/);
+});
