@@ -2,10 +2,10 @@
    Keep Font Awesome icons and image assets untouched. */
 (function () {
   'use strict';
-  var emojiRE = /(?:\\p{Regional_Indicator}{2}|\\p{Emoji_Presentation}(?:\\uFE0F|\\u200D\\p{Emoji_Presentation}|\\p{Emoji_Modifier})*|\\p{Extended_Pictographic}\\uFE0F)/gu;
+  var emojiRE = /(?:\p{Regional_Indicator}{2}|\p{Emoji_Presentation}(?:\uFE0F|\u200D\p{Emoji_Presentation}|\p{Emoji_Modifier})*|\p{Extended_Pictographic}\uFE0F)/gu;
 
   function clean(value) {
-    return String(value || '').replace(emojiRE, '').replace(/[ \\t]{2,}/g, ' ').trim();
+    return String(value || '').replace(emojiRE, '');
   }
 
   function scan(root) {
