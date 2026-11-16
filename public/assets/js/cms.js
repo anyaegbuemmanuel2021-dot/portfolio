@@ -5,6 +5,7 @@
   var $ = function (s, root) { return (root || document).querySelector(s); };
   var $$ = function (s, root) { return Array.prototype.slice.call((root || document).querySelectorAll(s)); };
   var text = function (el, value) { if (el && value != null && value !== '') el.textContent = String(value); };
+  var safeCopy = function (value) { return String(value || '').replace(/full[\s-]?stack\s+developer/gi, 'Frontend Developer').replace(/full[\s-]?stack\s+development/gi, 'Frontend Development').replace(/backend-powered applications/gi, 'responsive websites and digital content').replace(/\b(Node\.?js|PostgreSQL|Django|GraphQL|Redis|WebRTC)\b/gi, 'backend technologies (currently learning)'); };
   var safeUrl = function (value) { try { var u = new URL(String(value || ''), location.href); return /^(https?:|mailto:|tel:)$/.test(u.protocol) ? u.href : '#'; } catch (_) { return '#'; } };
   var esc = function (value) { return String(value || '').replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); }); };
   var list = function (v) { if (Array.isArray(v)) return v; return String(v || '').split(/[,|]/).map(function (x) { return x.trim(); }).filter(Boolean); };
@@ -28,7 +29,7 @@
     var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = safeUrl(p.url || ('projects/' + (p.slug || '') + '/index.html')); live.textContent = 'View Live <i class="fa-solid fa-sparkles emoji-replacement-icon" aria-hidden="true"></i>';
     if (live.href === '#') live.hidden = true; else { live.target = '_blank'; live.rel = 'noopener'; }
     actions.appendChild(live);
-    if (p.repo_url) { var repo = document.createElement('a'); repo.className = 'btn btn--ghost btn--sm'; repo.href = safeUrl(p.repo_url); repo.target = '_blank'; repo.rel = 'noopener'; repo.textContent = 'GitHub'; actions.appendChild(repo); }
+    if (p.repo_url) { var repo = document.createElement('a'); repo.className = 'btn btn--ghost btn--sm'; repo.href = /^https:\/\/github\.com\/anyaegbuemmanuel2021-dot\/portfolio\/?$/i.test(String(p.repo_url || '')) && p.slug ? 'https://github.com/anyaegbuemmanuel2021-dot/portfolio/tree/main/public/projects/' + encodeURIComponent(p.slug) : safeUrl(p.repo_url); repo.target = '_blank'; repo.rel = 'noopener'; repo.textContent = 'GitHub'; actions.appendChild(repo); }
     body.append(tags, h, d, actions); card.append(thumb, body); return card;
   }
   function renderServices(rows) {
@@ -45,12 +46,21 @@
   }
   function renderSkills(rows) {
     var root = $('.skills-grid'); if (!root || !rows.length) return;
-    var groups = {}; rows.forEach(function (s) { var key = s.category || 'Skills'; (groups[key] ||= []).push(s); }); root.replaceChildren();
-    Object.keys(groups).forEach(function (key) { var group = document.createElement('div'); var heading = document.createElement('p'); heading.className = 'skill-group__heading'; heading.textContent = key; var items = document.createElement('div'); items.className = 'skill-items';
-      groups[key].forEach(function (s) { var n = Math.max(0, Math.min(100, Number(s.level) || 0)); var item = document.createElement('div'); item.className = 'skill-item'; var meta = document.createElement('div'); meta.className = 'skill-item__meta'; var name = document.createElement('span'); name.className = 'skill-item__name'; name.textContent = s.name; var pct = document.createElement('span'); pct.className = 'skill-item__pct'; pct.textContent = n + '%'; var bar = document.createElement('div'); bar.className = 'skill-bar'; var fill = document.createElement('div'); fill.className = 'skill-bar-fill'; fill.setAttribute('data-width', n); fill.style.width = n + '%'; bar.appendChild(fill); meta.append(name, pct); item.append(meta, bar); items.appendChild(item); }); group.append(heading, items); root.appendChild(group); });
+    var allowed = /^(html5?|css3?|javascript|responsive design|responsive layouts|flexbox|css grid|css animations|figma|canva|vs code|git|github|ai tools|ai video creation|prompt engineering)$/i;
+    var groups = {};
+    rows.filter(function (s) { return allowed.test(String(s.name || '').trim()); }).forEach(function (s) { var key = s.category || 'Skills'; (groups[key] ||= []).push(s); });
+    if (!Object.keys(groups).length) return;
+    root.replaceChildren();
+    Object.keys(groups).forEach(function (key) {
+      var group = document.createElement('div');
+      var heading = document.createElement('p'); heading.className = 'skill-group__heading'; heading.textContent = key;
+      var items = document.createElement('div'); items.className = 'skill-items';
+      groups[key].forEach(function (s) { var item = document.createElement('span'); item.className = 'tag'; item.textContent = s.name; items.appendChild(item); });
+      group.append(heading, items); root.appendChild(group);
+    });
   }
   function renderExperience(rows) {
-    var root = $('.timeline'); if (!root || !rows.length) return; root.replaceChildren(); rows.forEach(function (x) { var item = document.createElement('div'); item.className = 'timeline-item'; var dot = document.createElement('div'); dot.className = 'timeline-item__dot'; dot.textContent = '•'; var body = document.createElement('div');
+    var root = $('.timeline'); if (!root || !rows.length) return; rows = rows.filter(function (x) { return !/freelance|full[\s-]?stack/i.test(String(x.role || '')); }); if (!rows.length) return; root.replaceChildren(); rows.forEach(function (x) { var item = document.createElement('div'); item.className = 'timeline-item'; var dot = document.createElement('div'); dot.className = 'timeline-item__dot'; dot.textContent = '•'; var body = document.createElement('div');
       var date = document.createElement('p'); date.className = 'timeline-item__date'; date.textContent = [x.start_date, x.end_date].filter(Boolean).join(' — ');
       var title = document.createElement('h3'); title.className = 'timeline-item__title'; title.textContent = x.role || '';
       var org = document.createElement('p'); org.className = 'timeline-item__org'; org.textContent = [x.organization, x.location].filter(Boolean).join(' · ');
@@ -80,7 +90,8 @@
     });
   }
   function renderTestimonials(rows) {
-    var section = $('[data-cms-testimonials]'), root = $('[data-cms-testimonials-grid]'); if (!section || !root || !rows.length) return;
+    /* Keep testimonials hidden until every quote and attribution has been verified and approved. */
+    return;
     root.replaceChildren(); rows.forEach(function (item) { var card = document.createElement('article'); card.className = 'service-card'; var quote = document.createElement('p'); quote.className = 'service-card__desc'; quote.textContent = '“' + (item.quote || '') + '”'; var name = document.createElement('h3'); name.className = 'service-card__title'; name.textContent = item.author_name || 'Client'; var role = document.createElement('p'); role.className = 'muted'; role.textContent = item.author_role || ''; var rating = document.createElement('p'); rating.textContent = '★'.repeat(Math.max(0, Math.min(5, Number(item.rating) || 0))); rating.setAttribute('aria-label', (Number(item.rating) || 0) + ' out of 5 stars'); card.append(quote, name, role, rating); root.appendChild(card); }); section.hidden = false;
   }
   function applySettings(settings) {
@@ -95,15 +106,15 @@
     if (settings.certifications_json) { var root = $('[data-cms-certifications]'), rows = parseArray(settings.certifications_json); if (root && rows.length) { root.replaceChildren(); rows.forEach(function (x) { var box = document.createElement('div'); box.style.cssText = 'padding:var(--space-5);background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-lg)'; var title = document.createElement('div'); title.style.fontWeight = '600'; title.textContent = '<i class="fa-solid fa-award emoji-replacement-icon" aria-hidden="true"></i> ' + (x.title || 'Certification'); var issuer = document.createElement('div'); issuer.style.cssText = 'font-size:var(--text-sm);color:var(--color-gold);margin-top:var(--space-1)'; issuer.textContent = x.issuer || ''; box.append(title, issuer); root.appendChild(box); }); } }
   }
   function apply(data) {
-    var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = bio.headline; var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = bio.headline; }
-    if (bio.body) { text($('.hero__desc'), bio.body); text($('.about-preview__text'), bio.body); var story = $('.about-content'); if (story) { var first = $('p', story); if (first) first.textContent = bio.body; } }
+    var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = safeCopy(bio.headline); var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = bio.headline; }
+    if (bio.body) { text($('.hero__desc'), safeCopy(bio.body)); text($('.about-preview__text'), safeCopy(bio.body)); var story = $('.about-content'); if (story) { var first = $('p', story); if (first) first.textContent = bio.body; } }
     if (bio.photo_url) { var photo = safeUrl(bio.photo_url); var wrap = $('.profile-photo'); if (wrap) { wrap.style.backgroundImage = 'url("' + photo.replace(/"/g, '') + '")'; wrap.style.backgroundSize = 'cover'; wrap.style.backgroundPosition = 'center'; } var img = $('.about-avatar img'); if (img) img.src = photo; }
     var projects = data.projects || []; var featured = projects.filter(function (p) { return p.is_featured; }); if (!featured.length) featured = projects.slice(0, 3);
     var homeGrid = $('.featured-projects__grid'); if (homeGrid && featured.length) { homeGrid.replaceChildren(); featured.slice(0, 3).forEach(function (p, i) { homeGrid.appendChild(makeProject(p, i)); }); }
     var projectGrid = $('.projects-full-grid'); if (projectGrid && projects.length) { projectGrid.replaceChildren(); projects.forEach(function (p, i) { projectGrid.appendChild(makeProject(p, i)); }); }
     document.dispatchEvent(new CustomEvent('projects:updated'));
     renderServices(data.services || []); renderSkills(data.skills || []); renderExperience(data.experience || []); renderSocial(data.social_links || [], data.settings || {}); renderNavigation(data.navigation || []);
-    (data.homepage_sections || []).forEach(function (section) { var root = $('[data-cms-section="' + String(section.key).replace(/[^a-z0-9_-]/gi, '') + '"]'); if (!root) return; var heading = $('[data-cms-title]', root); var body = $('[data-cms-body]', root); text(heading, section.title); text(body, section.body); });
+    (data.homepage_sections || []).forEach(function (section) { var root = $('[data-cms-section="' + String(section.key).replace(/[^a-z0-9_-]/gi, '') + '"]'); if (!root) return; var heading = $('[data-cms-title]', root); var body = $('[data-cms-body]', root); text(heading, safeCopy(section.title)); text(body, safeCopy(section.body)); });
     var settings = data.settings || {}; if (settings.site_title) document.title = settings.site_title; applySettings(settings); renderTestimonials(data.testimonials || []);
   }
   function init() { fetch(base + '/api/content', { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error('CMS unavailable'); return r.json(); }).then(function (j) { if (j && j.data) apply(j.data); }).catch(function () { /* original static content remains as offline fallback */ }); }
