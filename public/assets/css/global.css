@@ -581,8 +581,6 @@ code, pre { font-family: var(--font-mono); font-size: 0.9em; }
 .site-install-banner__message small{margin-top:.15rem;color:var(--color-text-muted);font-size:.7rem;line-height:1.3}
 .site-install-banner__action{flex:0 0 auto;border:0;border-radius:8px;padding:.58rem .85rem;background:var(--color-gold);color:#080808;font:600 .8rem var(--font-body);cursor:pointer}
 .site-install-banner__close{flex:0 0 auto;border:0;background:transparent;color:var(--color-text-muted);font-size:1.3rem;line-height:1;padding:.1rem;cursor:pointer}
-.site-install-shortcut{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;margin-left:.7rem;border:1px solid rgba(198,164,92,.5);border-radius:9px;background:rgba(198,164,92,.12);color:var(--color-gold);font-size:1.35rem;font-weight:700;cursor:pointer}
-.site-install-shortcut:hover{background:rgba(198,164,92,.23)}
-.site-install-banner button:focus-visible,.site-install-shortcut:focus-visible{outline:2px solid var(--color-gold);outline-offset:3px}
+.site-install-banner button:focus-visible{outline:2px solid var(--color-gold);outline-offset:3px}
 @keyframes siteInstallEnter{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
-@media(max-width:520px){.site-install-banner{top:calc(var(--nav-height, 64px) + 8px);gap:.45rem;padding:.6rem}.site-install-banner__symbol{flex-basis:34px;width:34px;height:34px}.site-install-banner__message strong{font-size:.77rem}.site-install-banner__message small{font-size:.65rem}.site-install-banner__action{padding:.52rem .65rem}.site-install-shortcut{margin-left:.45rem;width:33px;height:33px;flex-basis:33px}}
+@media(max-width:520px){.site-install-banner{top:calc(var(--nav-height, 64px) + 8px);gap:.45rem;padding:.6rem}.site-install-banner__symbol{flex-basis:34px;width:34px;height:34px}.site-install-banner__message strong{font-size:.77rem}.site-install-banner__message small{font-size:.65rem}.site-install-banner__action{padding:.52rem .65rem}}
