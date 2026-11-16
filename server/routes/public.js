@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { HttpError, validate } from '../lib/validate.js';
 import { rateLimit } from '../lib/http.js';
 import { tableRepo, kv, fixRow } from '../repositories/base.js';
-const PUBLIC_SETTINGS = ['site_title', 'site_tagline', 'contact_email', 'whatsapp_number', 'footer_text', 'seo_default_title', 'seo_default_description', 'canonical_base', 'adsense_enabled', 'adsense_client', 'contact_phone', 'contact_location', 'education', 'portfolio_url', 'about_story_1', 'about_story_2', 'about_story_3', 'about_story_4', 'certifications_json', 'pricing_json', 'process_json', 'contact_intro', 'service_cta_title', 'service_cta_body', 'footer_tagline'];
+const PUBLIC_SETTINGS = ['site_title', 'site_tagline', 'contact_email', 'whatsapp_number', 'footer_text', 'seo_default_title', 'seo_default_description', 'canonical_base', 'adsense_enabled', 'adsense_client', 'contact_phone', 'contact_location', 'education', 'portfolio_url', 'about_story_1', 'about_story_2', 'about_story_3', 'about_story_4', 'certifications_json', 'pricing_json', 'process_json', 'contact_intro', 'service_cta_title', 'service_cta_body', 'footer_tagline', 'page_home_visible', 'page_about_visible', 'page_projects_visible', 'page_services_visible', 'page_articles_visible', 'page_contact_visible'];
 export function publicRoutes(app, { db, leads, articles, analytics, ads, email, aiOn }) {
   const settings = kv(db, 'site_settings'); let cache = { t: 0, v: null };
   const pub = async t => (await tableRepo(db, t, ['is_published']).list({ publishedOnly: true, limit: 500 })).rows;
