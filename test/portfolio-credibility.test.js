@@ -75,3 +75,19 @@ test('primary navigation stays fixed and readable while scrolling', () => {
   assert.match(nav[1], /background-color:\s*rgba\(8,8,8,0\.94\)/);
   assert.match(nav[1], /backdrop-filter:\s*blur\(20px\)/);
 });
+
+test('social links from the CMS update footer and contact-page profile links', () => {
+  const cms = read('public/assets/js/cms.js');
+  assert.match(cms, /function renderSocial\(rows, settings\)/);
+  assert.match(cms, /\.contact-method__value/);
+  assert.match(cms, /Keep every existing matching link in sync/);
+  assert.match(cms, /\.footer__socials/);
+});
+
+test('CMS scripts are refreshed and public CMS content is not browser-cached', () => {
+  const sw = read('public/sw.js');
+  const routes = read('server/routes/public.js');
+  assert.match(sw, /aei-pwa-v5/);
+  assert.match(sw, /assets\/js\/cms\.js/);
+  assert.match(routes, /Cache-Control': 'no-store, max-age=0/);
+});
