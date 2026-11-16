@@ -430,10 +430,12 @@
 .marquee-track {
   display: inline-flex;
   gap: var(--space-8);
-  animation: marqueeScroll 30s linear infinite;
+  animation: marqueeScroll 36s linear infinite;
+  will-change: transform;
 }
 .marquee-band:hover .marquee-track { animation-play-state: paused; }
 @keyframes marqueeScroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+@media (prefers-reduced-motion: reduce) { .marquee-track { animation: none; transform: none; } }
 .marquee-item {
   display: inline-flex; align-items: center; gap: var(--space-2);
   font-family: var(--font-mono); font-size: var(--text-xs);
