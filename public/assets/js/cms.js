@@ -41,7 +41,7 @@
       var tags = document.createElement('div'); tags.style.cssText = 'display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)';
       list(s.tags).forEach(function (v) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = v; tags.appendChild(t); });
       content.append(h, p); if (tags.childNodes.length) content.appendChild(tags);
-      var arrow = document.createElement('span'); arrow.className = 'service-row__arrow'; arrow.textContent = '→'; row.append(num, content, arrow); root.appendChild(row);
+      var arrow = document.createElement('span'); arrow.className = 'service-row__arrow'; var arrowIcon = document.createElement('i'); arrowIcon.className = 'fa-solid fa-arrow-right'; arrowIcon.setAttribute('aria-hidden', 'true'); arrow.appendChild(arrowIcon); row.append(num, content, arrow); root.appendChild(row);
     });
   }
   function renderSkills(rows) {
@@ -142,7 +142,7 @@
       card.append(icon, title);
       if (kind === 'pricing' && item.price) { var price = document.createElement('p'); price.textContent = item.price; price.style.cssText = 'font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0'; card.appendChild(price); }
       var desc = document.createElement('p'); desc.className = 'service-card__desc'; desc.textContent = item.description || ''; card.appendChild(desc);
-      if (kind === 'pricing' && Array.isArray(item.features) && item.features.length) { var ul = document.createElement('ul'); ul.style.cssText = 'margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)'; item.features.forEach(function (f) { var li = document.createElement('li'); li.textContent = '✓ ' + String(f); ul.appendChild(li); }); card.appendChild(ul); }
+      if (kind === 'pricing' && Array.isArray(item.features) && item.features.length) { var ul = document.createElement('ul'); ul.style.cssText = 'margin-top:var(--space-4);color:var(--color-text-secondary);font-size:var(--text-sm);display:flex;flex-direction:column;gap:var(--space-2)'; item.features.forEach(function (f) { var li = document.createElement('li'); var check = document.createElement('i'); check.className = 'fa-solid fa-check'; check.setAttribute('aria-hidden', 'true'); check.style.marginRight = '.5rem'; li.append(check, document.createTextNode(String(f))); ul.appendChild(li); }); card.appendChild(ul); }
       var number = document.createElement('span'); number.className = 'service-card__number'; number.textContent = String(i + 1).padStart(2, '0'); card.appendChild(number); root.appendChild(card);
     });
   }
