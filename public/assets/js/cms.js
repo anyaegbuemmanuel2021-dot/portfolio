@@ -36,7 +36,7 @@
     var root = $('.services-list'); if (!root || !rows.length) return;
     root.replaceChildren(); rows.forEach(function (s, i) { var row = document.createElement('div'); row.className = 'service-row';
       var num = document.createElement('span'); num.className = 'service-row__num'; num.textContent = String(i + 1).padStart(2, '0');
-      var content = document.createElement('div'); var h = document.createElement('h3'); h.className = 'service-row__title'; h.textContent = (s.icon ? s.icon + ' ' : '') + safeCopy(s.title);
+      var content = document.createElement('div'); var h = document.createElement('h3'); h.className = 'service-row__title'; if (s.icon && /^fa-[a-z0-9-]+(?:\s+fa-[a-z0-9-]+)*$/i.test(s.icon)) { var serviceIcon = document.createElement('i'); serviceIcon.className = s.icon; serviceIcon.setAttribute('aria-hidden', 'true'); h.appendChild(serviceIcon); h.appendChild(document.createTextNode(' ')); } h.appendChild(document.createTextNode(safeCopy(s.title)));
       var p = document.createElement('p'); p.className = 'service-row__desc'; p.textContent = safeCopy(s.description || s.summary || '');
       var tags = document.createElement('div'); tags.style.cssText = 'display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)';
       list(s.tags).forEach(function (v) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = v; tags.appendChild(t); });
@@ -137,7 +137,7 @@
     root.replaceChildren(); rows.forEach(function (item, i) {
       var card = document.createElement('article'); card.className = 'service-card'; card.setAttribute('data-reveal', 'fade-up');
       if (item.popular) { card.style.borderColor = 'var(--color-gold)'; var badge = document.createElement('span'); badge.textContent = 'Most Popular'; badge.style.cssText = 'display:inline-block;margin-bottom:var(--space-3);color:var(--color-gold);font-size:var(--text-xs);font-weight:700'; card.appendChild(badge); }
-      var icon = document.createElement('div'); icon.className = 'service-card__icon'; icon.textContent = item.icon || (kind === 'pricing' ? '✦' : '•');
+      var icon = document.createElement('div'); icon.className = 'service-card__icon'; if (item.icon && /^fa-[a-z0-9-]+(?:\s+fa-[a-z0-9-]+)*$/i.test(item.icon)) { var cardIcon = document.createElement('i'); cardIcon.className = item.icon; cardIcon.setAttribute('aria-hidden', 'true'); icon.appendChild(cardIcon); } else if (item.icon) { icon.textContent = item.icon; } else { var fallbackIcon = document.createElement('i'); fallbackIcon.className = kind === 'pricing' ? 'fa-solid fa-tag' : 'fa-solid fa-circle'; fallbackIcon.setAttribute('aria-hidden', 'true'); icon.appendChild(fallbackIcon); }
       var title = document.createElement('h3'); title.className = 'service-card__title'; title.textContent = item.title || (kind === 'pricing' ? 'Package' : 'Step ' + (i + 1));
       card.append(icon, title);
       if (kind === 'pricing' && item.price) { var price = document.createElement('p'); price.textContent = item.price; price.style.cssText = 'font-size:var(--text-2xl);font-weight:700;color:var(--color-gold);margin:var(--space-4) 0'; card.appendChild(price); }
