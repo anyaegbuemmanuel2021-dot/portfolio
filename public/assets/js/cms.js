@@ -67,7 +67,64 @@
       var desc = document.createElement('p'); desc.className = 'timeline-item__desc'; desc.textContent = x.description || ''; body.append(date, title, org, desc); item.append(dot, body); root.appendChild(item); });
   }
   function renderSocial(rows, settings) {
-    if (!rows.length) return; $$('.footer__socials').forEach(function (root) { var contact = $$('a[href^="mailto:"], a[href*="wa.me/"]', root).map(function (a) { return a.cloneNode(true); }); root.replaceChildren(); rows.forEach(function (s) { var a = document.createElement('a'); a.className = 'footer__social'; a.href = safeUrl(s.url); a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', s.platform || 'Social link'); var i = document.createElement('i'); i.className = s.icon || 'fas fa-link'; a.appendChild(i); root.appendChild(a); }); contact.forEach(function (a) { if (a.href.indexOf('mailto:') === 0 && settings && settings.contact_email) a.href = 'mailto:' + settings.contact_email; if (a.href.indexOf('https://wa.me/') === 0 && settings && settings.whatsapp_number) a.href = 'https://wa.me/' + String(settings.whatsapp_number).replace(/\D/g, ''); root.appendChild(a); }); });
+    if (!Array.isArray(rows) || !rows.length) return;
+    var normalized = rows.map(function (s) {
+      var platform = String(s.platform || '').trim().toLowerCase();
+      return { platform: platform, label: String(s.platform || 'Social link').trim(), url: safeUrl(s.url), icon: s.icon || 'fas fa-link' };
+    }).filter(function (s) { return s.url !== '#'; });
+    function platformFor(value) {
+      value = String(value || '').toLowerCase();
+      if (/instagram/.test(value)) return 'instagram';
+      if (/linkedin/.test(value)) return 'linkedin';
+      if (/github/.test(value)) return 'github';
+      if (/tiktok/.test(value)) return 'tiktok';
+      if (/facebook/.test(value)) return 'facebook';
+      if (/twitter|x\.com/.test(value)) return 'x';
+      if (/youtube/.test(value)) return 'youtube';
+      if (/whatsapp|wa\.me/.test(value)) return 'whatsapp';
+      return '';
+    }
+    function displayHandle(url, platform) {
+      try {
+        var u = new URL(url);
+        var value = (u.pathname.replace(/^\/+|\/+$/g, '') || u.hostname).replace(/^@/, '');
+        if (platform === 'instagram' || platform === 'tiktok' || platform === 'x') value = '@' + value.replace(/^@/, '');
+        return value;
+      } catch (_) { return url; }
+    }
+    normalized.forEach(function (s) {
+      var key = platformFor(s.platform) || platformFor(s.url);
+      if (!key) return;
+      // Keep every existing matching link in sync, including contact-page profile cards.
+      $$('a[href]').forEach(function (a) {
+        var current = platformFor((a.getAttribute('aria-label') || '') + ' ' + a.href);
+        if (current === key) a.href = s.url;
+      });
+      $$('.contact-method').forEach(function (card) {
+        var label = $('.contact-method__label', card);
+        if (label && platformFor(label.textContent) === key) {
+          var link = $('a', card);
+          if (link) link.href = s.url;
+          var value = $('.contact-method__value', card);
+          if (value) value.textContent = displayHandle(s.url, key);
+        }
+      });
+    });
+    $$('.footer__socials').forEach(function (root) {
+      var contact = $$('a[href^="mailto:"], a[href*="wa.me/"]', root).map(function (a) { return a.cloneNode(true); });
+      root.replaceChildren();
+      normalized.forEach(function (s) {
+        var a = document.createElement('a'); a.className = 'footer__social'; a.href = s.url;
+        a.target = '_blank'; a.rel = 'noopener'; a.setAttribute('aria-label', s.label);
+        var i = document.createElement('i'); i.className = s.icon; i.setAttribute('aria-hidden', 'true');
+        a.appendChild(i); root.appendChild(a);
+      });
+      contact.forEach(function (a) {
+        if (a.href.indexOf('mailto:') === 0 && settings && settings.contact_email) a.href = 'mailto:' + settings.contact_email;
+        if (a.href.indexOf('https://wa.me/') === 0 && settings && settings.whatsapp_number) a.href = 'https://wa.me/' + String(settings.whatsapp_number).replace(/\D/g, '');
+        root.appendChild(a);
+      });
+    });
   }
   function renderNavigation(rows) {
     var header = rows.filter(function (x) { return x.location === 'header'; }); var footer = rows.filter(function (x) { return x.location === 'footer'; });
