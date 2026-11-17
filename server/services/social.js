@@ -18,7 +18,7 @@ function captionFor(platform, article, url) {
 
 export function socialService(db) {
   async function enqueueArticle(articleId) {
-    const article = (await db.query("SELECT id,title,slug,excerpt,content_html,featured_image_url,status FROM articles WHERE id = $1", [articleId])).rows[0];
+    const article = (await db.query("SELECT id,title,slug,excerpt,content_html,featured_image_url,canonical_url,status FROM articles WHERE id = $1", [articleId])).rows[0];
     if (!article || article.status !== 'published') return [];
     const url = article.canonical_url || config.siteUrl + '/articles/' + article.slug;
     const tagRows = (await db.query('SELECT t.name FROM article_tags t JOIN article_tag_assignments x ON x.tag_id=t.id WHERE x.article_id=$1 ORDER BY t.name', [articleId])).rows;
@@ -38,7 +38,7 @@ export function socialService(db) {
   return {
     async enqueueArticle(articleId) { return enqueueArticle(articleId); },
     async syncPublishedArticles() {
-      const rows = (await db.query("SELECT a.id FROM articles a WHERE a.status='published' AND NOT EXISTS (SELECT 1 FROM social_posts s WHERE s.article_id=a.id) ORDER BY a.published_at DESC LIMIT 100")).rows;
+      const rows = (await db.query("SELECT a.id FROM articles a WHERE a.status='published' ORDER BY a.published_at DESC LIMIT 100")).rows;
       let count = 0;
       for (const row of rows) count += (await enqueueArticle(row.id)).length;
       return count;
