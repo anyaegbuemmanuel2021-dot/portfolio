@@ -210,9 +210,17 @@ export function socialPostsView() {
   const root = h('div', {}), list = h('div', {}), summary = h('div', { class: 'panel' });
   async function load() {
     const [s, p] = await Promise.all([api('GET', '/social/summary'), api('GET', '/social/posts?limit=100')]);
+    const totals = Object.fromEntries(['draft','approved','paused','published','failed'].map(k => [k, (s.data?.rows || []).filter(x => x.status === k).reduce((n, x) => n + Number(x.count || 0), 0)]));
+    const platforms = (s.data?.platforms || ['facebook','instagram','linkedin']).map(platform => {
+      const rows = (s.data?.rows || []).filter(x => x.platform === platform);
+      const count = rows.reduce((n, x) => n + Number(x.count || 0), 0);
+      return h('div', { class: 'card' }, h('div', { class: 'n' }, count), h('div', { class: 'l' }, platform[0].toUpperCase() + platform.slice(1) + ' posts'));
+    });
     summary.replaceChildren(h('h2', {}, 'Social publishing status'),
-      h('p', { class: 'muted' }, 'When an article is published, the system prepares Facebook, Instagram and LinkedIn drafts here. The portfolio website itself remains music-free. Background music belongs only in the social video asset and must be licensed for commercial use.'),
-      h('p', {}, 'Current stage: content drafts and review queue. Automatic platform delivery and video rendering are not active until platform accounts, API permissions and a licensed audio/video asset workflow are connected.'));
+      h('div', { class: 'cards' }, platforms),
+      h('div', { class: 'row', style: undefined }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
+      h('p', { class: 'muted' }, 'Publishing workflow: article published → platform-specific draft → review → approved media asset → connected platform. The portfolio website itself remains music-free. Background music belongs only in the social video asset and must be licensed for commercial use.'),
+      h('p', {}, 'Automatic delivery is currently disabled. Platform account authorisation, API permissions and licensed video/audio rendering must be configured and tested before posts can be published automatically.'));
     list.replaceChildren(p.data.length ? p.data.map(post => {
       const caption = h('textarea', { rows: 6, 'aria-label': post.platform + ' caption' }); caption.value = post.caption;
       const media = h('input', { type: 'url', placeholder: 'HTTPS social video URL (with licensed music mixed in)', 'aria-label': 'Social video URL' }); media.value = post.media_url || '';
