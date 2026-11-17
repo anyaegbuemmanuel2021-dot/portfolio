@@ -15,6 +15,7 @@ import { mediaService } from './services/media.js';
 import { analyticsService } from './services/analytics.js';
 import { adService } from './services/ads.js';
 import { emailService } from './services/email.js';
+import { socialService } from './services/social.js';
 import { authRoutes } from './routes/auth.js';
 import { publicRoutes } from './routes/public.js';
 import { adminRoutes } from './routes/admin.js';
@@ -25,7 +26,7 @@ export async function buildApp({ db, storage, mailer } = {}) {
   assertConfig(); db ||= await connect(); storage ||= createStorage(); mailer ||= createMailer(); attachDb(db); setSeoDb(db);
   if (process.env.AUTO_MIGRATE !== 'false') await migrate(db, m => log.info('migration ' + m)); await seed(db);
   const auth = authService(db, mailer); const media = mediaService(db, storage); const ads = adService(db);
-  const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer });
+  const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const social = socialService(db);
   const app = createApp({ log });
   app.middleware = async (ctx, opts) => {
     const m = ctx.req.method;
@@ -36,12 +37,13 @@ export async function buildApp({ db, storage, mailer } = {}) {
     if (typeof opts.auth === 'string' && !r.admin.permissions.includes(opts.auth)) throw new HttpError(403, 'You do not have permission for this action');
     Object.assign(ctx, { admin: r.admin, session: r.session, csrf: r.csrf, rawToken: ctx.cookies.sid });
   };
-  authRoutes(app, { auth }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, syncUsage: media.syncUsage };
+  authRoutes(app, { auth }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, syncUsage: media.syncUsage };
   publicRoutes(app, deps); adminRoutes(app, deps); entityRoutes(app, deps); // specific admin routes first, generic /api/admin/:entity last
   return { app, db, deps };
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { app, db } = await buildApp(); const server = app.server().listen(config.port, () => log.info('listening', { port: config.port, env: config.env, db: db.dialect }));
-  const bg = setInterval(() => db.query("UPDATE articles SET status = 'published', published_at = publish_at WHERE status = 'scheduled' AND publish_at <= $1", [new Date().toISOString()]).catch(() => {}), 60e3); bg.unref();
+  const syncSocial = () => social.syncPublishedArticles().catch(err => log.error('social outbox sync failed', { error: err.message }));
+  syncSocial(); const bg = setInterval(async () => { await db.query("UPDATE articles SET status = 'published', published_at = publish_at WHERE status = 'scheduled' AND publish_at <= $1", [new Date().toISOString()]).catch(() => {}); await syncSocial(); }, 60e3); bg.unref();
   for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => { server.close(() => db.close().then(() => process.exit(0))); });
 }
