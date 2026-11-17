@@ -7,22 +7,27 @@ import { connect } from '../db.js';
 import { createHash } from 'node:crypto';
 import { config } from '../config.js';
 const now = () => new Date().toISOString();
-export function adminRoutes(app, { db, auth, articles, media, leads, email, ads, analytics, storage, mailer }) {
+export function adminRoutes(app, { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social }) {
   const settings = kv(db, 'site_settings'); const sys = kv(db, 'system_settings');
   // ---- articles ----
   const A = { title: { required: true, max: 200 }, slug: { max: 100 }, excerpt: { max: 500 }, content_md: { max: 200000 }, featured_image_url: { type: 'url' }, category_id: { max: 40 }, seo_title: { max: 120 }, seo_description: { max: 300 }, canonical_url: { type: 'url', relative: false }, status: { enum: ['draft', 'published', 'scheduled'] }, publish_at: { type: 'date' } };
   const g = p => ({ auth: p });
   const artIn = ctx => { const d = validate(A, ctx.body); d.tags = Array.isArray(ctx.body.tags) ? ctx.body.tags.map(String).slice(0, 15) : []; return d; };
   app.get('/api/admin/articles', g('articles'), async ctx => { const r = await articles.listAdmin(ctx.query); return { data: r.rows, meta: { total: r.total, page: r.page, limit: r.limit } }; });
-  app.post('/api/admin/articles', g('articles'), async ctx => { const a = await articles.save(null, artIn(ctx), ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'create', 'article', a.id); return { status: 201, data: a }; });
+  app.post('/api/admin/articles', g('articles'), async ctx => { const a = await articles.save(null, artIn(ctx), ctx.admin.id); if (a.status === 'published') await social.enqueueArticle(a.id); app.invalidate(); await auth.audit(ctx, 'create', 'article', a.id); return { status: 201, data: a }; });
   app.get('/api/admin/articles/:id', g('articles'), ctx => articles.getAdmin(ctx.params.id));
-  app.put('/api/admin/articles/:id', g('articles'), async ctx => { const a = await articles.save(ctx.params.id, artIn(ctx), ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'update', 'article', a.id); return a; });
-  app.post('/api/admin/articles/:id/publish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'published', ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'publish', 'article', ctx.params.id); return a; });
+  app.put('/api/admin/articles/:id', g('articles'), async ctx => { const a = await articles.save(ctx.params.id, artIn(ctx), ctx.admin.id); if (a.status === 'published') await social.enqueueArticle(a.id); app.invalidate(); await auth.audit(ctx, 'update', 'article', a.id); return a; });
+  app.post('/api/admin/articles/:id/publish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'published', ctx.admin.id); await social.enqueueArticle(a.id); app.invalidate(); await auth.audit(ctx, 'publish', 'article', ctx.params.id); return a; });
   app.post('/api/admin/articles/:id/unpublish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'draft', ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'unpublish', 'article', ctx.params.id); return a; });
   app.delete('/api/admin/articles/:id', g('articles'), async ctx => { if (!(await articles.remove(ctx.params.id))) throw new HttpError(404, 'Article not found'); app.invalidate(); await auth.audit(ctx, 'delete', 'article', ctx.params.id); return { deleted: true }; });
   app.get('/api/admin/articles/:id/revisions', g('articles'), ctx => articles.revisions(ctx.params.id));
   app.post('/api/admin/articles/:id/restore/:rev', g('articles'), ctx => articles.restore(ctx.params.id, ctx.params.rev, ctx.admin.id));
   app.post('/api/admin/markdown-preview', { auth: 'articles' }, async ctx => { const { renderMarkdown } = await import('../lib/markdown.js'); return { html: renderMarkdown(String(ctx.body.md || '').slice(0, 200000)) }; });
+  // ---- social publishing outbox ----
+  app.get('/api/social/posts', g('articles'), async ctx => ({ data: await social.list({ status: ctx.query.status, platform: ctx.query.platform, limit: ctx.query.limit }) }));
+  app.get('/api/social/summary', g('articles'), () => social.summary());
+  app.patch('/api/social/posts/:id', g('articles'), async ctx => { const post = await social.update(ctx.params.id, ctx.body || {}); await auth.audit(ctx, 'update', 'social_post', post.id, { platform: post.platform, status: post.status }); return post; });
+  app.post('/api/social/sync', g('articles'), async ctx => { const created = await social.syncPublishedArticles(); await auth.audit(ctx, 'sync', 'social_outbox', null, { created }); return { created }; });
   // ---- settings & biography ----
   app.get('/api/admin/settings', g('content'), async () => ({ ...(await settings.all()) }));
   app.put('/api/admin/settings', g('content'), async ctx => { const ok = ['site_title', 'site_tagline', 'contact_email', 'contact_phone', 'contact_location', 'education', 'portfolio_url', 'whatsapp_number', 'footer_tagline', 'footer_text', 'contact_intro', 'service_cta_title', 'service_cta_body', 'about_story_1', 'about_story_2', 'about_story_3', 'about_story_4', 'certifications_json', 'pricing_json', 'process_json', 'seo_default_title', 'seo_default_description', 'canonical_base', 'page_home_visible', 'page_about_visible', 'page_projects_visible', 'page_services_visible', 'page_articles_visible', 'page_contact_visible']; for (const [k, v] of Object.entries(ctx.body || {})) if (ok.includes(k)) await settings.set(k, String(v).slice(0, 12000)); app.invalidate(); await auth.audit(ctx, 'update', 'settings'); return settings.all(); });
