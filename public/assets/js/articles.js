@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var API = window.PortfolioAPI; var $ = function (s) { return document.querySelector(s); };
+  if (!API || typeof API.get !== 'function') { console.error('Articles: PortfolioAPI is unavailable. Ensure site.js loads before articles.js.'); return; }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   var fmt = function (d) { try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return ''; } };
   function setMeta(name, content, prop) { if (!content) return; var sel = prop ? 'meta[property="' + name + '"]' : 'meta[name="' + name + '"]'; var m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); m.setAttribute(prop ? 'property' : 'name', name); document.head.appendChild(m); } m.setAttribute('content', content); }
