@@ -6,7 +6,7 @@ const now = () => new Date().toISOString();
 const imgsIn = md => [...String(md || '').matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)].map(m => m[1]);
 export function articleService(db, { syncUsage }) {
   const withTags = async rows => { for (const a of rows) a.tags = (await db.query('SELECT t.id, t.name, t.slug FROM article_tags t JOIN article_tag_assignments x ON x.tag_id = t.id WHERE x.article_id = $1 ORDER BY t.name', [a.id])).rows; return rows; };
-  async function uniqueSlug(base, ignoreId) { let s = slugify(base), i = 1; const exists = async slug => (await db.query(ignoreId ? 'SELECT id FROM articles WHERE slug = $1 AND id <> $2' : 'SELECT id FROM articles WHERE slug = $1', ignoreId ? [slug, ignoreId] : [slug])).rows.length > 0; while (await exists(s)) s = `${slugify(base)}-${++i}`; return s; }
+  async function uniqueSlug(base, ignoreId, qdb = db) { let s = slugify(base), i = 1; const exists = async slug => (await qdb.query(ignoreId ? 'SELECT id FROM articles WHERE slug = $1 AND id <> $2' : 'SELECT id FROM articles WHERE slug = $1', ignoreId ? [slug, ignoreId] : [slug])).rows.length > 0; while (await exists(s)) s = `${slugify(base)}-${++i}`; return s; }
   async function setTags(id, names, tx = db) { await tx.query('DELETE FROM article_tag_assignments WHERE article_id = $1', [id]); for (const name of [...new Set((names || []).map(s => String(s).trim()).filter(Boolean))].slice(0, 15)) { const slug = slugify(name); let t = (await tx.query('SELECT id FROM article_tags WHERE slug = $1', [slug])).rows[0]; if (!t) { t = { id: randomUUID() }; await tx.query('INSERT INTO article_tags (id,name,slug,created_at,updated_at) VALUES ($1,$2,$3,$4,$4)', [t.id, name.slice(0, 40), slug, now()]); } await tx.query('INSERT INTO article_tag_assignments (article_id, tag_id) VALUES ($1,$2)', [id, t.id]); } }
   const svc = {
     async publishDue() { const t = now(); await db.query("UPDATE articles SET status = 'published', published_at = publish_at WHERE status = 'scheduled' AND publish_at <= $1", [t]); },
@@ -31,18 +31,20 @@ export function articleService(db, { syncUsage }) {
       const html = renderMarkdown(d.content_md || ''); const t = now(); let status = d.status || 'draft';
       if (status === 'scheduled' && (!d.publish_at || new Date(d.publish_at) <= new Date())) status = d.publish_at ? 'published' : 'draft';
       const existing = id ? await svc.getAdmin(id) : null;
-      // A title is a record name: never create a second article with the same name.
-      if (db.dialect === 'postgres') await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['article-title:' + String(d.title || '').trim().toLowerCase()]);
-      const duplicate = (await db.query(id
-        ? 'SELECT id FROM articles WHERE lower(trim(title)) = lower(trim($1)) AND id <> $2 LIMIT 1'
-        : 'SELECT id FROM articles WHERE lower(trim(title)) = lower(trim($1)) LIMIT 1',
-        id ? [d.title, id] : [d.title])).rows[0];
-      if (duplicate) throw new HttpError(409, 'Name already exists', { field: 'title' });
-      const slug = await uniqueSlug(d.slug || d.title, id);
+      // Duplicate checks, slug allocation and insert/update share one transaction.
+      let slug;
       const publishedAt = status === 'published' ? (existing?.published_at || (d.publish_at && new Date(d.publish_at) < new Date() ? d.publish_at : t)) : status === 'scheduled' ? d.publish_at : null;
       const f = { title: d.title, slug, excerpt: d.excerpt || null, content_md: d.content_md || '', content_html: html, featured_image_url: d.featured_image_url || null, category_id: d.category_id || null, seo_title: d.seo_title || null, seo_description: d.seo_description || null, canonical_url: d.canonical_url || null, status, publish_at: status === 'scheduled' ? d.publish_at : null, published_at: publishedAt };
       const aid = id || randomUUID();
       await db.tx(async tx => {
+        if (tx.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['article-title:' + String(d.title || '').trim().toLowerCase()]);
+        const duplicate = (await tx.query(id
+          ? 'SELECT id FROM articles WHERE lower(trim(title)) = lower(trim($1)) AND id <> $2 LIMIT 1'
+          : 'SELECT id FROM articles WHERE lower(trim(title)) = lower(trim($1)) LIMIT 1',
+          id ? [d.title, id] : [d.title])).rows[0];
+        if (duplicate) throw new HttpError(409, 'Name already exists', { field: 'title' });
+        slug = await uniqueSlug(d.slug || d.title, id, tx);
+        f.slug = slug;
         if (existing) { await tx.query('INSERT INTO article_revisions (id,article_id,title,content_md,saved_by,created_at) VALUES ($1,$2,$3,$4,$5,$6)', [randomUUID(), id, existing.title, existing.content_md, adminId, t]);
           const keys = Object.keys(f); await tx.query(`UPDATE articles SET ${keys.map((k, i) => `${k} = $${i + 1}`).join(', ')}, updated_at = $${keys.length + 1} WHERE id = $${keys.length + 2}`, [...keys.map(k => f[k]), t, id]); }
         else { const keys = Object.keys(f); await tx.query(`INSERT INTO articles (id, author_id, created_at, updated_at, ${keys.join(',')}) VALUES ($1,$2,$3,$3,${keys.map((_, i) => '$' + (i + 4)).join(',')})`, [aid, adminId, t, ...keys.map(k => f[k])]); }
