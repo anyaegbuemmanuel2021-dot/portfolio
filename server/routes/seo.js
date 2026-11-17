@@ -60,7 +60,7 @@ const metaTags = ({ canonical, title, description, image, type = 'website', json
 async function entityFor(path) {
   const articleSlug = slugMatch(path, 'articles');
   if (articleSlug) {
-    const row = (await _db.query("SELECT title, slug, excerpt, seo_title, seo_description, canonical_url, featured_image_url, published_at, updated_at FROM articles WHERE status = 'published' AND lower(slug) = lower($1) LIMIT 1", [articleSlug])).rows[0];
+    const row = (await _db.query("SELECT a.title, a.slug, a.excerpt, a.content_html, a.seo_title, a.seo_description, a.canonical_url, a.featured_image_url, a.published_at, a.updated_at, c.name AS category_name FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND lower(a.slug) = lower($1) LIMIT 1", [articleSlug])).rows[0];
     if (row) return { kind: 'article', row };
   }
   const projectSlug = slugMatch(path, 'projects');
@@ -119,7 +119,10 @@ export async function decorateHtml(html, pathname) {
     canonical = validUrl(a.canonical_url) || canonical;
     image = imageUrl(a.featured_image_url, base);
     type = 'article';
-    jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
+    jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, articleBody: cleanText(a.content_html).slice(0, 5000) || undefined, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
+    const hero = image ? '<img class="article__hero" src="' + esc(image) + '" alt="' + esc(a.title) + '" loading="eager">' : '';
+    const articleBody = '<h1 class="article__title">' + esc(a.title) + '</h1><div class="article__meta">' + esc([dateOnly(a.published_at), a.category_name].filter(Boolean).join(' · ')) + '</div>' + hero + (a.excerpt ? '<p class="article__excerpt">' + esc(a.excerpt) + '</p>' : '') + '<div class="article__body">' + (a.content_html || '') + '</div>';
+    out = out.replace(/(<article\\s+id=["']articleView["'][^>]*>)[\\s\\S]*?(<\\/article>)/i, '$1' + articleBody + '$2');
   } else if (found?.kind === 'project' || found?.kind === 'service') {
     const r = found.row; title = cleanText(r.seo_title || r.title) + ' — Anyaegbu Emmanuel';
     description = cleanText(r.seo_description || r.summary || r.description || r.title).slice(0, 300);
