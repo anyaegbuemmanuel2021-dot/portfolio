@@ -155,7 +155,21 @@
     Object.keys(settings || {}).forEach(function (key) { $$('[data-cms-setting="' + key.replace(/[^a-z0-9_-]/gi, '') + '"]').forEach(function (el) { if (settings[key] != null && settings[key] !== '') text(el, safeCopy(settings[key])); }); });
     if (settings.contact_email) $$('a[href^="mailto:"]').forEach(function (a) { a.href = 'mailto:' + settings.contact_email; });
     if (settings.whatsapp_number) $$('a[href*="wa.me/"]').forEach(function (a) { a.href = 'https://wa.me/' + String(settings.whatsapp_number).replace(/\D/g, ''); });
-    if (settings.portfolio_url) $$('a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) { a.href = safeUrl(settings.portfolio_url); });
+    if (settings.portfolio_url) {
+      var portfolioValue = String(settings.portfolio_url).trim();
+      var portfolioHref = portfolioValue;
+      if (portfolioHref && !/^[a-z][a-z0-9+.-]*:\/\//i.test(portfolioHref)) portfolioHref = 'https://' + portfolioHref;
+      try {
+        var portfolioParsed = new URL(portfolioHref);
+        if (portfolioParsed.protocol !== 'https:' && portfolioParsed.protocol !== 'http:') throw new Error('Invalid portfolio URL');
+        portfolioHref = portfolioParsed.href;
+        var portfolioLabel = portfolioParsed.hostname.replace(/^www\./i, '') + (portfolioParsed.pathname !== '/' ? portfolioParsed.pathname.replace(/\/$/, '') : '');
+        $('a[data-cms-portfolio-link], a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) {
+          a.href = portfolioHref; a.target = '_blank'; a.rel = 'noopener';
+        });
+        $('[data-cms-portfolio-label]').forEach(function (el) { text(el, portfolioLabel); });
+      } catch (_) { /* Ignore invalid admin URLs and retain the existing public link. */ }
+    }
     if (settings.footer_tagline) $('.footer__tagline').forEach(function (el) { text(el, safeCopy(settings.footer_tagline)); });
     if (settings.footer_text) $$('.footer__copy, .footer__copyright, .footer__bottom p').forEach(function (el) { text(el, settings.footer_text); });
     if (settings.pricing_json) renderCards($('[data-cms-pricing]'), parseArray(settings.pricing_json), 'pricing');
