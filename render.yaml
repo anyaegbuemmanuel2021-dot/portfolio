@@ -1,10 +1,26 @@
 # Render Blueprint: one Node.js web service serves the existing public site,
 # admin dashboard and API from the same origin. PostgreSQL remains on Neon.
+#
+# CURRENT FREE CONFIGURATION:
+# - One instance only; no multi-instance load balancing is active.
+# - Keep the paid scaling settings below commented out while using the Free plan.
+#
+# WHEN READY TO UPGRADE:
+# 1. Change plan from "free" to "starter" (or another eligible paid compute plan).
+# 2. Uncomment numInstances: 2 below. Render automatically provisions two instances
+#    and load-balances incoming requests between healthy instances. No proxy/load
+#    balancer process needs to be installed inside this Node.js application.
+# 3. Before syncing this change, complete the multi-instance checklist in
+#    docs/SCALING.md. In particular, replace process-local rate limiting and make
+#    the scheduled publisher single-run across instances.
 services:
   - type: web
     name: portfolio-platform
     runtime: node
     plan: free
+    # PAID MULTI-INSTANCE SETTINGS — enable only after the checklist is complete:
+    # plan: starter
+    # numInstances: 2
     buildCommand: if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; else npm install --omit=dev --no-audit --no-fund; fi
     startCommand: npm start
     healthCheckPath: /api/health
