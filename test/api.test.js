@@ -73,7 +73,9 @@ test('published articles create idempotent social drafts for all three platforms
   assert.equal(edited.j.data.caption, 'Updated social caption');
   assert.equal(edited.j.data.status, 'approved');
   assert.equal((await api('PATCH', '/api/social/posts/' + facebook.id, { media_url: 'http://insecure.example/video.mp4' })).s, 422);
-  await api('POST', '/api/social/sync');\n  const afterSync = await api('GET', '/api/social/posts');\n  assert.equal(afterSync.j.data.filter(p => p.article_id === a.j.data.id).length, 3);
+  await api('POST', '/api/social/sync');
+  const afterSync = await api('GET', '/api/social/posts');
+  assert.equal(afterSync.j.data.filter(p => p.article_id === a.j.data.id).length, 3);
   const hidden = await api('GET', '/api/social/posts', null, { auth: false });
   assert.equal(hidden.s, 401);
 });
