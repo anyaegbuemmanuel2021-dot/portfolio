@@ -1,7 +1,7 @@
 import { h, $, api, session, toast, modal, confirmBox, form, table, badge, fmtDate, bytes, lineChart } from './ui.js';
-import { contentView, articlesView, categoriesTab, mediaView, leadsView, emailView, adsView, analyticsView } from './views.js';
+import { contentView, articlesView, categoriesTab, mediaView, leadsView, emailView, adsView, analyticsView, socialPostsView } from './views.js';
 const app = $('#app');
-const NAV = [['dashboard', 'Dashboard', '▦'], ['content', 'Website content', '✎'], ['articles', 'Articles', '▤'], ['media', 'Media', '▧'], ['leads', 'Leads & CRM', '☎'], ['email', 'Email', '✉'], ['ads', 'Advertising', '₦'], ['analytics', 'Analytics', '↗'], ['system', 'Security & system', '⚙']];
+const NAV = [['dashboard', 'Dashboard', '▦'], ['content', 'Website content', '✎'], ['articles', 'Articles', '▤'], ['social', 'Social publishing', '◉'], ['media', 'Media', '▧'], ['leads', 'Leads & CRM', '☎'], ['email', 'Email', '✉'], ['ads', 'Advertising', '₦'], ['analytics', 'Analytics', '↗'], ['system', 'Security & system', '⚙']];
 session.onExpire = () => { session.admin = null; renderLogin('Your session expired. Please sign in again.'); };
 
 // ---------- login / reset ----------
@@ -26,7 +26,7 @@ async function render() {
   if (!session.admin) return renderLogin();
   const [r, a, b] = route(); const qs = (location.hash.split('?')[1] || ''); let v;
   try {
-    v = r === 'content' ? contentView(a) : r === 'articles' ? (a === 'categories' ? h('div', {}, h('div', { class: 'row between' }, h('h1', {}, 'Categories'), h('a', { href: '#/articles' }, '← Articles')), h('div', { class: 'panel' }, categoriesTab())) : h('div', {}, h('div', { class: 'row' }, h('a', { class: 'btn sm', href: '#/articles/categories' }, 'Manage categories')), articlesView(a))) : r === 'media' ? mediaView() : r === 'leads' ? leadsView() : r === 'email' ? emailView(a, qs) : r === 'ads' ? adsView(a) : r === 'analytics' ? analyticsView() : r === 'system' ? systemView(a) : await dashboard();
+    v = r === 'content' ? contentView(a) : r === 'articles' ? (a === 'categories' ? h('div', {}, h('div', { class: 'row between' }, h('h1', {}, 'Categories'), h('a', { href: '#/articles' }, '← Articles')), h('div', { class: 'panel' }, categoriesTab())) : h('div', {}, h('div', { class: 'row' }, h('a', { class: 'btn sm', href: '#/articles/categories' }, 'Manage categories')), articlesView(a))) : r === 'social' ? socialPostsView() : r === 'media' ? mediaView() : r === 'leads' ? leadsView() : r === 'email' ? emailView(a, qs) : r === 'ads' ? adsView(a) : r === 'analytics' ? analyticsView() : r === 'system' ? systemView(a) : await dashboard();
   } catch (e) { v = h('p', { class: 'err' }, e.message); }
   shell(v); $('#view').focus({ preventScroll: true }); window.scrollTo(0, 0);
 }
