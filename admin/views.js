@@ -205,3 +205,35 @@ export function analyticsView() {
     out);
   preset(30); return root;
 }
+
+export function socialPostsView() {
+  const root = h('div', {}), list = h('div', {}), summary = h('div', { class: 'panel' });
+  async function load() {
+    const [s, p] = await Promise.all([api('GET', '/social/summary'), api('GET', '/social/posts?limit=100')]);
+    summary.replaceChildren(h('h2', {}, 'Social publishing status'),
+      h('p', { class: 'muted' }, 'When an article is published, the system prepares Facebook, Instagram and LinkedIn drafts here. The portfolio website itself remains music-free. Background music belongs only in the social video asset and must be licensed for commercial use.'),
+      h('p', {}, 'Current stage: content drafts and review queue. Automatic platform delivery and video rendering are not active until platform accounts, API permissions and a licensed audio/video asset workflow are connected.'));
+    list.replaceChildren(p.data.length ? p.data.map(post => {
+      const caption = h('textarea', { rows: 6, 'aria-label': post.platform + ' caption' }); caption.value = post.caption;
+      const media = h('input', { type: 'url', placeholder: 'HTTPS social video URL (with licensed music mixed in)', 'aria-label': 'Social video URL' }); media.value = post.media_url || '';
+      const status = h('span', { class: 'badge' }, post.status);
+      const save = async next => {
+        try {
+          const updated = await api('PATCH', '/social/posts/' + post.id, { caption: caption.value, media_url: media.value, ...(next ? { status: next } : {}) });
+          status.textContent = updated.status; toast(next === 'approved' ? 'Draft marked ready for publishing' : 'Social draft saved', 'ok');
+        } catch (e) { toast(e.message || 'Could not save social draft', 'bad'); }
+      };
+      return h('section', { class: 'panel' },
+        h('div', { class: 'row between' }, h('h2', {}, post.platform[0].toUpperCase() + post.platform.slice(1)), status),
+        h('p', { class: 'help' }, 'Article: ' + post.article_title + ' · ' + fmtDate(post.created_at)),
+        h('label', {}, 'Post caption'), caption,
+        h('label', {}, 'Video asset URL'), media,
+        h('p', { class: 'help' }, 'Video required for the music-backed social format. Audio status: ' + post.audio_status + '. The platform may not allow selecting its in-app trending music through its publishing API.'),
+        h('p', { class: 'help' }, 'Article link: ' + post.link_url),
+        h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => save(null) }, 'Save draft'), h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Mark ready'), h('button', { class: 'btn', onclick: () => save('paused') }, 'Pause')));
+    }) : [h('p', { class: 'muted' }, 'No social drafts yet. Publish an article or use Sync published articles.')]);
+  }
+  root.append(h('div', { class: 'row between' }, h('h1', {}, 'Social publishing'), h('button', { class: 'btn', onclick: async () => { try { const r = await api('POST', '/social/sync'); toast(r.data.created + ' new social drafts created', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } }, 'Sync published articles')), summary, list);
+  load().catch(e => list.replaceChildren(h('p', { class: 'err' }, e.message)));
+  return root;
+}
