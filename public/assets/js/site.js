@@ -91,6 +91,51 @@
     if (e.target && e.target.matches('.contact-form form')) activity('contact_click', 'contact_form', 'Contact form submitted', '');
   }, { passive: true });
 
+
+  // Site-wide share panel: creates a distinct UTM-tagged URL for each sharing channel.
+  function trackedShareUrl(source, medium) {
+    var u = new URL(location.pathname || '/', location.origin);
+    var page = u.pathname.replace(/^\\/+|\\/+$/g, '').replace(/\\.(html?)$/i, '') || 'home';
+    u.searchParams.set('utm_source', source);
+    u.searchParams.set('utm_medium', medium);
+    u.searchParams.set('utm_campaign', 'portfolio_share');
+    u.searchParams.set('utm_content', page.slice(0, 100));
+    return u.toString();
+  }
+  function buildSharePanel() {
+    if (document.querySelector('[data-portfolio-share]')) return;
+    var wrap = document.createElement('div'); wrap.setAttribute('data-portfolio-share', '');
+    wrap.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9998;font:500 14px Outfit,Arial,sans-serif;';
+    var toggle = document.createElement('button'); toggle.type = 'button'; toggle.textContent = 'Share page';
+    toggle.setAttribute('aria-expanded', 'false'); toggle.setAttribute('aria-controls', 'portfolioSharePanel');
+    toggle.style.cssText = 'border:1px solid rgba(200,169,110,.55);border-radius:999px;background:#151515;color:#fff;padding:12px 18px;box-shadow:0 8px 28px rgba(0,0,0,.25);cursor:pointer;';
+    var panel = document.createElement('div'); panel.id = 'portfolioSharePanel'; panel.hidden = true;
+    panel.style.cssText = 'width:min(290px,calc(100vw - 36px));margin-bottom:10px;padding:14px;background:#151515;color:#fff;border:1px solid rgba(200,169,110,.4);border-radius:14px;box-shadow:0 12px 35px rgba(0,0,0,.3);';
+    var heading = document.createElement('strong'); heading.textContent = 'Share this page'; heading.style.display = 'block'; heading.style.marginBottom = '10px'; panel.appendChild(heading);
+    var actions = [
+      ['Copy tracked link', function () {
+        var url = trackedShareUrl('copy_link', 'referral');
+        var done = function () { toggle.textContent = 'Link copied'; setTimeout(function () { toggle.textContent = 'Share page'; }, 1800); activity('copy_link', 'share', 'Copied tracked page link', location.pathname); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done).catch(function () { window.prompt('Copy this tracked link:', url); });
+        else window.prompt('Copy this tracked link:', url);
+      }],
+      ['WhatsApp', function () { var u = trackedShareUrl('whatsapp', 'social'); activity('share_click','share','Shared via WhatsApp',u); window.open('https://wa.me/?text='+encodeURIComponent('I thought you might find this useful: '+u),'_blank','noopener'); }],
+      ['Facebook', function () { var u = trackedShareUrl('facebook', 'social'); activity('share_click','share','Shared via Facebook',u); window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(u),'_blank','noopener'); }],
+      ['LinkedIn', function () { var u = trackedShareUrl('linkedin', 'social'); activity('share_click','share','Shared via LinkedIn',u); window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(u),'_blank','noopener'); }],
+      ['Email', function () { var u = trackedShareUrl('email', 'email'); activity('share_click','share','Shared via email',u); location.href='mailto:?subject='+encodeURIComponent(document.title)+'&body='+encodeURIComponent('I thought you might find this useful: '+u); }]
+    ];
+    if (navigator.share) actions.push(['More sharing options', function () { var u=trackedShareUrl('share', 'referral'); activity('share_click','share','Used device share sheet',u); navigator.share({title:document.title,url:u}).catch(function(){}); }]);
+    actions.forEach(function (item) {
+      var b = document.createElement('button'); b.type='button'; b.textContent=item[0];
+      b.style.cssText='display:block;width:100%;text-align:left;margin:5px 0;padding:10px 11px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#222;color:#fff;cursor:pointer;';
+      b.addEventListener('click',item[1]); panel.appendChild(b);
+    });
+    toggle.addEventListener('click',function(){ panel.hidden=!panel.hidden; toggle.setAttribute('aria-expanded',String(!panel.hidden)); });
+    document.addEventListener('click',function(e){ if(!wrap.contains(e.target) && !panel.hidden){panel.hidden=true;toggle.setAttribute('aria-expanded','false');} });
+    wrap.appendChild(panel); wrap.appendChild(toggle); document.body.appendChild(wrap);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildSharePanel); else buildSharePanel();
+
   // Mobile theme toggle (idea borrowed from the "spacing" version, without its fixed-width viewport): the desktop toggle is hidden on phones.
   document.addEventListener('DOMContentLoaded', function () {
     var mm = document.querySelector('.nav__mobile'), tt = document.getElementById('themeToggle');
