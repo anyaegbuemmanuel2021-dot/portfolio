@@ -122,7 +122,7 @@ export async function decorateHtml(html, pathname) {
     jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, articleBody: cleanText(a.content_html).slice(0, 5000) || undefined, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
     const hero = image ? '<img class="article__hero" src="' + esc(image) + '" alt="' + esc(a.title) + '" loading="eager">' : '';
     const articleBody = '<h1 class="article__title">' + esc(a.title) + '</h1><div class="article__meta">' + esc([dateOnly(a.published_at), a.category_name].filter(Boolean).join(' · ')) + '</div>' + hero + (a.excerpt ? '<p class="article__excerpt">' + esc(a.excerpt) + '</p>' : '') + '<div class="article__body">' + (a.content_html || '') + '</div>';
-    out = out.replace(/(<article\\s+id=["']articleView["'][^>]*>)[\\s\\S]*?(<\\/article>)/i, '$1' + articleBody + '$2');
+    out = out.replace(/(<article\s+id=["']articleView["'][^>]*>)[\s\S]*?(<\/article>)/i, '$1' + articleBody + '$2');
   } else if (found?.kind === 'project' || found?.kind === 'service') {
     const r = found.row; title = cleanText(r.seo_title || r.title) + ' — Anyaegbu Emmanuel';
     description = cleanText(r.seo_description || r.summary || r.description || r.title).slice(0, 300);
