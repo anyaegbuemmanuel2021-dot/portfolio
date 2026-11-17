@@ -216,8 +216,15 @@ export function socialPostsView() {
       const count = rows.reduce((n, x) => n + Number(x.count || 0), 0);
       return h('div', { class: 'card' }, h('div', { class: 'n' }, count), h('div', { class: 'l' }, platform[0].toUpperCase() + platform.slice(1) + ' posts'));
     });
+    const connectionCards = (s.data?.connections || []).map(connection => h('div', { class: 'panel' },
+      h('div', { class: 'row between' }, h('strong', {}, connection.platform[0].toUpperCase() + connection.platform.slice(1)), badge(connection.connected ? 'configured' : 'not connected')),
+      h('p', { class: 'help' }, connection.note),
+      h('p', { class: 'help' }, connection.connected ? 'Required environment settings are present. Publishing still needs an API permission and end-to-end test.' : 'Missing Render environment settings: ' + connection.missing.join(', ')),
+      h('p', { class: 'help' }, 'Required permissions: ' + connection.permissions.join(', '))));
     summary.replaceChildren(h('h2', {}, 'Social publishing status'),
       h('div', { class: 'cards' }, platforms),
+      h('h3', {}, 'Account connection checklist'),
+      ...connectionCards,
       h('div', { class: 'row', style: undefined }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
       h('p', { class: 'muted' }, 'Publishing workflow: article published → platform-specific draft → review → approved media asset → connected platform. The portfolio website itself remains music-free. Background music belongs only in the social video asset and must be licensed for commercial use.'),
       h('p', {}, 'Automatic delivery is currently disabled. Platform account authorisation, API permissions and licensed video/audio rendering must be configured and tested before posts can be published automatically.'));
