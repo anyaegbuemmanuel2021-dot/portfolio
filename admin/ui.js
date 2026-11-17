@@ -37,9 +37,12 @@ export function form(fields, values = {}, { pickImage } = {}) {
     else if (f.type === 'select') inp = h('select', { id }, f.options.map(o => { const [val, lab] = Array.isArray(o) ? o : [o, o]; return h('option', { value: val, selected: String(v ?? f.def ?? '') === String(val) }, lab); }));
     else if (f.type === 'datetime') inp = h('input', { id, type: 'datetime-local', value: v ? new Date(v).toISOString().slice(0, 16) : '' });
     else inp = h('input', { id, type: f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : f.type === 'password' ? 'password' : 'text', value: v ?? '', inputmode: f.type === 'number' ? 'numeric' : undefined, autocomplete: f.type === 'password' ? 'new-password' : 'off', maxlength: f.max });
+    const imagePreview = f.type === 'image' ? h('img', { class: 'field-image-preview', alt: 'Selected image preview', hidden: true }) : null;
+    const updateImagePreview = () => { if (!imagePreview) return; const url = String(inp.value || '').trim(); if (!url) { imagePreview.hidden = true; imagePreview.removeAttribute('src'); return; } imagePreview.src = /^(https?:)?\\/\\//i.test(url) || url.startsWith('/') ? url : '/' + url.replace(/^\\.\\//, ''); imagePreview.hidden = false; };
+    if (imagePreview) { inp.addEventListener('input', updateImagePreview); inp.addEventListener('change', updateImagePreview); updateImagePreview(); }
     inputs[f.k] = inp; errs[f.k] = h('div', { class: 'err', role: 'alert' });
-    const extra = f.type === 'image' && pickImage ? h('button', { class: 'btn sm', type: 'button', onclick: async () => { const u = await pickImage(); if (u) inp.value = u; } }, 'Choose from library') : null;
-    el.append(f.type === 'bool' ? h('div', { class: 'row' }, inp, h('label', { for: id, style: undefined }, f.label)) : h('div', {}, h('label', { for: id }, f.label + (f.required ? ' *' : '')), inp, extra, f.help && h('div', { class: 'help' }, f.help)), errs[f.k]);
+    const extra = f.type === 'image' && pickImage ? h('button', { class: 'btn sm', type: 'button', onclick: async () => { const u = await pickImage(); if (u) { inp.value = u; inp.dispatchEvent(new Event('input', { bubbles: true })); } } }, 'Choose from library') : null;
+    el.append(f.type === 'bool' ? h('div', { class: 'row' }, inp, h('label', { for: id, style: undefined }, f.label)) : h('div', {}, h('label', { for: id }, f.label + (f.required ? ' *' : '')), inp, extra, imagePreview, f.help && h('div', { class: 'help' }, f.help)), errs[f.k]);
   }
   return { el, get() { const o = {}; for (const f of fields) { const i = inputs[f.k]; let v = f.type === 'bool' ? i.checked : i.value; if (f.type === 'number') v = v === '' ? null : Number(v); else if (f.type === 'datetime') v = v ? new Date(v).toISOString() : null; o[f.k] = v; } return o; },
     setErrors(d) { for (const k in errs) errs[k].textContent = d?.[k] || ''; } };
