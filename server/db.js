@@ -19,7 +19,7 @@ async function createSqlite(url) {
     const r = st.run(...p); return { rows: [], rowCount: Number(r.changes) };
   };
   const api = { dialect: 'sqlite', query: async (s, p) => run(s, p), exec: async s => { raw.exec(s); },
-    tx: async fn => { raw.exec('BEGIN'); try { const r = await fn(api); raw.exec('COMMIT'); return r; } catch (e) { raw.exec('ROLLBACK'); throw e; } },
+    tx: async fn => { raw.exec('BEGIN'); const tx = { dialect: 'sqlite', query: async (s, p) => run(s, p), exec: async s => { raw.exec(s); } }; try { const r = await fn(tx); raw.exec('COMMIT'); return r; } catch (e) { raw.exec('ROLLBACK'); throw e; } },
     close: async () => raw.close() };
   return api;
 }
