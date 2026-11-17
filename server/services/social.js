@@ -35,7 +35,20 @@ export function socialService(db) {
     return created;
   }
 
+  function connections() {
+    const checks = [
+      { platform: 'facebook', required: ['FACEBOOK_PAGE_ID', 'FACEBOOK_PAGE_ACCESS_TOKEN'], permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page; a personal profile alone cannot be used for Page publishing.' },
+      { platform: 'instagram', required: ['INSTAGRAM_BUSINESS_ACCOUNT_ID', 'INSTAGRAM_ACCESS_TOKEN'], permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'], note: 'Use an Instagram Professional account linked to a Facebook Page. Reels publishing needs a publicly reachable video URL.' },
+      { platform: 'linkedin', required: ['LINKEDIN_ACCESS_TOKEN', 'LINKEDIN_AUTHOR_URN'], permissions: ['w_member_social'], note: 'For an organisation page, use its author URN and the required organisation posting permission.' }
+    ];
+    return checks.map(item => {
+      const missing = item.required.filter(key => !process.env[key]);
+      return { platform: item.platform, connected: missing.length === 0, missing, permissions: item.permissions, note: item.note };
+    });
+  }
+
   return {
+    connections,
     async enqueueArticle(articleId) { return enqueueArticle(articleId); },
     async syncPublishedArticles() {
       const rows = (await db.query("SELECT a.id FROM articles a WHERE a.status='published' ORDER BY a.published_at DESC LIMIT 100")).rows;
@@ -74,7 +87,7 @@ export function socialService(db) {
     },
     async summary() {
       const rows = (await db.query('SELECT platform,status,COUNT(*) AS count FROM social_posts GROUP BY platform,status ORDER BY platform,status')).rows;
-      return { platforms, rows, automatic_delivery: false, note: 'Posts are generated into this outbox. Platform publishing and licensed video-audio rendering require connected platform credentials and an approved media asset.' };
+      return { platforms, rows, connections: connections(), automatic_delivery: false, note: 'Posts are generated into this outbox. Platform publishing and licensed video-audio rendering require connected platform credentials and an approved media asset.' };
     }
   };
 }
