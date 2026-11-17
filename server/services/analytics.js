@@ -25,7 +25,7 @@ export function analyticsService(db, { siteHost }) {
     },
     async activity({ path, event, category, label, ref_id, attribution: rawAttribution }, { ip, ua, dnt }) {
       if (dnt || /bot|crawl|spider|headless|preview/i.test(ua || '') || !validPath(path)) return;
-      const allowed = new Set(['contact_click', 'outbound_click', 'download_click', 'cta_click']);
+      const allowed = new Set(['contact_click', 'outbound_click', 'download_click', 'cta_click', 'copy_link', 'share_click']);
       if (!allowed.has(event)) return;
       const day = today(), vh = hmac(`${day}|${ip}|${ua}`, 'visitor:' + day).slice(0, 20), a = attribution(rawAttribution || {});
       await db.query('INSERT INTO analytics_events (id,type,path,ref_id,day,created_at,visitor_hash,category,label,utm_source,utm_medium,utm_campaign) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
