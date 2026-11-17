@@ -42,8 +42,8 @@
     if (saved && typeof saved === 'object') return saved;
     try {
       var ref = document.referrer ? new URL(document.referrer) : null;
-      if (ref && ref.hostname && ref.hostname.replace(/^www\\./, '') !== location.hostname.replace(/^www\\./, '')) {
-        current.utm_source = ref.hostname.replace(/^www\\./, '').slice(0, 100);
+      if (ref && ref.hostname && ref.hostname.replace(/^www\./, '') !== location.hostname.replace(/^www\./, '')) {
+        current.utm_source = ref.hostname.replace(/^www\./, '').slice(0, 100);
         current.utm_medium = 'referral';
         sessionStorage.setItem('portfolio_attribution', JSON.stringify(current));
       }
@@ -64,19 +64,19 @@
     } catch (e) {}
   }
   function pagePath() { var p = location.pathname || '/'; return p === '/' ? '/index.html' : p; }
-  var slugMatch = location.pathname.match(/^\\/articles\\/([^/]+)\\/?$/);
+  var slugMatch = location.pathname.match(/^\/articles\/([^/]+)\/?$/);
   beacon({ path: pagePath(), referrer: document.referrer || '', type: slugMatch ? 'article' : 'page', slug: slugMatch ? decodeURIComponent(slugMatch[1]) : undefined });
   document.addEventListener('click', function (e) {
     var target = e.target.closest && e.target.closest('a[href],button[data-analytics-event]');
     if (!target) return;
-    var href = target.getAttribute('href') || '', label = target.getAttribute('aria-label') || target.getAttribute('title') || (target.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 100);
+    var href = target.getAttribute('href') || '', label = target.getAttribute('aria-label') || target.getAttribute('title') || (target.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 100);
     if (target.matches('button[data-analytics-event]')) {
       activity(target.getAttribute('data-analytics-event') || 'cta_click', target.getAttribute('data-analytics-category') || 'cta', label, '');
       return;
     }
     var lower = href.toLowerCase(), eventName = null, category = 'link', refId = '';
-    if (/^(mailto:|tel:)|wa\\.me|whatsapp\\.com/.test(lower)) { eventName = 'contact_click'; category = 'contact'; }
-    else if (target.hasAttribute('download') || /\\.(pdf|docx?|xlsx?|zip)(?:[?#]|$)/i.test(lower)) { eventName = 'download_click'; category = 'download'; }
+    if (/^(mailto:|tel:)|wa\.me|whatsapp\.com/.test(lower)) { eventName = 'contact_click'; category = 'contact'; }
+    else if (target.hasAttribute('download') || /\.(pdf|docx?|xlsx?|zip)(?:[?#]|$)/i.test(lower)) { eventName = 'download_click'; category = 'download'; }
     else {
       try {
         var url = new URL(href, location.href);
@@ -84,7 +84,7 @@
       } catch (err) {}
     }
     if (eventName) activity(eventName, category, label, refId);
-    var m = href.match(/projects\\/([a-z0-9-]+)\\/(?:index\\.html)?$/i);
+    var m = href.match(/projects\/([a-z0-9-]+)\/(?:index\.html)?$/i);
     if (m) beacon({ path: '/projects/' + m[1], type: 'project', slug: m[1] });
   }, { passive: true });
   // Mobile theme toggle (idea borrowed from the "spacing" version, without its fixed-width viewport): the desktop toggle is hidden on phones.
