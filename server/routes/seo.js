@@ -157,7 +157,7 @@ export async function dynamicText(path) {
   }
   if (path !== '/sitemap.xml') return null;
   const [arts, projects, services, articleImages] = await Promise.all([
-    _db.query("SELECT title, slug, excerpt, canonical_url, featured_image_url, published_at, updated_at FROM articles WHERE status = 'published' ORDER BY published_at DESC"),
+    _db.query("SELECT id, title, slug, excerpt, canonical_url, featured_image_url, published_at, updated_at FROM articles WHERE status = 'published' ORDER BY published_at DESC"),
     _db.query('SELECT title, slug, summary, cover_url, updated_at FROM projects WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
     _db.query('SELECT title, slug, summary, updated_at FROM services WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
     _db.query("SELECT ai.article_id, ai.url, ai.alt FROM article_images ai JOIN articles a ON a.id = ai.article_id WHERE a.status = 'published' ORDER BY ai.sort_order ASC")
