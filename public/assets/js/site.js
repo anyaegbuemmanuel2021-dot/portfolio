@@ -87,6 +87,10 @@
     var m = href.match(/projects\/([a-z0-9-]+)\/(?:index\.html)?$/i);
     if (m) beacon({ path: '/projects/' + m[1], type: 'project', slug: m[1] });
   }, { passive: true });
+  document.addEventListener('submit', function (e) {
+    if (e.target && e.target.matches('.contact-form form')) activity('contact_click', 'contact_form', 'Contact form submitted', '');
+  }, { passive: true });
+
   // Mobile theme toggle (idea borrowed from the "spacing" version, without its fixed-width viewport): the desktop toggle is hidden on phones.
   document.addEventListener('DOMContentLoaded', function () {
     var mm = document.querySelector('.nav__mobile'), tt = document.getElementById('themeToggle');
