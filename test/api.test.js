@@ -66,7 +66,7 @@ test('published articles create idempotent social drafts for all three platforms
     assert.equal(post.media_kind, 'video_required');
   }
   const summary = await api('GET', '/api/social/summary');
-  assert.equal(summary.j.automatic_delivery, false);
+  assert.equal(summary.j.data.automatic_delivery, false);
   const facebook = matching.find(p => p.platform === 'facebook');
   const edited = await api('PATCH', '/api/social/posts/' + facebook.id, { caption: 'Updated social caption', status: 'approved', media_url: 'https://cdn.example.com/social.mp4' });
   assert.equal(edited.s, 200);
