@@ -50,6 +50,33 @@ test('articles: draft→publish, slug, clean html, schedule, revisions, unpublis
   await api('POST', `/api/admin/articles/${a.j.data.id}/unpublish`); assert.equal((await api('GET', '/api/articles/my-first-article', null, { auth: false })).s, 404);
   const list = await api('GET', '/api/articles?page=abc', null, { auth: false }); assert.equal(list.s, 200); await api('POST', `/api/admin/articles/${a.j.data.id}/publish`);
 });
+test('published articles create idempotent social drafts for all three platforms', async () => {
+  const a = await api('POST', '/api/admin/articles', { title: 'Social Distribution Test', excerpt: 'A practical guide to shipping better websites.', content_md: '# Social test', status: 'published', tags: ['Web Development', 'Portfolio'] });
+  assert.equal(a.s, 201);
+  let posts = await api('GET', '/api/social/posts');
+  assert.equal(posts.s, 200);
+  const matching = posts.j.data.filter(p => p.article_id === a.j.data.id);
+  assert.equal(matching.length, 3);
+  assert.deepEqual(matching.map(p => p.platform).sort(), ['facebook', 'instagram', 'linkedin']);
+  for (const post of matching) {
+    assert.match(post.link_url, /\/articles\/social-distribution-test$/);
+    assert.match(post.caption, /Social Distribution Test/);
+    assert.equal(post.status, 'draft');
+    assert.equal(post.audio_status, 'needs_licensed_audio');
+    assert.equal(post.media_kind, 'video_required');
+  }
+  const summary = await api('GET', '/api/social/summary');
+  assert.equal(summary.j.automatic_delivery, false);
+  const facebook = matching.find(p => p.platform === 'facebook');
+  const edited = await api('PATCH', '/api/social/posts/' + facebook.id, { caption: 'Updated social caption', status: 'approved', media_url: 'https://cdn.example.com/social.mp4' });
+  assert.equal(edited.s, 200);
+  assert.equal(edited.j.caption, 'Updated social caption');
+  assert.equal(edited.j.status, 'approved');
+  assert.equal((await api('PATCH', '/api/social/posts/' + facebook.id, { media_url: 'http://insecure.example/video.mp4' })).s, 422);
+  assert.equal((await api('POST', '/api/social/sync')).j.created, 0);
+  const hidden = await api('GET', '/api/social/posts', null, { auth: false });
+  assert.equal(hidden.s, 401);
+});
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 test('media: content-sniffed upload, reject fake image, usage-check delete', async () => {
   const bad = await api('POST', '/api/media/upload', Buffer.from('<?php evil ?>'), { raw: true, headers: { 'x-filename': 'shell.png', 'content-type': 'image/png' } }); assert.equal(bad.s, 415);
