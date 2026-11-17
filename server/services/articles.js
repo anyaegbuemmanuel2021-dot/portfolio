@@ -20,8 +20,11 @@ export function articleService(db, { syncUsage }) {
       await svc.publishDue();
       const requested = String(slug || '').toLowerCase();
       const base = requested.replace(/-[0-9]+[a-z]?$/, '');
-      const a = (await db.query(
-        "SELECT a.*, c.name AS category_name, c.slug AS category_slug FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = $1 OR regexp_replace(lower(a.slug), '-[0-9]+[a-z]?
+      const a = (await db.query("SELECT a.*, c.name AS category_name, c.slug AS category_slug FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = $1 OR lower(a.slug) = $2 OR lower(a.slug) LIKE $2 || '-%') ORDER BY CASE WHEN lower(a.slug) = $1 THEN 0 ELSE 1 END, a.published_at DESC LIMIT 1", [requested, base])).rows[0];
+      if (!a) throw new HttpError(404, 'Article not found');
+      delete a.content_md; delete a.author_id;
+      return (await withTags([a]))[0];
+    },
     async listAdmin({ status, q, page = 1, limit = 20 }) { const w = [], p = []; if (status) { p.push(status); w.push(`status = $${p.length}`); } if (q) { p.push('%' + q + '%'); w.push(`title ILIKE $${p.length}`); } const cl = w.length ? ' WHERE ' + w.join(' AND ') : ''; limit = Math.min(+limit || 20, 100); const total = Number((await db.query(`SELECT COUNT(*) AS c FROM articles${cl}`, p)).rows[0].c); const rows = (await db.query(`SELECT id,title,slug,status,excerpt,featured_image_url,published_at,publish_at,updated_at FROM articles${cl} ORDER BY updated_at DESC LIMIT ${limit} OFFSET ${(Math.max(parseInt(page) || 1, 1) - 1) * limit}`, p)).rows; return { rows, total, page: +page, limit }; },
     async getAdmin(id) { const a = (await db.query('SELECT * FROM articles WHERE id = $1', [id])).rows[0]; if (!a) throw new HttpError(404, 'Article not found'); return (await withTags([a]))[0]; },
     async save(id, d, adminId) {
