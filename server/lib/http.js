@@ -105,12 +105,22 @@ async function serveStatic(ctx) {
   else if (/^\/articles\/[^/]+\/?$/.test(p)) rel = '/article.html';
   else if (p === '/articles' || p === '/articles/') rel = '/articles.html';
   else if (p === '/sitemap.xml' || p === '/robots.txt' || p === '/ads.txt' || p === '/feed.xml') { const { dynamicText } = await import('../routes/seo.js'); const t = await dynamicText(p); if (t) { securityHeaders(res); res.writeHead(200, { 'Content-Type': mimeFor(p), 'Cache-Control': 'public, max-age=300' }); return res.end(t); } }
+  if (!isAdmin && !p.startsWith('/media/')) {
+    const { dynamicHtml } = await import('../routes/seo.js');
+    const generated = await dynamicHtml(p);
+    if (generated) { securityHeaders(res); const body = Buffer.from(generated); res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': body.length, 'Cache-Control': 'public, max-age=300' }); return res.end(req.method === 'HEAD' ? undefined : body); }
+  }
   const base = normalize(root); let file = normalize(join(base, rel)); if (!file.startsWith(base)) throw new HttpError(403, 'Forbidden');
   if (rel.endsWith('/')) file = join(file, 'index.html');
   let found = await tryFile(file) || await tryFile(file + '.html') || await tryFile(join(file, 'index.html'));
   if (!found) throw new HttpError(404, 'Not found');
   const ext = extname(found).toLowerCase(); securityHeaders(res, { admin: isAdmin });
-  const data = await readFile(found); const long = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.woff2'].includes(ext);
+  let data = await readFile(found);
+  if (ext === '.html' && !isAdmin) {
+    const { decorateHtml } = await import('../routes/seo.js');
+    data = Buffer.from(await decorateHtml(data.toString('utf8'), p));
+  }
+  const long = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.woff2'].includes(ext);
   res.writeHead(200, { 'Content-Type': mimeFor(found), 'Content-Length': data.length, 'Cache-Control': isAdmin ? 'no-cache' : p.startsWith('/media/') ? 'public, max-age=31536000, immutable' : long ? 'public, max-age=86400' : 'no-cache' });
   res.end(req.method === 'HEAD' ? undefined : data);
 }
