@@ -42,7 +42,7 @@ export async function buildApp({ db, storage, mailer } = {}) {
   return { app, db, deps };
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { app, db } = await buildApp(); const server = app.server().listen(config.port, () => log.info('listening', { port: config.port, env: config.env, db: db.dialect }));
+  const { app, db, deps } = await buildApp(); const social = deps.social; const server = app.server().listen(config.port, () => log.info('listening', { port: config.port, env: config.env, db: db.dialect }));
   const publishDueArticles = async () => {
     const at = new Date().toISOString();
     const due = (await db.query("SELECT id FROM articles WHERE status = 'scheduled' AND publish_at <= $1", [at])).rows;
