@@ -22,7 +22,7 @@ export function mediaService(db, storage) {
     async upload(buf, { filename = 'upload', folderId = null, alt = null, adminId }) {
       if (!buf.length) throw new HttpError(400, 'Empty file'); if (buf.length > config.maxUploadBytes) throw new HttpError(413, `File exceeds ${config.maxUploadBytes / 1048576} MB limit`);
       const kind = sniff(buf, filename); if (!kind) throw new HttpError(415, 'Unsupported file type. Allowed: PNG, JPEG, GIF, WebP, PDF, DOCX');
-      const safeName = String(filename).replace(/[^\\w.- ]+/g, '_').trim().slice(0, 120) || 'upload';
+      const safeName = String(filename).replace(/[^\w .-]+/g, '_').trim().slice(0, 120) || 'upload';
       let uploadedKeys = [];
       try {
         return await db.tx(async tx => {
