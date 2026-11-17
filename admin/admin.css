@@ -52,3 +52,5 @@ td.actions{white-space:nowrap}
 .kv{display:grid;grid-template-columns:minmax(90px,35%) minmax(0,1fr);gap:.3rem .75rem;font-size:.9rem}.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}
 .bar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--gold)}
 .notice{border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:.6rem .8rem;margin:.6rem 0;font-size:.9rem}
+
+.field-image-preview{display:block;width:min(100%,320px);max-height:190px;object-fit:contain;object-position:left center;margin:.65rem 0;padding:.35rem;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.field-image-preview[hidden]{display:none}
