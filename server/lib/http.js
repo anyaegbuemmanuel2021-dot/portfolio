@@ -104,7 +104,7 @@ async function serveStatic(ctx) {
   else if (p.startsWith('/media/') && config.storage.provider === 'local') { root = join(process.cwd(), config.storage.localDir); rel = p.slice(6); }
   else if (/^\/articles\/[^/]+\/?$/.test(p)) rel = '/article.html';
   else if (p === '/articles' || p === '/articles/') rel = '/articles.html';
-  else if (p === '/sitemap.xml' || p === '/robots.txt' || p === '/ads.txt') { const { dynamicText } = await import('../routes/seo.js'); const t = await dynamicText(p); if (t) { securityHeaders(res); res.writeHead(200, { 'Content-Type': mimeFor(p), 'Cache-Control': 'public, max-age=300' }); return res.end(t); } }
+  else if (p === '/sitemap.xml' || p === '/robots.txt' || p === '/ads.txt' || p === '/feed.xml') { const { dynamicText } = await import('../routes/seo.js'); const t = await dynamicText(p); if (t) { securityHeaders(res); res.writeHead(200, { 'Content-Type': mimeFor(p), 'Cache-Control': 'public, max-age=300' }); return res.end(t); } }
   const base = normalize(root); let file = normalize(join(base, rel)); if (!file.startsWith(base)) throw new HttpError(403, 'Forbidden');
   if (rel.endsWith('/')) file = join(file, 'index.html');
   let found = await tryFile(file) || await tryFile(file + '.html') || await tryFile(join(file, 'index.html'));
