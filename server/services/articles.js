@@ -20,7 +20,7 @@ export function articleService(db, { syncUsage }) {
       await svc.publishDue();
       const requested = String(slug || '').toLowerCase();
       const base = requested.replace(/-[0-9]+[a-z]?$/, '');
-      const a = (await db.query("SELECT a.*, c.name AS category_name, c.slug AS category_slug FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = $1 OR lower(a.slug) = $2 OR lower(a.slug) ~ ('^' || $2 || '-[0-9]+[a-z]?", [requested, base])).rows[0];
+      const a = (await db.query(`SELECT a.*, c.name AS category_name, c.slug AS category_slug FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = $1 OR lower(a.slug) = $2 OR lower(a.slug) ~ ('^' || $2 || '-[0-9]+[a-z]?$')) ORDER BY CASE WHEN lower(a.slug) = $1 THEN 0 WHEN lower(a.slug) = $2 THEN 1 ELSE 2 END, a.published_at DESC LIMIT 1`, [requested, base])).rows[0];
       if (!a) throw new HttpError(404, 'Article not found');
       delete a.content_md; delete a.author_id;
       return (await withTags([a]))[0];
