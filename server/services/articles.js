@@ -66,7 +66,21 @@ export function articleService(db, { syncUsage }) {
     },
     revisions: async id => (await db.query('SELECT id, title, created_at FROM article_revisions WHERE article_id = $1 ORDER BY created_at DESC', [id])).rows,
     async restore(id, revId, adminId) { const r = (await db.query('SELECT * FROM article_revisions WHERE id = $1 AND article_id = $2', [revId, id])).rows[0]; if (!r) throw new HttpError(404, 'Revision not found'); const a = await svc.getAdmin(id); return svc.save(id, { ...a, tags: a.tags.map(t => t.name), title: r.title, content_md: r.content_md }, adminId); },
-    async remove(id) { await db.query("DELETE FROM media_usage_references WHERE entity = 'article' AND entity_id = $1", [id]); return (await db.query('DELETE FROM articles WHERE id = $1', [id])).rowCount > 0; },
+    async remove(id) {
+      return db.tx(async tx => {
+        const found = (await tx.query('SELECT id FROM articles WHERE id = $1', [id])).rows[0];
+        if (!found) return false;
+        // Remove dependent records explicitly so deletion works even on databases
+        // whose older schema versions do not have ON DELETE CASCADE constraints.
+        await tx.query("DELETE FROM media_usage_references WHERE entity = 'article' AND entity_id = $1", [id]);
+        await tx.query('DELETE FROM article_images WHERE article_id = $1', [id]);
+        await tx.query('DELETE FROM article_tag_assignments WHERE article_id = $1', [id]);
+        await tx.query('DELETE FROM article_revisions WHERE article_id = $1', [id]);
+        await tx.query('DELETE FROM article_views WHERE article_id = $1', [id]);
+        const result = await tx.query('DELETE FROM articles WHERE id = $1', [id]);
+        return result.rowCount > 0;
+      });
+    },
     async countView(slug, day) { const a = (await db.query("SELECT id FROM articles WHERE slug = $1 AND status = 'published'", [slug])).rows[0]; if (a) await db.query('INSERT INTO article_views (article_id, day, count) VALUES ($1,$2,1) ON CONFLICT (article_id, day) DO UPDATE SET count = article_views.count + 1', [a.id, day]); },
   };
   return svc;
