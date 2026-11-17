@@ -6,7 +6,7 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   var fmt = function (d) { try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return ''; } };
   function setMeta(name, content, prop) { if (!content) return; var sel = prop ? 'meta[property="' + name + '"]' : 'meta[name="' + name + '"]'; var m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); m.setAttribute(prop ? 'property' : 'name', name); document.head.appendChild(m); } m.setAttribute('content', content); }
-  function safeImg(u) { return typeof u === 'string' && /^(https?:\/\/|\/)/.test(u) ? u : ''; }
+  function safeImg(u) { if (typeof u !== 'string' || !u.trim()) return ''; u = u.trim(); if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('//') || u.startsWith('/') || u.startsWith('data:image/')) return u; if (u.startsWith('uploads/') || u.startsWith('./uploads/')) return '/' + (u.startsWith('./') ? u.slice(2) : u); return ''; }
 
   var list = $('#articleList');
   if (list) {
