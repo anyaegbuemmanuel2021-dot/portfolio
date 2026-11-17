@@ -16,7 +16,7 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.get('/api/admin/articles', g('articles'), async ctx => { const r = await articles.listAdmin(ctx.query); return { data: r.rows, meta: { total: r.total, page: r.page, limit: r.limit } }; });
   app.post('/api/admin/articles', g('articles'), async ctx => { const a = await articles.save(null, artIn(ctx), ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'create', 'article', a.id); return { status: 201, data: a }; });
   app.get('/api/admin/articles/:id', g('articles'), ctx => articles.getAdmin(ctx.params.id));
-  app.put('/api/admin/articles/:id', g('articles'), async ctx => { const a = await articles.save(ctx.params.id, artIn(ctx), ctx.admin.id); await auth.audit(ctx, 'update', 'article', a.id); return a; });
+  app.put('/api/admin/articles/:id', g('articles'), async ctx => { const a = await articles.save(ctx.params.id, artIn(ctx), ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'update', 'article', a.id); return a; });
   app.post('/api/admin/articles/:id/publish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'published', ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'publish', 'article', ctx.params.id); return a; });
   app.post('/api/admin/articles/:id/unpublish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'draft', ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'unpublish', 'article', ctx.params.id); return a; });
   app.delete('/api/admin/articles/:id', g('articles'), async ctx => { if (!(await articles.remove(ctx.params.id))) throw new HttpError(404, 'Not found'); await auth.audit(ctx, 'delete', 'article', ctx.params.id); return { deleted: true }; });
