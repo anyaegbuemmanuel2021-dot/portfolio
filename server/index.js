@@ -43,7 +43,14 @@ export async function buildApp({ db, storage, mailer } = {}) {
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { app, db } = await buildApp(); const server = app.server().listen(config.port, () => log.info('listening', { port: config.port, env: config.env, db: db.dialect }));
-  const syncSocial = () => social.syncPublishedArticles().catch(err => log.error('social outbox sync failed', { error: err.message }));
-  syncSocial(); const bg = setInterval(async () => { await db.query("UPDATE articles SET status = 'published', published_at = publish_at WHERE status = 'scheduled' AND publish_at <= $1", [new Date().toISOString()]).catch(() => {}); await syncSocial(); }, 60e3); bg.unref();
+  const publishDueArticles = async () => {
+    const at = new Date().toISOString();
+    const due = (await db.query("SELECT id FROM articles WHERE status = 'scheduled' AND publish_at <= $1", [at])).rows;
+    if (!due.length) return;
+    await db.query("UPDATE articles SET status = 'published', published_at = publish_at WHERE status = 'scheduled' AND publish_at <= $1", [at]);
+    for (const article of due) await social.enqueueArticle(article.id);
+  };
+  const bg = setInterval(() => publishDueArticles().catch(err => log.error('scheduled article publishing failed', { error: err.message })), 60e3); bg.unref();
+  publishDueArticles().catch(err => log.error('scheduled article publishing failed', { error: err.message }));
   for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => { server.close(() => db.close().then(() => process.exit(0))); });
 }
