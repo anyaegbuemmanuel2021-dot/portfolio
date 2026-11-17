@@ -70,8 +70,8 @@ test('published articles create idempotent social drafts for all three platforms
   const facebook = matching.find(p => p.platform === 'facebook');
   const edited = await api('PATCH', '/api/social/posts/' + facebook.id, { caption: 'Updated social caption', status: 'approved', media_url: 'https://cdn.example.com/social.mp4' });
   assert.equal(edited.s, 200);
-  assert.equal(edited.j.caption, 'Updated social caption');
-  assert.equal(edited.j.status, 'approved');
+  assert.equal(edited.j.data.caption, 'Updated social caption');
+  assert.equal(edited.j.data.status, 'approved');
   assert.equal((await api('PATCH', '/api/social/posts/' + facebook.id, { media_url: 'http://insecure.example/video.mp4' })).s, 422);
   assert.equal((await api('POST', '/api/social/sync')).j.created, 0);
   const hidden = await api('GET', '/api/social/posts', null, { auth: false });
