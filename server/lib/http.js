@@ -108,7 +108,13 @@ async function serveStatic(ctx) {
   if (!isAdmin && !p.startsWith('/media/')) {
     const { dynamicHtml } = await import('../routes/seo.js');
     const generated = await dynamicHtml(p);
-    if (generated) { securityHeaders(res); const body = Buffer.from(generated); res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': body.length, 'Cache-Control': 'public, max-age=300' }); return res.end(req.method === 'HEAD' ? undefined : body); }
+    if (generated) {
+      securityHeaders(res);
+      const status = typeof generated === 'object' ? (generated.status || 200) : 200;
+      const body = Buffer.from(typeof generated === 'object' ? (generated.body || '') : generated);
+      res.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': body.length, 'Cache-Control': status === 404 ? 'no-store' : 'public, max-age=300' });
+      return res.end(req.method === 'HEAD' ? undefined : body);
+    }
   }
   const base = normalize(root); let file = normalize(join(base, rel)); if (!file.startsWith(base)) throw new HttpError(403, 'Forbidden');
   if (rel.endsWith('/')) file = join(file, 'index.html');
