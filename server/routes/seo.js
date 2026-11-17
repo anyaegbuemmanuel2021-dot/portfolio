@@ -100,7 +100,8 @@ function pageHtml(kind, row, base) {
 export async function dynamicHtml(pathname) {
   if (!_db) return null;
   const found = await entityFor(pathname);
-  if (!found || found.kind === 'article') return null;
+  if (!found) return slugMatch(pathname, 'articles') ? { status: 404, body: 'Not found' } : null;
+  if (found.kind === 'article') return null;
   const base = await siteBase();
   return pageHtml(found.kind, found.row, base);
 }
