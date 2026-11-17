@@ -26,6 +26,7 @@
     var h = document.createElement('h3'); h.className = 'project-card__title'; h.textContent = safeCopy(p.title || 'Project');
     var d = document.createElement('p'); d.className = 'project-card__desc'; var demoProject = /^(restaurant|agency|blog|shop|event|calculator)$/.test(String(p.slug || '')); d.textContent = String(p.summary || p.description || '') + (demoProject ? ' Portfolio demonstration: sample brand and content are illustrative.' : '');
     var actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:var(--space-3);margin-top:var(--space-4);flex-wrap:wrap';
+    if (p.slug) { var details = document.createElement('a'); details.className = 'btn btn--ghost btn--sm'; details.href = '/projects/' + encodeURIComponent(p.slug); details.textContent = 'Project details'; actions.appendChild(details); }
     var live = document.createElement('a'); live.className = 'btn btn--primary btn--sm'; live.href = p.url ? safeUrl(p.url) : '#'; live.appendChild(document.createTextNode('View Live ')); var liveIcon = document.createElement('i'); liveIcon.className = 'fa-solid fa-arrow-up-right-from-square'; liveIcon.setAttribute('aria-hidden', 'true'); live.appendChild(liveIcon);
     if (!p.url || live.href === '#') live.hidden = true; else { live.target = '_blank'; live.rel = 'noopener'; }
     actions.appendChild(live);
@@ -41,6 +42,7 @@
       var tags = document.createElement('div'); tags.style.cssText = 'display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-3)';
       list(s.tags).forEach(function (v) { var t = document.createElement('span'); t.className = 'tag'; t.textContent = v; tags.appendChild(t); });
       content.append(h, p); if (tags.childNodes.length) content.appendChild(tags);
+      if (s.slug) { var details = document.createElement('a'); details.className = 'btn btn--ghost btn--sm'; details.href = '/services/' + encodeURIComponent(s.slug); details.textContent = 'Service details'; details.style.cssText = 'display:inline-flex;margin-top:var(--space-3)'; content.appendChild(details); }
       var arrow = document.createElement('span'); arrow.className = 'service-row__arrow'; var arrowIcon = document.createElement('i'); arrowIcon.className = 'fa-solid fa-arrow-right'; arrowIcon.setAttribute('aria-hidden', 'true'); arrow.appendChild(arrowIcon); row.append(num, content, arrow); root.appendChild(row);
     });
   }
