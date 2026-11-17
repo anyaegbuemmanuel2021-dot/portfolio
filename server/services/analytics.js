@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { hmac } from '../lib/security.js';
 const now = () => new Date().toISOString(); const today = () => now().slice(0, 10);
-const refHost = (r, self) => { try { const h = new URL(r).hostname.replace(/^www\\./, '').toLowerCase(); return h === self.replace(/^www\\./, '').toLowerCase() ? null : h; } catch { return null; } };
-const clean = (v, max = 120) => typeof v === 'string' ? v.replace(/[\\u0000-\\u001f\\u007f]/g, '').trim().slice(0, max) || null : null;
-const validPath = p => typeof p === 'string' && /^\\/[\\w\\-./%?=&]{0,300}$/.test(p);
+const refHost = (r, self) => { try { const h = new URL(r).hostname.replace(/^www\./, '').toLowerCase(); return h === self.replace(/^www\./, '').toLowerCase() ? null : h; } catch { return null; } };
+const clean = (v, max = 120) => typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, max) || null : null;
+const validPath = p => typeof p === 'string' && /^\/[\w\-./%?=&]{0,300}$/.test(p);
 export function analyticsService(db, { siteHost }) {
   const KEY = { project_views: 'slug', traffic_sources: 'source', article_views: 'article_id' };
   const bump = (table, a, b) => db.query(`INSERT INTO ${table} (${KEY[table]}, day, count) VALUES ($1,$2,1) ON CONFLICT (${KEY[table]}, day) DO UPDATE SET count = ${table}.count + 1`, [a, b]);
