@@ -30,7 +30,10 @@ export async function seed(db) {
     if (await missing('projects', 'slug', p.slug)) {
       const row = { id: randomUUID(), ...p, sort_order: await count('projects'), is_published: true, created_at: t, updated_at: t };
       const cols = Object.keys(row);
-      await db.query(`INSERT INTO projects (${cols.join(',')}) VALUES (${cols.map((_, i) => '
+      const sql = 'INSERT INTO projects (' + cols.join(',') + ') VALUES (' + cols.map((_, i) => '$' + (i + 1)).join(',') + ')';
+      await db.query(sql, cols.map(k => row[k]));
+    }
+  }
   if (!(await count('navigation_items'))) await ins('navigation_items', [['Home', 'index.html'], ['About', 'about.html'], ['Projects', 'projects.html'], ['Services', 'services.html'], ['Contact', 'contact.html'], ['Articles', 'articles.html']].map(([label, url]) => ({ label, url, location: 'header' })));
   if (!(await count('social_links'))) await ins('social_links', [['LinkedIn', 'https://linkedin.com/in/anyaegbu-emmanuel', 'fab fa-linkedin-in'], ['Instagram', 'https://instagram.com/anyaegbu_emmanuel', 'fab fa-instagram'], ['TikTok', 'https://tiktok.com/@anyaegbu_emmanuel', 'fab fa-tiktok']].map(([platform, url, icon]) => ({ platform, url, icon })));
   if (!(await count('biography'))) await db.query('INSERT INTO biography (id,headline,body,photo_url,cv_url,updated_at) VALUES ($1,$2,$3,$4,$5,$6)', [randomUUID(), 'Frontend Developer & AI Creative Technologist', 'Computer Science student at Nnamdi Azikiwe University (UNIZIK), Nigeria, focused on responsive website development and AI-assisted digital content production.', 'assets/images/profile.jpg', 'assets/files/Emmanuel_Anyaegbu_CV.pdf', t]);
