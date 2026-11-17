@@ -17,10 +17,16 @@ export function tableRepo(db, table, cols, { order = 'sort_order ASC, created_at
     async get(id) { return fixRow((await db.query(`SELECT * FROM ${table} WHERE id = $1`, [id])).rows[0]); },
     async create(data, qdb = db) {
       const id = randomUUID(), t = now(), row = { id, ...data, ...(timestamps ? { created_at: t, updated_at: t } : {}) }; const keys = Object.keys(row);
-      await qdb.query(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map((_, i) => '
+      const sql = 'INSERT INTO ' + table + ' (' + keys.join(',') + ') VALUES (' + keys.map((_, i) => '$' + (i + 1)).join(',') + ')';
+      await qdb.query(sql, keys.map(k => row[k]));
+      return fixRow((await qdb.query('SELECT * FROM ' + table + ' WHERE id = $1', [id])).rows[0]);
+    },
     async update(id, data, qdb = db) {
-      const row = { ...data, ...(timestamps ? { updated_at: now() } : {}) }; const keys = Object.keys(row).filter(k => cols.includes(k) || k === 'updated_at'); if (!keys.length) return fixRow((await qdb.query(`SELECT * FROM ${table} WHERE id = $1`, [id])).rows[0]);
-      await qdb.query(`UPDATE ${table} SET ${keys.map((k, i) => `${k} = ${i + 1}`).join(', ')} WHERE id = ${keys.length + 1}`, [...keys.map(k => row[k]), id]); return fixRow((await qdb.query(`SELECT * FROM ${table} WHERE id = $1`, [id])).rows[0]);
+      const row = { ...data, ...(timestamps ? { updated_at: now() } : {}) }; const keys = Object.keys(row).filter(k => cols.includes(k) || k === 'updated_at');
+      if (!keys.length) return fixRow((await qdb.query('SELECT * FROM ' + table + ' WHERE id = $1', [id])).rows[0]);
+      const assignments = keys.map((k, i) => k + ' = $' + (i + 1)).join(', ');
+      await qdb.query('UPDATE ' + table + ' SET ' + assignments + ' WHERE id = $' + (keys.length + 1), [...keys.map(k => row[k]), id]);
+      return fixRow((await qdb.query('SELECT * FROM ' + table + ' WHERE id = $1', [id])).rows[0]);
     },
     async remove(id) { return (await db.query(`DELETE FROM ${table} WHERE id = $1`, [id])).rowCount > 0; },
     async reorder(ids) { await db.tx(async t => { for (let i = 0; i < ids.length; i++) await t.query(`UPDATE ${table} SET sort_order = $1 WHERE id = $2`, [i, ids[i]]); }); },
