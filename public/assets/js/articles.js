@@ -46,8 +46,18 @@
       var body = el('div', 'article__body'); body.innerHTML = a.content_html; box.appendChild(body); // server-rendered from escaped Markdown (no raw HTML possible)
       var ad = el('div', 'ad-slot'); ad.hidden = true; ad.setAttribute('data-ad-slot', 'article'); box.appendChild(ad);
       if (a.tags && a.tags.length) { var tg = el('div', 'article__tags'); a.tags.forEach(function (x) { tg.appendChild(el('span', 'article__tag', '#' + x.name)); }); box.appendChild(tg); }
-      var sh = el('div', 'article__share'); var cp = el('button', 'btn btn--ghost btn--sm', 'Copy link'); cp.onclick = function () { (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject()).then(function () { cp.textContent = 'Copied ✓'; }, function () { prompt('Copy this link', location.href); }); };
-      var wa = el('a', 'btn btn--ghost btn--sm', 'Share on WhatsApp'); wa.target = '_blank'; wa.rel = 'noopener'; wa.href = 'https://wa.me/?text=' + encodeURIComponent(a.title + ' ' + location.href); sh.append(cp, wa); box.appendChild(sh);
+      var sh = el('div', 'article__share');
+      var trackedCopyUrl = window.PortfolioShare && window.PortfolioShare.trackedUrl ? window.PortfolioShare.trackedUrl('copy_link', 'referral') : location.origin + location.pathname + '?utm_source=copy_link&utm_medium=referral&utm_campaign=portfolio_share';
+      var cp = el('button', 'btn btn--ghost btn--sm', 'Copy tracked link'); cp.type = 'button'; cp.onclick = function () {
+        var copied = function () { cp.textContent = 'Link copied ✓'; if (window.PortfolioShare && window.PortfolioShare.track) window.PortfolioShare.track('copy_link', 'share', 'Copied tracked article link', location.pathname); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(trackedCopyUrl).then(copied).catch(function () { window.prompt('Copy this tracked link:', trackedCopyUrl); });
+        else window.prompt('Copy this tracked link:', trackedCopyUrl);
+      };
+      var wa = el('a', 'btn btn--ghost btn--sm', 'Share on WhatsApp'); wa.target = '_blank'; wa.rel = 'noopener';
+      var trackedWhatsAppUrl = window.PortfolioShare && window.PortfolioShare.trackedUrl ? window.PortfolioShare.trackedUrl('whatsapp', 'social') : trackedCopyUrl;
+      wa.href = 'https://wa.me/?text=' + encodeURIComponent(a.title + ' ' + trackedWhatsAppUrl);
+      wa.addEventListener('click', function () { if (window.PortfolioShare && window.PortfolioShare.track) window.PortfolioShare.track('share_click', 'share', 'Shared article via WhatsApp', trackedWhatsAppUrl); });
+      sh.append(cp, wa); box.appendChild(sh);
       var s = document.createElement('script'); s.src = '/assets/js/site.js'; document.body.appendChild(s); // re-run ad slot render for dynamically added slot
     }).catch(function (e) { box.textContent = ''; box.appendChild(el('h1', 'article__title', e.status === 404 ? 'Article not found' : 'Unable to load article')); box.appendChild(el('p', 'article__body', 'It may have been unpublished or moved.')); var b = el('a', 'btn btn--primary', 'Back to articles'); b.href = '/articles'; box.appendChild(b); });
   }
