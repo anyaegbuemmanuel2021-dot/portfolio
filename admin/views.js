@@ -166,10 +166,42 @@ export function adsView(tab = 'ads') {
 
 // ---------- analytics ----------
 export function analyticsView() {
-  const root = h('div', {}), out = h('div', {}); const iso = d => d.toISOString().slice(0, 10); const from = h('input', { type: 'date', 'aria-label': 'From' }), to = h('input', { type: 'date', 'aria-label': 'To' });
-  async function load(f, t) { from.value = f; to.value = t; const a = (await api('GET', `/analytics/summary?from=${f}&to=${t}`)).data; const card = (n, l) => h('div', { class: 'card' }, h('div', { class: 'n' }, n), h('div', { class: 'l' }, l));
-    out.replaceChildren(h('div', { class: 'cards' }, card(a.visitors, 'Unique visitors (daily-hashed)'), card(a.page_views, 'Page views'), card(a.contact_submissions, 'Contact submissions'), card(a.leads.qualified, 'Qualified leads'), card(a.leads.converted, 'Converted'), card(a.conversion_rate + '%', 'Visitor → inquiry'), card(a.ads.impressions, 'Ad impressions'), card(a.ads.clicks, 'Ad clicks')), h('div', { class: 'panel' }, h('h2', {}, 'Traffic'), lineChart(a.series, [{ k: 'views', color: '#c8a96e', label: 'views' }, { k: 'visitors', color: '#60a5fa', label: 'visitors' }])),
-      h('div', { class: 'grid2' }, [['Top pages', a.top_pages, 'path'], ['Top articles', a.top_articles, 'title'], ['Top projects', a.top_projects, 'slug'], ['Traffic sources', a.sources, 'source']].map(([t, rows, k]) => h('div', { class: 'panel' }, h('h2', {}, t), table([{ label: 'Name', k }, { label: 'Views', k: 'views' }], rows, { empty: 'No data yet.' })))), h('p', { class: 'help' }, 'Real visitor data only. No cookies; IPs are never stored; Do-Not-Track and bots are excluded.')); }
+  const root = h('div', {}), out = h('div', {}); const iso = d => d.toISOString().slice(0, 10);
+  const from = h('input', { type: 'date', 'aria-label': 'From' }), to = h('input', { type: 'date', 'aria-label': 'To' });
+  async function load(f, t) {
+    from.value = f; to.value = t;
+    const a = (await api('GET', `/analytics/summary?from=${f}&to=${t}`)).data;
+    const card = (n, l) => h('div', { class: 'card' }, h('div', { class: 'n' }, n), h('div', { class: 'l' }, l));
+    const panels = [
+      ['Top pages', a.top_pages, [{ label: 'Page', k: 'path' }, { label: 'Views', k: 'views' }]],
+      ['Top articles', a.top_articles, [{ label: 'Article', k: 'title' }, { label: 'Views', k: 'views' }]],
+      ['Top projects', a.top_projects, [{ label: 'Project', k: 'slug' }, { label: 'Views', k: 'views' }]],
+      ['Traffic sources', a.sources, [{ label: 'Source', k: 'source' }, { label: 'Visits', k: 'views' }]],
+      ['Campaign performance (UTM)', a.campaigns, [{ label: 'Source', k: 'source' }, { label: 'Medium', k: 'medium' }, { label: 'Campaign', k: 'campaign' }, { label: 'Views', k: 'views' }]],
+      ['Recent visitor activity', a.activities, [
+        { label: 'Activity', k: 'type' }, { label: 'What', k: 'label' }, { label: 'Page', k: 'path' },
+        { label: 'When', render: x => fmtDate(x.created_at) }
+      ]]
+    ];
+    out.replaceChildren(
+      h('div', { class: 'cards' },
+        card(a.visitors, 'Unique visitors (daily privacy hash)'), card(a.page_views, 'Page views'),
+        card(a.contact_submissions, 'Contact submissions'), card(a.leads.qualified, 'Qualified leads'),
+        card(a.leads.converted, 'Converted leads'), card(a.conversion_rate + '%', 'Visitor → inquiry'),
+        card(a.ads.impressions, 'Ad impressions'), card(a.ads.clicks, 'Ad clicks'),
+        card((a.activities || []).length, 'Tracked interactions')
+      ),
+      h('div', { class: 'panel' }, h('h2', {}, 'Traffic over time'), lineChart(a.series, [{ k: 'views', color: '#c8a96e', label: 'views' }, { k: 'visitors', color: '#60a5fa', label: 'visitors' }])),
+      h('div', { class: 'grid2' }, panels.map(([title, rows, columns]) =>
+        h('div', { class: 'panel' }, h('h2', {}, title), table(columns, rows || [], { empty: 'No data yet.' }))
+      )),
+      h('p', { class: 'help' }, 'Tracks campaign tags, referring domains, page views, project and article interest, outbound links, downloads and contact clicks. Raw IP addresses and form contents are not stored. Do-Not-Track and Global Privacy Control are respected.')
+    );
+  }
   const preset = d => { const t = new Date(), f = new Date(Date.now() - (d - 1) * 864e5); load(iso(f), iso(t)).catch(e => toast(e.message, 'bad')); };
-  root.append(h('h1', {}, 'Analytics'), h('div', { class: 'row' }, [['Today', 1], ['7 days', 7], ['30 days', 30], ['90 days', 90]].map(([l, d]) => h('button', { class: 'btn sm', onclick: () => preset(d) }, l)), from, to, h('button', { class: 'btn sm primary', onclick: () => from.value && to.value && load(from.value, to.value) }, 'Apply')), out); preset(30); return root;
+  root.append(h('h1', {}, 'Analytics & visitor activity'),
+    h('div', { class: 'row' }, [['Today', 1], ['7 days', 7], ['30 days', 30], ['90 days', 90]].map(([l, d]) => h('button', { class: 'btn sm', onclick: () => preset(d) }, l)),
+      from, to, h('button', { class: 'btn sm primary', onclick: () => from.value && to.value && load(from.value, to.value) }, 'Apply')),
+    out);
+  preset(30); return root;
 }
