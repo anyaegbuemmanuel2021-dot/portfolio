@@ -18,7 +18,7 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
   app.get('/api/services', async () => (await content()).services);
   app.get('/api/projects', async () => (await content()).projects);
   app.get('/api/projects/:slug', async ctx => { const p = (await content()).projects.find(x => x.slug === ctx.params.slug); if (!p) throw new HttpError(404, 'Project not found'); return p; });
-  app.get('/api/articles', async ctx => { const r = await articles.listPublic(ctx.query); return { data: r.rows, meta: { total: r.total, page: r.page, limit: r.limit }, headers: { 'Cache-Control': 'public, max-age=30' } }; });
+  app.get('/api/articles', async ctx => { const r = await articles.listPublic(ctx.query); return { data: r.rows, meta: { total: r.total, page: r.page, limit: r.limit }, headers: { 'Cache-Control': 'no-store' } }; });
   app.get('/api/articles/categories', async () => ({ data: (await db.query('SELECT name, slug FROM article_categories ORDER BY name')).rows, headers: { 'Cache-Control': 'public, max-age=300' } }));
   app.get('/api/articles/:slug', async ctx => ({ data: await articles.getPublic(ctx.params.slug), headers: { 'Cache-Control': 'public, max-age=30' } }));
   const CONTACT = { name: { required: true, max: 100 }, email: { type: 'email' }, phone: { max: 30, pattern: /^[+\d][\d\s().-]{5,29}$/ }, service: { max: 120 }, budget: { max: 60 }, message: { required: true, max: 4000 } };
