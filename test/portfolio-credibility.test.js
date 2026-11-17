@@ -88,7 +88,24 @@ test('social links from the CMS update footer and contact-page profile links', (
 test('CMS scripts are refreshed and public CMS content is not browser-cached', () => {
   const sw = read('public/sw.js');
   const routes = read('server/routes/public.js');
-  assert.match(sw, /aei-pwa-v9/);
+  assert.match(sw, /aei-pwa-v10/);
   assert.match(sw, /assets\/js\/cms\.js/);
   assert.match(routes, /Cache-Control': 'no-store, max-age=0/);
+});
+
+
+test('light mode keeps desktop and mobile navigation surfaces and controls readable', () => {
+  const css = read('public/assets/css/global.css');
+  assert.match(css, /\[data-theme="light"\] \.nav,[\s\S]*?background-color:\s*rgba\(250, 250, 247, 0\.97\)/);
+  assert.match(css, /\[data-theme="light"\] \.nav__mobile[\s\S]*?background-color:\s*rgba\(250, 250, 247, 0\.99\)/);
+  assert.match(css, /\[data-theme="light"\] \.nav__hamburger span/);
+});
+
+test('homepage showcases all six website demonstrations with local demo links', () => {
+  const html = read('public/index.html');
+  for (const slug of ['restaurant', 'agency', 'blog', 'shop', 'event', 'calculator']) {
+    assert.ok(html.includes('projects/' + slug + '/index.html'), 'missing homepage demo link for ' + slug);
+  }
+  assert.match(html, /Website Projects & Demonstrations/);
+  assert.match(html, /Business website projects/);
 });
