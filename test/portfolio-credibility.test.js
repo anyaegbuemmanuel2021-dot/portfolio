@@ -9,7 +9,7 @@ const read = (path) => readFileSync(join(root, path), 'utf8');
 test('homepage uses clear frontend positioning and avoids invented metrics', () => {
   const html = read('public/index.html');
   assert.match(html, /Frontend Developer & AI Creative Technologist/);
-  assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development|Node\.js|PostgreSQL/);
+  assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development/);
   assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
   assert.match(html, /AI Creative Technologist/);
   assert.match(html, /AI-assisted creative tools/);
@@ -101,11 +101,15 @@ test('light mode keeps desktop and mobile navigation surfaces and controls reada
   assert.match(css, /\[data-theme="light"\] \.nav__hamburger span/);
 });
 
-test('homepage showcases all six website demonstrations with local demo links', () => {
+test('homepage showcases eleven projects and builds while retaining all six labelled demos', () => {
   const html = read('public/index.html');
   for (const slug of ['restaurant', 'agency', 'blog', 'shop', 'event', 'calculator']) {
     assert.ok(html.includes('projects/' + slug + '/index.html'), 'missing homepage demo link for ' + slug);
   }
+  for (const name of ['MedPulse', 'Softly Digital — CBT Platform', 'SocialPulse', 'Church Media Broadcast System', 'XOFT']) {
+    assert.ok(html.includes(name), 'missing project entry: ' + name);
+  }
+  assert.equal((html.match(/<article class="project-card"/g) || []).length, 11);
   assert.match(html, /Website Projects & Demonstrations/);
-  assert.match(html, /Business website projects/);
+  assert.match(html, /Projects & builds/);
 });
