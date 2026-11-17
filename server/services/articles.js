@@ -36,7 +36,16 @@ export function articleService(db, { syncUsage }) {
       });
       await syncUsage('article', aid, [f.featured_image_url, ...imgsIn(d.content_md)]); return svc.getAdmin(aid);
     },
-    async setStatus(id, status, adminId) { const a = await svc.getAdmin(id); return svc.save(id, { ...a, tags: a.tags.map(t => t.name), status, publish_at: a.publish_at }, adminId); },
+    async setStatus(id, status, adminId) {
+      if (!['draft', 'published'].includes(status)) throw new HttpError(422, 'Invalid article status');
+      const current = await svc.getAdmin(id);
+      const publishedAt = status === 'published' ? (current.published_at || now()) : null;
+      await db.query(
+        'UPDATE articles SET status = $1, published_at = $2, publish_at = NULL, updated_at = $3 WHERE id = $4',
+        [status, publishedAt, now(), id]
+      );
+      return svc.getAdmin(id);
+    },
     revisions: async id => (await db.query('SELECT id, title, created_at FROM article_revisions WHERE article_id = $1 ORDER BY created_at DESC', [id])).rows,
     async restore(id, revId, adminId) { const r = (await db.query('SELECT * FROM article_revisions WHERE id = $1 AND article_id = $2', [revId, id])).rows[0]; if (!r) throw new HttpError(404, 'Revision not found'); const a = await svc.getAdmin(id); return svc.save(id, { ...a, tags: a.tags.map(t => t.name), title: r.title, content_md: r.content_md }, adminId); },
     async remove(id) { await db.query("DELETE FROM media_usage_references WHERE entity = 'article' AND entity_id = $1", [id]); return (await db.query('DELETE FROM articles WHERE id = $1', [id])).rowCount > 0; },
