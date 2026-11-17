@@ -1,0 +1,70 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+process.env.SITE_URL = 'https://portfolio.example';
+const { setSeoDb, dynamicText, dynamicHtml, decorateHtml } = await import('../server/routes/seo.js');
+
+const article = {
+  id: 'article-1', title: 'Search Ready Article', slug: 'search-ready-article',
+  excerpt: 'A useful article description.', canonical_url: null,
+  featured_image_url: 'https://cdn.example.com/article-cover.webp',
+  published_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-02T10:00:00.000Z'
+};
+const project = {
+  id: 'project-1', title: 'SEO Project', slug: 'seo-project', summary: 'A project summary.',
+  description: 'A longer project description.', cover_url: 'https://cdn.example.com/project.webp',
+  url: 'https://project.example.com', repo_url: 'https://github.com/example/project',
+  category: 'Web development', updated_at: '2026-11-03T10:00:00.000Z'
+};
+const service = {
+  id: 'service-1', title: 'Website Development', slug: 'website-development',
+  summary: 'Responsive websites for businesses.', description: 'Planning, design and development.',
+  price_note: 'Scoped to your needs', updated_at: '2026-11-04T10:00:00.000Z'
+};
+const db = {
+  async query(sql) {
+    if (sql.includes("key = 'canonical_base'")) return { rows: [{ value: 'https://portfolio.example/' }] };
+    if (sql.includes('FROM article_images')) return { rows: [{ article_id: 'article-1', url: 'https://cdn.example.com/inline.webp', alt: 'Article illustration' }] };
+    if (sql.includes('FROM articles') && sql.includes('lower(slug)')) return { rows: [article] };
+    if (sql.includes('FROM articles') && sql.includes('canonical_url')) return { rows: [article] };
+    if (sql.includes('FROM projects')) return { rows: [project] };
+    if (sql.includes('FROM services')) return { rows: [service] };
+    return { rows: [] };
+  }
+};
+setSeoDb(db);
+
+test('dynamic sitemap includes published articles, projects, services and their images', async () => {
+  const xml = await dynamicText('/sitemap.xml');
+  assert.match(xml, /https:\/\/portfolio\.example\/articles\/search-ready-article/);
+  assert.match(xml, /https:\/\/portfolio\.example\/projects\/seo-project/);
+  assert.match(xml, /https:\/\/portfolio\.example\/services\/website-development/);
+  assert.match(xml, /https:\/\/cdn\.example\.com\/article-cover\.webp/);
+  assert.match(xml, /https:\/\/cdn\.example\.com\/inline\.webp/);
+  assert.match(xml, /https:\/\/cdn\.example\.com\/project\.webp/);
+  assert.match(xml, /xmlns:image="http:\/\/www\.google\.com\/schemas\/sitemap-image\/1\.1"/);
+});
+
+test('CMS project and service slugs render crawlable detail pages with canonical URLs and structured data', async () => {
+  const projectPage = await dynamicHtml('/projects/seo-project');
+  assert.match(projectPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/projects\/seo-project">/);
+  assert.match(projectPage, /"@type":"CreativeWork"/);
+  assert.match(projectPage, /SEO Project/);
+  assert.match(projectPage, /project\.webp/);
+
+  const servicePage = await dynamicHtml('/services/website-development');
+  assert.match(servicePage, /<link rel="canonical" href="https:\/\/portfolio\.example\/services\/website-development">/);
+  assert.match(servicePage, /"@type":"Service"/);
+  assert.match(servicePage, /Responsive websites for businesses/);
+});
+
+test('article and static HTML pages receive clean canonical and social metadata', async () => {
+  const html = '<!doctype html><html><head><title>Article</title><meta name="description" content="Old description"></head><body></body></html>';
+  const decorated = await decorateHtml(html, '/articles/search-ready-article');
+  assert.match(decorated, /<link rel="canonical" href="https:\/\/portfolio\.example\/articles\/search-ready-article">/);
+  assert.match(decorated, /property="og:image" content="https:\/\/cdn\.example\.com\/article-cover\.webp"/);
+  assert.match(decorated, /"@type":"Article"/);
+
+  const staticPage = await decorateHtml(html, '/about.html');
+  assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
+});
