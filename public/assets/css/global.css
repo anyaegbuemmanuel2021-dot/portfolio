@@ -605,3 +605,37 @@ body > .nav__mobile {
 .site-install-banner button:focus-visible{outline:2px solid var(--color-gold);outline-offset:3px}
 @keyframes siteInstallEnter{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:520px){.site-install-banner{top:calc(var(--nav-height, 64px) + 8px);gap:.45rem;padding:.6rem}.site-install-banner__symbol{flex-basis:34px;width:34px;height:34px}.site-install-banner__message strong{font-size:.77rem}.site-install-banner__message small{font-size:.65rem}.site-install-banner__action{padding:.52rem .65rem}}
+
+
+/* Light theme navigation: use a light surface with dark, high-contrast controls.
+   Explicitly override the dark-mode RGBA surfaces on desktop and mobile. */
+[data-theme="light"] .nav,
+[data-theme="light"] .nav.scrolled {
+  background-color: rgba(250, 250, 247, 0.97) !important;
+  border-bottom-color: rgba(15, 14, 12, 0.12);
+  box-shadow: 0 8px 24px rgba(15, 14, 12, 0.06);
+}
+[data-theme="light"] .nav__logo,
+[data-theme="light"] .nav__link,
+[data-theme="light"] .nav__hamburger span {
+  color: var(--color-text-primary);
+}
+[data-theme="light"] .nav__link { color: rgba(15, 14, 12, 0.72); }
+[data-theme="light"] .nav__link:hover,
+[data-theme="light"] .nav__link.active { color: var(--color-gold-dark); }
+[data-theme="light"] .nav__mobile {
+  background-color: rgba(250, 250, 247, 0.99) !important;
+  color: var(--color-text-primary);
+  border-top: 1px solid rgba(15, 14, 12, 0.08);
+}
+[data-theme="light"] .nav__mobile-link { color: rgba(15, 14, 12, 0.78); }
+[data-theme="light"] .nav__mobile-link:hover,
+[data-theme="light"] .nav__mobile-link.active { color: var(--color-gold-dark); }
+[data-theme="light"] .nav__mobile .btn--ghost {
+  color: var(--color-text-primary);
+  border-color: rgba(15, 14, 12, 0.2);
+}
+[data-theme="light"] .theme-toggle {
+  color: var(--color-text-primary);
+  border-color: rgba(15, 14, 12, 0.18);
+}
