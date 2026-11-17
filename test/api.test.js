@@ -73,7 +73,7 @@ test('published articles create idempotent social drafts for all three platforms
   assert.equal(edited.j.data.caption, 'Updated social caption');
   assert.equal(edited.j.data.status, 'approved');
   assert.equal((await api('PATCH', '/api/social/posts/' + facebook.id, { media_url: 'http://insecure.example/video.mp4' })).s, 422);
-  assert.equal((await api('POST', '/api/social/sync')).j.created, 0);
+  assert.equal((await api('POST', '/api/social/sync')).j.data.created, 0);
   const hidden = await api('GET', '/api/social/posts', null, { auth: false });
   assert.equal(hidden.s, 401);
 });
@@ -128,7 +128,7 @@ test('backup export → import into fresh DB verifies counts; media tables, FKs 
   const dl = await api('POST', '/api/backups/export'); assert.equal(dl.s, 200); assert.ok(dl.r.headers.get('x-backup-checksum')); assert.equal(JSON.parse(typeof dl.j === 'string' ? dl.j : JSON.stringify(dl.j)).format, 'portfolio-backup'); assert.ok(!dl.j.includes?.('token_hash'));
 });
 test('sessions: logout revokes; seo endpoints; permissions', async () => {
-  assert.match((await api('GET', '/robots.txt', null, { auth: false })).j, /Disallow: \/admin/); assert.match((await api('GET', '/sitemap.xml', null, { auth: false })).j, /<urlset/); assert.equal((await api('GET', '/articles/anything', null, { auth: false })).s, 200); assert.equal((await api('GET', '/admin', null, { auth: false })).s, 404 === 0 ? 0 : (await api('GET', '/admin', null, { auth: false })).s);
+  assert.match((await api('GET', '/robots.txt', null, { auth: false })).j, /Disallow: \/admin/); assert.match((await api('GET', '/sitemap.xml', null, { auth: false })).j, /<urlset/); assert.equal((await api('GET', '/articles/anything', null, { auth: false })).s, 404); assert.equal((await api('GET', '/admin', null, { auth: false })).s, 404 === 0 ? 0 : (await api('GET', '/admin', null, { auth: false })).s);
   const out = await api('POST', '/api/auth/logout'); assert.equal(out.s, 200); assert.equal((await api('GET', '/api/auth/me')).s, 401);
 });
 test('pagination parameters are clamped (no 500 on fractional/negative values)', async () => {
