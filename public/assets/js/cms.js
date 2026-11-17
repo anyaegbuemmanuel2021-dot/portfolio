@@ -151,31 +151,81 @@
     return;
     root.replaceChildren(); rows.forEach(function (item) { var card = document.createElement('article'); card.className = 'service-card'; var quote = document.createElement('p'); quote.className = 'service-card__desc'; quote.textContent = '“' + (item.quote || '') + '”'; var name = document.createElement('h3'); name.className = 'service-card__title'; name.textContent = item.author_name || 'Client'; var role = document.createElement('p'); role.className = 'muted'; role.textContent = item.author_role || ''; var rating = document.createElement('p'); rating.textContent = '★'.repeat(Math.max(0, Math.min(5, Number(item.rating) || 0))); rating.setAttribute('aria-label', (Number(item.rating) || 0) + ' out of 5 stars'); card.append(quote, name, role, rating); root.appendChild(card); }); section.hidden = false;
   }
+  function normalizeHttpUrl(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return '';
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = 'https://' + raw;
+    try {
+      var parsed = new URL(raw, location.href);
+      return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : '';
+    } catch (_) { return ''; }
+  }
   function applySettings(settings) {
-    Object.keys(settings || {}).forEach(function (key) { $$('[data-cms-setting="' + key.replace(/[^a-z0-9_-]/gi, '') + '"]').forEach(function (el) { if (settings[key] != null && settings[key] !== '') text(el, safeCopy(settings[key])); }); });
-    if (settings.contact_email) $$('a[href^="mailto:"]').forEach(function (a) { a.href = 'mailto:' + settings.contact_email; });
-    if (settings.whatsapp_number) $$('a[href*="wa.me/"]').forEach(function (a) { a.href = 'https://wa.me/' + String(settings.whatsapp_number).replace(/\D/g, ''); });
+    settings = settings || {};
+    Object.keys(settings).forEach(function (key) {
+      var selector = '[data-cms-setting="' + key.replace(/[^a-z0-9_-]/gi, '') + '"]';
+      $$(selector).forEach(function (el) {
+        if (settings[key] == null || settings[key] === '') return;
+        text(el, safeCopy(settings[key]));
+        if (el.tagName === 'A') {
+          if (key === 'contact_email') el.href = 'mailto:' + String(settings[key]).trim();
+          else if (key === 'contact_phone') el.href = 'tel:' + String(settings[key]).replace(/[^+\\d]/g, '');
+          else if (key === 'portfolio_url') {
+            var target = normalizeHttpUrl(settings[key]);
+            if (target) { el.href = target; el.target = '_blank'; el.rel = 'noopener'; }
+          }
+        }
+      });
+    });
+    if (settings.contact_email) {
+      var email = String(settings.contact_email).trim();
+      $$('a[href^="mailto:"]').forEach(function (a) { a.href = 'mailto:' + email; });
+    }
+    if (settings.contact_phone) {
+      var phone = String(settings.contact_phone).trim();
+      $$('a[href^="tel:"]').forEach(function (a) { a.href = 'tel:' + phone.replace(/[^+\\d]/g, ''); });
+    }
+    if (settings.whatsapp_number) {
+      var number = String(settings.whatsapp_number).replace(/\\D/g, '');
+      $$('a[href*="wa.me/"]').forEach(function (a) {
+        var oldUrl;
+        try { oldUrl = new URL(a.href); } catch (_) { oldUrl = new URL('https://wa.me/' + number); }
+        a.href = 'https://wa.me/' + number + oldUrl.search;
+      });
+    }
     if (settings.portfolio_url) {
-      var portfolioValue = String(settings.portfolio_url).trim();
-      var portfolioHref = portfolioValue;
-      if (portfolioHref && !/^[a-z][a-z0-9+.-]*:\/\//i.test(portfolioHref)) portfolioHref = 'https://' + portfolioHref;
-      try {
+      var portfolioHref = normalizeHttpUrl(settings.portfolio_url);
+      if (portfolioHref) {
         var portfolioParsed = new URL(portfolioHref);
-        if (portfolioParsed.protocol !== 'https:' && portfolioParsed.protocol !== 'http:') throw new Error('Invalid portfolio URL');
-        portfolioHref = portfolioParsed.href;
-        var portfolioLabel = portfolioParsed.hostname.replace(/^www\./i, '') + (portfolioParsed.pathname !== '/' ? portfolioParsed.pathname.replace(/\/$/, '') : '');
-        $('a[data-cms-portfolio-link], a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) {
+        var portfolioLabel = portfolioParsed.hostname.replace(/^www\\./i, '') + (portfolioParsed.pathname !== '/' ? portfolioParsed.pathname.replace(/\\/$/, '') : '');
+        $$('a[data-cms-portfolio-link], a[data-cms-setting="portfolio_url"], a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) {
           a.href = portfolioHref; a.target = '_blank'; a.rel = 'noopener';
         });
-        $('[data-cms-portfolio-label]').forEach(function (el) { text(el, portfolioLabel); });
-      } catch (_) { /* Ignore invalid admin URLs and retain the existing public link. */ }
+        $$('[data-cms-portfolio-label]').forEach(function (el) { text(el, portfolioLabel); });
+      }
     }
-    if (settings.footer_tagline) $('.footer__tagline').forEach(function (el) { text(el, safeCopy(settings.footer_tagline)); });
+    if (settings.site_title) {
+      var pageTitle = document.title || '';
+      if (!pageTitle || pageTitle.indexOf('Anyaegbu Emmanuel') >= 0) document.title = safeCopy(settings.site_title);
+    }
+    if (settings.seo_default_description) {
+      $$('meta[name="description"]').forEach(function (meta) { meta.setAttribute('content', safeCopy(settings.seo_default_description)); });
+    }
+    if (settings.canonical_base) {
+      var canonicalBase = normalizeHttpUrl(settings.canonical_base);
+      if (canonicalBase) {
+        var canonical = $('link[rel="canonical"]');
+        if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
+        canonical.href = canonicalBase.replace(/\\/$/, '') + location.pathname;
+        $$('meta[property="og:url"]').forEach(function (meta) { meta.setAttribute('content', canonical.href); });
+      }
+    }
+    if (settings.footer_tagline) $$('.footer__tagline').forEach(function (el) { text(el, safeCopy(settings.footer_tagline)); });
     if (settings.footer_text) $$('.footer__copy, .footer__copyright, .footer__bottom p').forEach(function (el) { text(el, settings.footer_text); });
     if (settings.pricing_json) renderCards($('[data-cms-pricing]'), parseArray(settings.pricing_json), 'pricing');
     if (settings.process_json) renderCards($('[data-cms-process]'), parseArray(settings.process_json), 'process');
-
   }
+
   function apply(data) {
     var bio = data.biography || {}; if (bio.headline) { var role = $('[data-typing]'); if (role) role.textContent = safeCopy(bio.headline); var sub = $('.page-hero__sub'); if (sub && location.pathname.endsWith('/about.html')) sub.textContent = safeCopy(bio.headline); }
     if (bio.body) { text($('.hero__desc'), safeCopy(bio.body)); text($('.about-preview__text'), safeCopy(bio.body)); var story = $('.about-content'); if (story) { var first = $('p', story); if (first) first.textContent = safeCopy(bio.body); } }
