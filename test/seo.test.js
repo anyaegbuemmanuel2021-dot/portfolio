@@ -22,10 +22,10 @@ const service = {
   price_note: 'Scoped to your needs', updated_at: '2026-11-04T10:00:00.000Z'
 };
 const db = {
-  async query(sql) {
+  async query(sql, params = []) {
     if (sql.includes("key = 'canonical_base'")) return { rows: [{ value: 'https://portfolio.example/' }] };
     if (sql.includes('FROM article_images')) return { rows: [{ article_id: 'article-1', url: 'https://cdn.example.com/inline.webp', alt: 'Article illustration' }] };
-    if (sql.includes('FROM articles') && sql.includes('lower(slug)')) return { rows: [article] };
+    if (sql.includes('FROM articles') && sql.includes('lower(a.slug)')) return { rows: params[0] === 'draft' ? [] : [article] };
     if (sql.includes('FROM articles') && sql.includes('canonical_url')) return { rows: [article] };
     if (sql.includes('FROM projects')) return { rows: [project] };
     if (sql.includes('FROM services')) return { rows: [service] };
@@ -67,4 +67,9 @@ test('article and static HTML pages receive clean canonical and social metadata'
 
   const staticPage = await decorateHtml(html, '/about.html');
   assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
+});
+
+test('unpublished article slugs return a real 404 instead of an indexable article shell', async () => {
+  const missing = await dynamicHtml('/articles/draft');
+  assert.deepEqual(missing, { status: 404, body: 'Not found' });
 });
