@@ -40,7 +40,7 @@
     API.get('/api/articles/' + encodeURIComponent(slug)).then(function (r) {
       var a = r.data; document.title = (a.seo_title || a.title) + ' — Anyaegbu Emmanuel';
       setMeta('description', a.seo_description || a.excerpt); setMeta('og:title', a.seo_title || a.title, 1); setMeta('og:description', a.seo_description || a.excerpt, 1); setMeta('og:type', 'article', 1); if (safeImg(a.featured_image_url)) setMeta('og:image', a.featured_image_url, 1);
-      var link = document.head.querySelector('link[rel=canonical]') || document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' })); link.href = a.canonical_url || location.origin + '/articles/' + a.slug;
+      var link = document.head.querySelector('link[rel=canonical]') || document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' })); link.href = a.canonical_url || link.href || location.origin + '/articles/' + a.slug;
       box.textContent = ''; box.appendChild(el('h1', 'article__title', a.title)); box.appendChild(el('div', 'article__meta', [fmt(a.published_at), a.category_name].filter(Boolean).join(' · ')));
       if (safeImg(a.featured_image_url)) { var h = el('img', 'article__hero'); h.src = a.featured_image_url; h.alt = ''; box.appendChild(h); }
       var body = el('div', 'article__body'); body.innerHTML = a.content_html; box.appendChild(body); // server-rendered from escaped Markdown (no raw HTML possible)
