@@ -64,7 +64,7 @@ test('article and static HTML pages receive clean canonical and social metadata'
   assert.match(decorated, /<link rel="canonical" href="https:\/\/portfolio\.example\/articles\/search-ready-article">/);
   assert.match(decorated, /property="og:image" content="https:\/\/cdn\.example\.com\/article-cover\.webp"/);
   assert.match(decorated, /"@type":"Article"/);
-  assert.match(decorated, /<h1 class="article__title">Search Ready Article<\\/h1>/);
+  assert.ok(decorated.includes('<h1 class="article__title">Search Ready Article</h1>'));
 
   const staticPage = await decorateHtml(html, '/about.html');
   assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
