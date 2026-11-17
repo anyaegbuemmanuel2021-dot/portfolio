@@ -26,7 +26,7 @@ export function modal(title, body, { onClose } = {}) {
   const bg = h('div', { class: 'modal-bg', onclick: e => { if (e.target === bg) close(); } }, h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title }, h('div', { class: 'row between' }, h('h2', {}, title), h('button', { class: 'btn sm', 'aria-label': 'Close', onclick: close }, '✕')), body));
   document.addEventListener('keydown', esc); document.body.append(bg); (bg.querySelector('input,select,textarea,button.btn:not([aria-label=Close])') || bg.querySelector('button'))?.focus(); return { close, el: bg };
 }
-export const confirmBox = (msg, label = 'Delete') => new Promise(res => { const m = modal('Please confirm', h('div', {}, h('p', {}, msg), h('div', { class: 'row' }, h('button', { class: 'btn danger', onclick: () => { m.close(); res(true); } }, label), h('button', { class: 'btn', onclick: () => { m.close(); res(false); } }, 'Cancel'))), { onClose: () => res(false) }); });
+export const confirmBox = (msg, label = 'Delete') => new Promise(res => { let settled = false; let m; const finish = value => { if (settled) return; settled = true; m.close(); res(value); }; m = modal('Please confirm', h('div', {}, h('p', {}, msg), h('div', { class: 'row' }, h('button', { class: 'btn danger', type: 'button', onclick: () => finish(true) }, label), h('button', { class: 'btn', type: 'button', onclick: () => finish(false) }, 'Cancel'))), { onClose: () => { if (!settled) { settled = true; res(false); } } }); });
 // Form builder: fields [{k,label,type,options,help,required}] → {el, get(), setErrors()}
 export function form(fields, values = {}, { pickImage } = {}) {
   const inputs = {}, errs = {}; const el = h('div', {});
