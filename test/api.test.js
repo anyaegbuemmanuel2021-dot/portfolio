@@ -67,6 +67,13 @@ test('published articles create idempotent social drafts for all three platforms
   }
   const summary = await api('GET', '/api/social/summary');
   assert.equal(summary.j.data.automatic_delivery, false);
+  assert.deepEqual(summary.j.data.connections.map(x => x.platform), ['facebook', 'instagram', 'linkedin']);
+  for (const connection of summary.j.data.connections) {
+    assert.equal(typeof connection.connected, 'boolean');
+    assert.ok(Array.isArray(connection.missing));
+    assert.ok(Array.isArray(connection.permissions));
+    assert.equal(JSON.stringify(connection).includes('ACCESS_TOKEN_VALUE'), false);
+  }
   const facebook = matching.find(p => p.platform === 'facebook');
   const edited = await api('PATCH', '/api/social/posts/' + facebook.id, { caption: 'Updated social caption', status: 'approved', media_url: 'https://cdn.example.com/social.mp4' });
   assert.equal(edited.s, 200);
