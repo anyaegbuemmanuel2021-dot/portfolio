@@ -59,7 +59,7 @@ test('CMS project and service slugs render crawlable detail pages with canonical
 });
 
 test('article and static HTML pages receive clean canonical and social metadata', async () => {
-  const html = '<!doctype html><html><head><title>Article</title><meta name="description" content="Old description"></head><body></body></html>';
+  const html = '<!doctype html><html><head><title>Article</title><meta name="description" content="Old description"></head><body><article id="articleView">Loading</article></body></html>';
   const decorated = await decorateHtml(html, '/articles/search-ready-article');
   assert.match(decorated, /<link rel="canonical" href="https:\/\/portfolio\.example\/articles\/search-ready-article">/);
   assert.match(decorated, /property="og:image" content="https:\/\/cdn\.example\.com\/article-cover\.webp"/);
