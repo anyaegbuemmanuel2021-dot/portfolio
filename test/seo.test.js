@@ -26,7 +26,7 @@ const db = {
     if (sql.includes("key = 'canonical_base'")) return { rows: [{ value: 'https://portfolio.example/' }] };
     if (sql.includes('FROM article_images')) return { rows: [{ article_id: 'article-1', url: 'https://cdn.example.com/inline.webp', alt: 'Article illustration' }] };
     if (sql.includes('FROM articles') && sql.includes('lower(a.slug)')) return { rows: params[0] === 'draft' ? [] : [article] };
-    if (sql.includes('FROM articles') && sql.includes('canonical_url')) return { rows: [article] };
+    if (sql.includes('FROM articles') && sql.includes('canonical_url')) { assert.match(sql, /SELECT id, title, slug/); return { rows: [article] }; }
     if (sql.includes('FROM projects')) return { rows: [project] };
     if (sql.includes('FROM services')) return { rows: [service] };
     return { rows: [] };
