@@ -152,14 +152,14 @@ export async function dynamicText(path) {
   }
   if (path !== '/sitemap.xml') return null;
   const [arts, projects, services, articleImages] = await Promise.all([
-    _db.query("SELECT title, slug, excerpt, featured_image_url, published_at, updated_at FROM articles WHERE status = 'published' ORDER BY published_at DESC"),
+    _db.query("SELECT title, slug, excerpt, canonical_url, featured_image_url, published_at, updated_at FROM articles WHERE status = 'published' ORDER BY published_at DESC"),
     _db.query('SELECT title, slug, summary, cover_url, updated_at FROM projects WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
     _db.query('SELECT title, slug, summary, updated_at FROM services WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
     _db.query("SELECT ai.article_id, ai.url, ai.alt FROM article_images ai JOIN articles a ON a.id = ai.article_id WHERE a.status = 'published' ORDER BY ai.sort_order ASC")
   ]);
   const entries = new Map();
-  const add = (pathName, lastmod, images = []) => {
-    const loc = canonicalUrl(base, pathName);
+  const add = (pathName, lastmod, images = [], canonicalOverride = null) => {
+    const loc = validUrl(canonicalOverride) || canonicalUrl(base, pathName);
     const cleanImages = [...new Map(images.filter(i => i && i.loc).map(i => [i.loc, i])).values()];
     entries.set(loc, { loc, lastmod: dateOnly(lastmod), images: cleanImages });
   };
@@ -174,7 +174,7 @@ export async function dynamicText(path) {
     const images = byArticle.get(a.id) || [];
     const featured = imageUrl(a.featured_image_url, base);
     if (featured) images.unshift({ loc: featured, title: a.title });
-    add('/articles/' + encodeURIComponent(a.slug), a.updated_at || a.published_at, images);
+    add('/articles/' + encodeURIComponent(a.slug), a.updated_at || a.published_at, images, a.canonical_url);
   }
   for (const p of projects.rows) {
     const img = imageUrl(p.cover_url, base);
