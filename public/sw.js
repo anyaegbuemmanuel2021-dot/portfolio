@@ -1,6 +1,6 @@
 /* AEI Portfolio PWA service worker. Never cache admin, API, auth or private responses. */
 'use strict';
-const VERSION = 'aei-pwa-v9';
+const VERSION = 'aei-pwa-v10';
 const APP_CACHE = VERSION + '-app';
 const ASSET_CACHE = VERSION + '-assets';
 const CORE_PAGES = ['/index.html', '/about.html', '/projects.html', '/services.html', '/contact.html', '/articles.html', '/article.html', '/manifest.webmanifest', '/offline.html'];
