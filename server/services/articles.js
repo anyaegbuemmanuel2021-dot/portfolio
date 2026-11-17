@@ -30,7 +30,15 @@ export function articleService(db, { syncUsage }) {
     async save(id, d, adminId) {
       const html = renderMarkdown(d.content_md || ''); const t = now(); let status = d.status || 'draft';
       if (status === 'scheduled' && (!d.publish_at || new Date(d.publish_at) <= new Date())) status = d.publish_at ? 'published' : 'draft';
-      const existing = id ? await svc.getAdmin(id) : null; const slug = await uniqueSlug(d.slug || d.title, id);
+      const existing = id ? await svc.getAdmin(id) : null;
+      // A title is a record name: never create a second article with the same name.
+      if (db.dialect === 'postgres') await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['article-title:' + String(d.title || '').trim().toLowerCase()]);
+      const duplicate = (await db.query(id
+        ? 'SELECT id FROM articles WHERE lower(trim(title)) = lower(trim($1)) AND id <> $2 LIMIT 1'
+        : 'SELECT id FROM articles WHERE lower(trim(title)) = lower(trim($1)) LIMIT 1',
+        id ? [d.title, id] : [d.title])).rows[0];
+      if (duplicate) throw new HttpError(409, 'Name already exists', { field: 'title' });
+      const slug = await uniqueSlug(d.slug || d.title, id);
       const publishedAt = status === 'published' ? (existing?.published_at || (d.publish_at && new Date(d.publish_at) < new Date() ? d.publish_at : t)) : status === 'scheduled' ? d.publish_at : null;
       const f = { title: d.title, slug, excerpt: d.excerpt || null, content_md: d.content_md || '', content_html: html, featured_image_url: d.featured_image_url || null, category_id: d.category_id || null, seo_title: d.seo_title || null, seo_description: d.seo_description || null, canonical_url: d.canonical_url || null, status, publish_at: status === 'scheduled' ? d.publish_at : null, published_at: publishedAt };
       const aid = id || randomUUID();
