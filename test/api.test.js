@@ -47,6 +47,7 @@ test('articles: draft→publish, slug, clean html, schedule, revisions, unpublis
   const dup = await api('POST', '/api/admin/articles', { title: 'My First Article' }); assert.equal(dup.j.data.slug, 'my-first-article-2');
   await api('PUT', `/api/admin/articles/${a.j.data.id}`, { title: 'My First Article', content_md: 'v2', status: 'published' }); const revs = await api('GET', `/api/admin/articles/${a.j.data.id}/revisions`); assert.ok(revs.j.data.length >= 1);
   const sch = await api('POST', '/api/admin/articles', { title: 'Future', status: 'scheduled', publish_at: new Date(Date.now() + 864e5).toISOString() }); assert.equal(sch.j.data.status, 'scheduled'); assert.equal((await api('GET', '/api/articles/future', null, { auth: false })).s, 404);
+  const draft = await api('PUT', `/api/admin/articles/${a.j.data.id}`, { title: 'My First Article', content_md: 'saved privately', status: 'draft' }); assert.equal(draft.j.data.status, 'draft'); assert.equal((await api('GET', '/api/articles/my-first-article', null, { auth: false })).s, 404);
   await api('POST', `/api/admin/articles/${a.j.data.id}/unpublish`); assert.equal((await api('GET', '/api/articles/my-first-article', null, { auth: false })).s, 404);
   const list = await api('GET', '/api/articles?page=abc', null, { auth: false }); assert.equal(list.s, 200); await api('POST', `/api/admin/articles/${a.j.data.id}/publish`);
 });
