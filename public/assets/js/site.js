@@ -28,19 +28,65 @@
   }
   API.get('/api/content').then(function (r) { applyPageVisibility(r.data && r.data.settings || {}); }).catch(function () {});
 
-  // Analytics: no cookies, no raw IPs stored server-side, honours Do Not Track / Global Privacy Control.
+  // Privacy-conscious attribution and activity analytics. No raw IP, full URL query, form values or fingerprinting are stored.
+  function readAttribution() {
+    var keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+    var current = {}, params = new URLSearchParams(location.search), hasUtm = false;
+    keys.forEach(function (key) { var value = params.get(key); if (value) { current[key] = value.slice(0, 120); hasUtm = true; } });
+    var saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem('portfolio_attribution') || 'null'); } catch (e) {}
+    if (hasUtm) {
+      try { sessionStorage.setItem('portfolio_attribution', JSON.stringify(current)); } catch (e) {}
+      return current;
+    }
+    if (saved && typeof saved === 'object') return saved;
+    try {
+      var ref = document.referrer ? new URL(document.referrer) : null;
+      if (ref && ref.hostname && ref.hostname.replace(/^www\\./, '') !== location.hostname.replace(/^www\\./, '')) {
+        current.utm_source = ref.hostname.replace(/^www\\./, '').slice(0, 100);
+        current.utm_medium = 'referral';
+        sessionStorage.setItem('portfolio_attribution', JSON.stringify(current));
+      }
+    } catch (e) {}
+    return current;
+  }
+  var attribution = readAttribution();
   function beacon(payload) {
     if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
+    payload.attribution = attribution;
     try { fetch(BASE + '/api/analytics/track', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(function () {}); } catch (e) {}
   }
+  function activity(eventName, category, label, refId) {
+    if (navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
+    try {
+      fetch(BASE + '/api/analytics/activity', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: location.pathname || '/', event: eventName, category: category, label: String(label || '').slice(0, 100), ref_id: String(refId || '').slice(0, 160), attribution: attribution }) }).catch(function () {});
+    } catch (e) {}
+  }
   function pagePath() { var p = location.pathname || '/'; return p === '/' ? '/index.html' : p; }
-  var slugMatch = location.pathname.match(/^\/articles\/([^/]+)\/?$/);
+  var slugMatch = location.pathname.match(/^\\/articles\\/([^/]+)\\/?$/);
   beacon({ path: pagePath(), referrer: document.referrer || '', type: slugMatch ? 'article' : 'page', slug: slugMatch ? decodeURIComponent(slugMatch[1]) : undefined });
   document.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('a[href]'); if (!a) return;
-    var m = (a.getAttribute('href') || '').match(/projects\/([a-z0-9-]+)\/(?:index\.html)?$/i); if (m) beacon({ path: '/projects/' + m[1], type: 'project', slug: m[1] });
+    var target = e.target.closest && e.target.closest('a[href],button[data-analytics-event]');
+    if (!target) return;
+    var href = target.getAttribute('href') || '', label = target.getAttribute('aria-label') || target.getAttribute('title') || (target.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 100);
+    if (target.matches('button[data-analytics-event]')) {
+      activity(target.getAttribute('data-analytics-event') || 'cta_click', target.getAttribute('data-analytics-category') || 'cta', label, '');
+      return;
+    }
+    var lower = href.toLowerCase(), eventName = null, category = 'link', refId = '';
+    if (/^(mailto:|tel:)|wa\\.me|whatsapp\\.com/.test(lower)) { eventName = 'contact_click'; category = 'contact'; }
+    else if (target.hasAttribute('download') || /\\.(pdf|docx?|xlsx?|zip)(?:[?#]|$)/i.test(lower)) { eventName = 'download_click'; category = 'download'; }
+    else {
+      try {
+        var url = new URL(href, location.href);
+        if (url.hostname && url.hostname !== location.hostname) { eventName = 'outbound_click'; category = 'outbound'; refId = url.origin + url.pathname; }
+      } catch (err) {}
+    }
+    if (eventName) activity(eventName, category, label, refId);
+    var m = href.match(/projects\\/([a-z0-9-]+)\\/(?:index\\.html)?$/i);
+    if (m) beacon({ path: '/projects/' + m[1], type: 'project', slug: m[1] });
   }, { passive: true });
-
   // Mobile theme toggle (idea borrowed from the "spacing" version, without its fixed-width viewport): the desktop toggle is hidden on phones.
   document.addEventListener('DOMContentLoaded', function () {
     var mm = document.querySelector('.nav__mobile'), tt = document.getElementById('themeToggle');
