@@ -95,13 +95,17 @@
   // Site-wide share panel: creates a distinct UTM-tagged URL for each sharing channel.
   function trackedShareUrl(source, medium) {
     var u = new URL(location.pathname || '/', location.origin);
-    var page = u.pathname.replace(/^\\/+|\\/+$/g, '').replace(/\\.(html?)$/i, '') || 'home';
-    u.searchParams.set('utm_source', source);
-    u.searchParams.set('utm_medium', medium);
+    var page = u.pathname.split('/').filter(Boolean).join('_').replace(/\\.html?$/i, '') || 'home';
+    u.searchParams.set('utm_source', String(source || 'share').slice(0, 100));
+    u.searchParams.set('utm_medium', String(medium || 'referral').slice(0, 100));
     u.searchParams.set('utm_campaign', 'portfolio_share');
     u.searchParams.set('utm_content', page.slice(0, 100));
     return u.toString();
   }
+  // Shared helper used by page-specific share controls as well as the global share panel.
+  window.PortfolioShare = window.PortfolioShare || {};
+  window.PortfolioShare.trackedUrl = trackedShareUrl;
+  window.PortfolioShare.track = activity;
   function buildSharePanel() {
     if (document.querySelector('[data-portfolio-share]')) return;
     var wrap = document.createElement('div'); wrap.setAttribute('data-portfolio-share', '');
