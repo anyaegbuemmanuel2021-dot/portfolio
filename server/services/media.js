@@ -22,13 +22,18 @@ export function mediaService(db, storage) {
     async upload(buf, { filename = 'upload', folderId = null, alt = null, adminId }) {
       if (!buf.length) throw new HttpError(400, 'Empty file'); if (buf.length > config.maxUploadBytes) throw new HttpError(413, `File exceeds ${config.maxUploadBytes / 1048576} MB limit`);
       const kind = sniff(buf, filename); if (!kind) throw new HttpError(415, 'Unsupported file type. Allowed: PNG, JPEG, GIF, WebP, PDF, DOCX');
+      const safeName = filename.replace(/[^\\w.\\- ]+/g, '_').slice(0, 120);
+      // Check the library name before writing any bytes to object storage or the database.
+      if (db.dialect === 'postgres') await db.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['media-name:' + safeName.trim().toLowerCase()]);
+      const duplicate = (await db.query('SELECT id FROM media_files WHERE lower(trim(original_name)) = lower(trim($1)) LIMIT 1', [safeName])).rows[0];
+      if (duplicate) throw new HttpError(409, 'Name already exists', { field: 'filename' });
       let [mime, ext] = TYPES[kind]; let data = buf, size = imageSize(buf, kind); const variants = []; const id = randomUUID(); const d = new Date(); const base = `uploads/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${id}`;
       const sharp = ['png', 'jpeg', 'webp'].includes(kind) ? await getSharp() : null;
       if (sharp) { try { const img = sharp(buf, { failOn: 'error' }).rotate(); const meta = await img.metadata(); const out = await img.resize({ width: Math.min(meta.width || 2400, 2400), withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
         if (out.data.length < buf.length) { data = out.data; mime = 'image/webp'; ext = 'webp'; size = { width: out.info.width, height: out.info.height }; }
         for (const w of [480, 960]) if ((size.width || 0) > w) { const v = await sharp(data).resize({ width: w }).webp({ quality: 78 }).toBuffer(); await storage.put(`${base}-${w}.webp`, v, 'image/webp'); variants.push({ width: w, url: storage.publicUrl(`${base}-${w}.webp`) }); } } catch { throw new HttpError(422, 'Image could not be processed'); } }
       const key = `${base}.${ext}`; await storage.put(key, data, mime);
-      const row = { id, folder_id: folderId, storage_provider: storage.name, storage_key: key, url: storage.publicUrl(key), original_name: filename.replace(/[^\w.\- ]+/g, '_').slice(0, 120), mime_type: mime, size_bytes: data.length, width: size.width || null, height: size.height || null, checksum: createHash('sha256').update(data).digest('hex'), alt_text: alt, variants: JSON.stringify(variants), created_by: adminId, created_at: now() };
+      const row = { id, folder_id: folderId, storage_provider: storage.name, storage_key: key, url: storage.publicUrl(key), original_name: safeName, mime_type: mime, size_bytes: data.length, width: size.width || null, height: size.height || null, checksum: createHash('sha256').update(data).digest('hex'), alt_text: alt, variants: JSON.stringify(variants), created_by: adminId, created_at: now() };
       const keys = Object.keys(row); await db.query(`INSERT INTO media_files (${keys.join(',')}) VALUES (${keys.map((_, i) => '$' + (i + 1)).join(',')})`, keys.map(k => row[k])); return { ...row, variants, optimized: !!sharp };
     },
     async list({ q, type, folderId, page = 1, limit = 30 }) { const w = [], p = []; if (q) { p.push('%' + q + '%'); w.push(`(original_name ILIKE $${p.length} OR alt_text ILIKE $${p.length})`); } if (type === 'image') w.push("mime_type LIKE 'image/%'"); if (type === 'document') w.push("mime_type NOT LIKE 'image/%'"); if (folderId) { p.push(folderId); w.push(`folder_id = $${p.length}`); } const cl = w.length ? ' WHERE ' + w.join(' AND ') : ''; limit = Math.min(Math.max(Math.floor(+limit) || 30, 1), 100);
