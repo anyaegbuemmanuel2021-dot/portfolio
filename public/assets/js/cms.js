@@ -169,7 +169,7 @@
         text(el, safeCopy(settings[key]));
         if (el.tagName === 'A') {
           if (key === 'contact_email') el.href = 'mailto:' + String(settings[key]).trim();
-          else if (key === 'contact_phone') el.href = 'tel:' + String(settings[key]).replace(/[^+\\d]/g, '');
+          else if (key === 'contact_phone') el.href = 'tel:' + String(settings[key]).replace(/[^+\d]/g, '');
           else if (key === 'portfolio_url') {
             var target = normalizeHttpUrl(settings[key]);
             if (target) { el.href = target; el.target = '_blank'; el.rel = 'noopener'; }
@@ -183,10 +183,10 @@
     }
     if (settings.contact_phone) {
       var phone = String(settings.contact_phone).trim();
-      $$('a[href^="tel:"]').forEach(function (a) { a.href = 'tel:' + phone.replace(/[^+\\d]/g, ''); });
+      $$('a[href^="tel:"]').forEach(function (a) { a.href = 'tel:' + phone.replace(/[^+\d]/g, ''); });
     }
     if (settings.whatsapp_number) {
-      var number = String(settings.whatsapp_number).replace(/\\D/g, '');
+      var number = String(settings.whatsapp_number).replace(/\D/g, '');
       $$('a[href*="wa.me/"]').forEach(function (a) {
         var oldUrl;
         try { oldUrl = new URL(a.href); } catch (_) { oldUrl = new URL('https://wa.me/' + number); }
@@ -197,7 +197,7 @@
       var portfolioHref = normalizeHttpUrl(settings.portfolio_url);
       if (portfolioHref) {
         var portfolioParsed = new URL(portfolioHref);
-        var portfolioLabel = portfolioParsed.hostname.replace(/^www\\./i, '') + (portfolioParsed.pathname !== '/' ? portfolioParsed.pathname.replace(/\\/$/, '') : '');
+        var portfolioLabel = portfolioParsed.hostname.replace(/^www\./i, '') + (portfolioParsed.pathname !== '/' ? portfolioParsed.pathname.replace(/\/$/, '') : '');
         $$('a[data-cms-portfolio-link], a[data-cms-setting="portfolio_url"], a[href*="anyaegbuemmanuel.dev"]').forEach(function (a) {
           a.href = portfolioHref; a.target = '_blank'; a.rel = 'noopener';
         });
@@ -216,7 +216,7 @@
       if (canonicalBase) {
         var canonical = $('link[rel="canonical"]');
         if (!canonical) { canonical = document.createElement('link'); canonical.rel = 'canonical'; document.head.appendChild(canonical); }
-        canonical.href = canonicalBase.replace(/\\/$/, '') + location.pathname;
+        canonical.href = canonicalBase.replace(/\/$/, '') + location.pathname;
         $$('meta[property="og:url"]').forEach(function (meta) { meta.setAttribute('content', canonical.href); });
       }
     }
