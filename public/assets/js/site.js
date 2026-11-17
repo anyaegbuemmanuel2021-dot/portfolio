@@ -21,7 +21,7 @@
       var main = document.querySelector('main') || document.querySelector('[role="main"]');
       if (main) { main.hidden = true; main.setAttribute('aria-hidden', 'true'); }
       document.querySelectorAll('a[href]').forEach(function (a) {
-        try { var p = new URL(a.href, location.origin).pathname.replace(/\\/$/, ''); if (p === location.pathname.replace(/\\/$/, '') || (page === 'home' && (p === '/' || p === '/index.html'))) { a.hidden = true; a.setAttribute('aria-hidden', 'true'); } } catch (e) {}
+        try { var p = new URL(a.href, location.origin).pathname.replace(/\/$/, ''); if (p === location.pathname.replace(/\/$/, '') || (page === 'home' && (p === '/' || p === '/index.html'))) { a.hidden = true; a.setAttribute('aria-hidden', 'true'); } } catch (e) {}
       });
       document.title = 'Page temporarily unavailable';
     }
