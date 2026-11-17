@@ -64,11 +64,33 @@ function articleEditor(id) {
   const line = p => { const s = ta.value.lastIndexOf('\n', ta.selectionStart - 1) + 1; ta.value = ta.value.slice(0, s) + p + ta.value.slice(s); ta.focus(); };
   const tools = h('div', { class: 'toolbar', role: 'toolbar', 'aria-label': 'Formatting' }, [['H2', () => line('## ')], ['H3', () => line('### ')], ['B', () => wrap('**')], ['I', () => wrap('*')], ['• List', () => line('- ')], ['1. List', () => line('1. ')], ['❝', () => line('> ')], ['Link', () => { const u = prompt('Link URL (https://…)'); if (u) wrap('[', `](${u})`); }], ['Image', async () => { const u = await pickImage(); if (u) { const s = ta.selectionStart; ta.value = ta.value.slice(0, s) + `\n![describe image](${u})\n` + ta.value.slice(s); } }]].map(([l, f]) => h('button', { type: 'button', class: 'btn sm', onclick: f }, l)), h('button', { type: 'button', class: 'btn sm', id: 'pv', onclick: async e => { if (prev.hidden) { const r = await api('POST', '/admin/markdown-preview', { md: ta.value }); prev.innerHTML = r.data.html; /* server-escaped Markdown */ prev.hidden = false; ta.hidden = true; e.target.textContent = 'Edit'; } else { prev.hidden = true; ta.hidden = false; e.target.textContent = 'Preview'; } } }, 'Preview'));
   const meta = () => form([T('title', 'Title', { required: true }), T('slug', 'URL slug', { help: 'Auto-generated from title if empty.' }), T('excerpt', 'Excerpt', { type: 'textarea', rows: 3 }), T('featured_image_url', 'Featured image', { type: 'image' }), T('category_id', 'Category', { type: 'select', options: [['', '— none —'], ...cats.map(c => [c.id, c.name])] }), T('tags', 'Tags (comma separated)'), T('seo_title', 'SEO title'), T('seo_description', 'SEO description', { type: 'textarea', rows: 3 }), T('canonical_url', 'Canonical URL'), T('status', 'Status', { type: 'select', options: ['draft', 'published', 'scheduled'] }), T('publish_at', 'Publish at (for scheduled)', { type: 'datetime' })], { ...art, tags: (art.tags || []).map(t => t.name || t).join(', ') }, opt);
-  let f; async function save() { f.setErrors(); const d = f.get(); d.tags = String(d.tags || '').split(',').map(s => s.trim()).filter(Boolean); d.content_md = ta.value; for (const k of ['slug', 'excerpt', 'category_id', 'seo_title', 'seo_description', 'canonical_url', 'featured_image_url']) if (d[k] === '') d[k] = null; try { const r = art.id ? await api('PUT', '/admin/articles/' + art.id, d) : await api('POST', '/admin/articles', d); toast('Saved', 'ok'); if (!art.id) location.hash = '#/articles/' + r.data.id; else { art = r.data; render(); } } catch (e) { f.setErrors(e.details); toast(e.message, 'bad'); } }
+  let f;
+  async function save(publishNow = false) {
+    f.setErrors();
+    const d = f.get();
+    d.tags = String(d.tags || '').split(',').map(s => s.trim()).filter(Boolean);
+    d.content_md = ta.value;
+    if (publishNow) d.status = 'published';
+    for (const k of ['slug', 'excerpt', 'category_id', 'seo_title', 'seo_description', 'canonical_url', 'featured_image_url']) if (d[k] === '') d[k] = null;
+    try {
+      const isNew = !art.id;
+      const r = isNew ? await api('POST', '/admin/articles', d) : await api('PUT', '/admin/articles/' + art.id, d);
+      art = r.data;
+      toast(publishNow ? 'Article published successfully' : (art.status === 'published' ? 'Article changes saved' : 'Draft saved'), 'ok');
+      if (isNew) location.hash = '#/articles/' + art.id;
+      else render();
+      return art;
+    } catch (e) {
+      f.setErrors(e.details);
+      toast(e.message || 'Could not save the article', 'bad');
+      return null;
+    }
+  }
   function render() {
     ta.value = art.content_md || ''; f = meta();
     root.replaceChildren(h('div', { class: 'row between' }, h('h1', {}, art.id ? 'Edit article' : 'New article'), h('a', { href: '#/articles' }, '← All articles')), h('div', { class: 'editor wide' }, h('div', { class: 'panel' }, h('label', { for: 'md' }, 'Content (Markdown)'), tools, ta, prev), h('div', { class: 'panel' }, f.el)),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary', onclick: save }, 'Save'), art.id && art.status !== 'published' && h('button', { class: 'btn', onclick: async () => { await save(); await api('POST', `/admin/articles/${art.id}/publish`).then(r => { art = r.data; toast('Published', 'ok'); render(); }); } }, 'Publish now'), art.id && art.status === 'published' && h('button', { class: 'btn', onclick: async () => { await api('POST', `/admin/articles/${art.id}/unpublish`).then(r => { art = r.data; toast('Unpublished', 'ok'); render(); }); } }, 'Unpublish'), art.id && art.status === 'published' && h('a', { class: 'btn', href: '/articles/' + art.slug, target: '_blank', rel: 'noopener' }, 'View live'), art.id && h('button', { class: 'btn', onclick: revs }, 'Revisions')));
+      h('p', { class: 'help' }, 'Drafts are private. Use Publish article to make this article visible on the public website immediately.'), 
+      h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => save(false) }, art.id ? 'Save changes' : 'Save draft'), h('button', { class: 'btn primary', onclick: () => save(true) }, art.status === 'published' ? 'Save & publish' : 'Publish article'), art.id && art.status === 'published' && h('button', { class: 'btn', onclick: async () => { await api('POST', `/admin/articles/${art.id}/unpublish`).then(r => { art = r.data; toast('Unpublished', 'ok'); render(); }, e => toast(e.message, 'bad')); } }, 'Unpublish'), art.id && art.status === 'published' && h('a', { class: 'btn', href: '/articles/' + art.slug, target: '_blank', rel: 'noopener' }, 'View live'), art.id && h('button', { class: 'btn', onclick: revs }, 'Revisions')));
   }
   async function revs() { const r = (await api('GET', `/admin/articles/${art.id}/revisions`)).data; const b = h('div', {}, r.length ? r.map(v => h('div', { class: 'row between' }, h('span', {}, `${fmtDate(v.created_at)} — ${v.title}`), h('button', { class: 'btn sm', onclick: async () => { if (await confirmBox('Restore this revision? The current text is saved as a revision first.', 'Restore')) { art = (await api('POST', `/admin/articles/${art.id}/restore/${v.id}`)).data; m.close(); render(); toast('Restored', 'ok'); } } }, 'Restore'))) : h('p', { class: 'muted' }, 'No revisions yet — one is saved on each edit.')); const m = modal('Revision history', b); }
   (async () => { cats.push(...(await api('GET', '/admin/article_categories')).data); if (id !== 'new') art = (await api('GET', '/admin/articles/' + id)).data; render(); })().catch(e => root.replaceChildren(h('p', { class: 'err' }, e.message))); return root;
