@@ -19,7 +19,7 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.put('/api/admin/articles/:id', g('articles'), async ctx => { const a = await articles.save(ctx.params.id, artIn(ctx), ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'update', 'article', a.id); return a; });
   app.post('/api/admin/articles/:id/publish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'published', ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'publish', 'article', ctx.params.id); return a; });
   app.post('/api/admin/articles/:id/unpublish', g('articles'), async ctx => { const a = await articles.setStatus(ctx.params.id, 'draft', ctx.admin.id); app.invalidate(); await auth.audit(ctx, 'unpublish', 'article', ctx.params.id); return a; });
-  app.delete('/api/admin/articles/:id', g('articles'), async ctx => { if (!(await articles.remove(ctx.params.id))) throw new HttpError(404, 'Not found'); await auth.audit(ctx, 'delete', 'article', ctx.params.id); return { deleted: true }; });
+  app.delete('/api/admin/articles/:id', g('articles'), async ctx => { if (!(await articles.remove(ctx.params.id))) throw new HttpError(404, 'Article not found'); app.invalidate(); await auth.audit(ctx, 'delete', 'article', ctx.params.id); return { deleted: true }; });
   app.get('/api/admin/articles/:id/revisions', g('articles'), ctx => articles.revisions(ctx.params.id));
   app.post('/api/admin/articles/:id/restore/:rev', g('articles'), ctx => articles.restore(ctx.params.id, ctx.params.rev, ctx.admin.id));
   app.post('/api/admin/markdown-preview', { auth: 'articles' }, async ctx => { const { renderMarkdown } = await import('../lib/markdown.js'); return { html: renderMarkdown(String(ctx.body.md || '').slice(0, 200000)) }; });
