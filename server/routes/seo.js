@@ -5,6 +5,13 @@ export const setSeoDb = d => { _db = d; };
 
 const esc = value => String(value ?? '').replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
 const cleanText = value => String(value ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+const clip = (value, max = 60) => { const s = cleanText(value); if (s.length <= max) return s; const cut = s.slice(0, max - 1); return (cut.slice(0, Math.max(cut.lastIndexOf(' '), 24)).trim().replace(/[,:;—-]+$/, '') || cut.trim()) + '…'; };
+const metaDescription = (value, fallback) => {
+  const s = cleanText(value || fallback);
+  if (s.length >= 70 && s.length <= 160) return s;
+  if (s.length < 70) return (s + ' Explore the project, its purpose, design approach and implementation details in this portfolio showcase.').slice(0, 157).trim();
+  const cut = s.slice(0, 157); return cut.slice(0, cut.lastIndexOf(' ')).replace(/[,:;—-]+$/, '') + '…';
+};
 const validUrl = value => {
   try { const u = new URL(String(value)); return ['http:', 'https:'].includes(u.protocol) ? u.href : null; } catch { return null; }
 };
@@ -83,7 +90,7 @@ const safeLink = value => {
 };
 function pageHtml(kind, row, base) {
   const title = cleanText(row.seo_title || row.title);
-  const description = cleanText(row.seo_description || row.summary || row.excerpt || row.description || row.title).slice(0, 300);
+  const description = metaDescription(row.seo_description, [row.summary, row.description, row.category, row.tags && 'Technologies: ' + row.tags].filter(Boolean).join(' '));
   const path = '/' + (kind === 'project' ? 'projects' : 'services') + '/' + encodeURIComponent(row.slug);
   const canonical = canonicalUrl(base, path);
   const image = imageUrl(kind === 'project' ? row.cover_url : row.image_url, base);
@@ -94,8 +101,9 @@ function pageHtml(kind, row, base) {
   const schema = kind === 'project'
     ? { '@context': 'https://schema.org', '@type': 'CreativeWork', name: title, description, url: canonical, image: image || undefined, creator: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } }
     : { '@context': 'https://schema.org', '@type': 'Service', name: title, description, url: canonical, provider: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, areaServed: { '@type': 'Country', name: 'Nigeria' } };
-  const head = metaTags({ canonical, title: title + ' — Anyaegbu Emmanuel', description, image, type: kind === 'project' ? 'article' : 'website', jsonLd: schema });
-  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title + ' — Anyaegbu Emmanuel') + '</title><meta name="description" content="' + esc(description) + '">\n' + head + '\n<link rel="stylesheet" href="/assets/css/global.css"><link rel="stylesheet" href="/assets/css/platform.css"><style>body{min-height:100vh}.seo-detail{width:min(900px,calc(100% - 36px));margin:8rem auto 4rem}.seo-detail img{width:100%;max-height:520px;object-fit:cover;border-radius:18px}.seo-detail h1{font-size:clamp(2.2rem,6vw,4.5rem);line-height:1.08}.seo-detail p{font-size:1.08rem;line-height:1.8}.seo-actions{display:flex;gap:12px;flex-wrap:wrap;margin:2rem 0}.button{display:inline-block;padding:12px 18px;border-radius:8px;background:#c8a96e;color:#111;text-decoration:none}.button.secondary{background:transparent;border:1px solid currentColor;color:inherit}.back{display:inline-block;margin-bottom:2rem}</style></head><body><main class="seo-detail"><a class="back" href="/' + (kind === 'project' ? 'projects' : 'services') + '">← Back to ' + (kind === 'project' ? 'projects' : 'services') + '</a><article><h1>' + esc(title) + '</h1>' + (image ? '<img src="' + esc(image) + '" alt="' + esc(row.title || title) + '" loading="eager">' : '') + (row.category ? '<p><strong>' + esc(row.category) + '</strong></p>' : '') + (row.price_note ? '<p><strong>' + esc(row.price_note) + '</strong></p>' : '') + '<p>' + esc(row.summary || '').replace(/\r?\n/g, '<br>') + '</p>' + paragraphs + '<div class="seo-actions">' + links.join('') + '<a class="button secondary" href="/contact">Discuss a project</a></div></article></main><script src="/assets/js/config.js"></script><script src="/assets/js/main.js"></script><script src="/assets/js/site.js"></script></body></html>';
+  const seoTitle = clip(title + ' | Anyaegbu Emmanuel', 60);
+  const head = metaTags({ canonical, title: seoTitle, description, image, type: kind === 'project' ? 'article' : 'website', jsonLd: schema });
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(seoTitle) + '</title><meta name="description" content="' + esc(description) + '">\n' + head + '\n<link rel="stylesheet" href="/assets/css/global.css"><link rel="stylesheet" href="/assets/css/platform.css"><style>body{min-height:100vh}.seo-detail{width:min(900px,calc(100% - 36px));margin:8rem auto 4rem}.seo-detail img{width:100%;max-height:520px;object-fit:cover;border-radius:18px}.seo-detail h1{font-size:clamp(2.2rem,6vw,4.5rem);line-height:1.08}.seo-detail p{font-size:1.08rem;line-height:1.8}.seo-actions{display:flex;gap:12px;flex-wrap:wrap;margin:2rem 0}.button{display:inline-block;padding:12px 18px;border-radius:8px;background:#c8a96e;color:#111;text-decoration:none}.button.secondary{background:transparent;border:1px solid currentColor;color:inherit}.back{display:inline-block;margin-bottom:2rem}</style></head><body><main class="seo-detail"><a class="back" href="/' + (kind === 'project' ? 'projects' : 'services') + '">← Back to ' + (kind === 'project' ? 'projects' : 'services') + '</a><article><h1>' + esc(title) + '</h1>' + (image ? '<img src="' + esc(image) + '" alt="' + esc(row.title || title) + '" loading="eager">' : '') + (row.category ? '<p><strong>' + esc(row.category) + '</strong></p>' : '') + (row.price_note ? '<p><strong>' + esc(row.price_note) + '</strong></p>' : '') + '<p>' + esc(row.summary || '').replace(/\r?\n/g, '<br>') + '</p>' + paragraphs + '<div class="seo-actions">' + links.join('') + '<a class="button secondary" href="/contact">Discuss a project</a></div></article></main><script src="/assets/js/config.js"></script><script src="/assets/js/main.js"></script><script src="/assets/js/site.js"></script></body></html>';
 }
 export async function dynamicHtml(pathname) {
   if (!_db) return null;
@@ -116,8 +124,8 @@ export async function decorateHtml(html, pathname) {
   let out = html;
   if (found?.kind === 'article') {
     const a = found.row;
-    title = cleanText(a.seo_title || a.title) + ' — Anyaegbu Emmanuel';
-    description = cleanText(a.seo_description || a.excerpt || a.title).slice(0, 300);
+    title = clip((a.seo_title || a.title) + ' | Anyaegbu Emmanuel', 60);
+    description = metaDescription(a.seo_description, a.excerpt || cleanText(a.content_html).slice(0, 500));
     canonical = validUrl(a.canonical_url) || canonical;
     image = imageUrl(a.featured_image_url, base);
     type = 'article';
@@ -126,9 +134,16 @@ export async function decorateHtml(html, pathname) {
     const articleBody = '<h1 class="article__title">' + esc(a.title) + '</h1><div class="article__meta">' + esc([dateOnly(a.published_at), a.category_name].filter(Boolean).join(' · ')) + '</div>' + hero + (a.excerpt ? '<p class="article__excerpt">' + esc(a.excerpt) + '</p>' : '') + '<div class="article__body">' + (a.content_html || '') + '</div>';
     out = out.replace(/(<article\s+id=["']articleView["'][^>]*>)[\s\S]*?(<\/article>)/i, '$1' + articleBody + '$2');
   } else if (found?.kind === 'project' || found?.kind === 'service') {
-    const r = found.row; title = cleanText(r.seo_title || r.title) + ' — Anyaegbu Emmanuel';
-    description = cleanText(r.seo_description || r.summary || r.description || r.title).slice(0, 300);
+    const r = found.row; title = clip((r.seo_title || r.title) + ' | Anyaegbu Emmanuel', 60);
+    description = metaDescription(r.seo_description, [r.summary, r.description, r.category, r.tags && 'Technologies: ' + r.tags].filter(Boolean).join(' '));
     image = imageUrl(r.cover_url || r.image_url, base);
+  }
+  if (path === '/articles') {
+    const rows = (await _db.query("SELECT title, slug, excerpt FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT 30")).rows;
+    if (rows.length) {
+      const cards = rows.map(a => '<article class="article-card"><h2><a href="/articles/' + encodeURIComponent(a.slug) + '">' + esc(a.title) + '</a></h2>' + (a.excerpt ? '<p>' + esc(a.excerpt) + '</p>' : '') + '</article>').join('');
+      out = out.replace(/(<div\s+id=["']articleList["'][^>]*>)[\s\S]*?(<\/div>)/i, '$1' + cards + '$2');
+    }
   }
   const tags = metaTags({ canonical, title, description, image, type, jsonLd });
   out = out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
