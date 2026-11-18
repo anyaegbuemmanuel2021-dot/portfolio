@@ -145,6 +145,16 @@ export async function decorateHtml(html, pathname) {
       out = out.replace(/(<div\s+id=["']articleList["'][^>]*>)[\s\S]*?(<\/div>)/i, '$1' + cards + '$2');
     }
   }
+  if (path === '/projects' || path === '/services') {
+    const kind = path === '/projects' ? 'projects' : 'services';
+    const rows = (await _db.query('SELECT title, slug FROM ' + kind + ' WHERE is_published = TRUE ORDER BY sort_order ASC, title ASC')).rows;
+    if (rows.length) {
+      const links = rows.map(row => '<li><a href="/' + kind + '/' + encodeURIComponent(row.slug) + '">' + esc(row.title) + '</a></li>').join('');
+      const heading = kind === 'projects' ? 'Explore individual project case studies' : 'Explore individual service details';
+      const section = '<section class="seo-index-links" aria-label="' + heading + '"><h2>' + heading + '</h2><ul>' + links + '</ul></section>';
+      out = out.replace(/<\/body>/i, section + '</body>');
+    }
+  }
   const tags = metaTags({ canonical, title, description, image, type, jsonLd });
   out = out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
   if (/<meta\s+name=["']description["']/i.test(out)) out = out.replace(/<meta\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + esc(description) + '">');
