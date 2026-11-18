@@ -1,6 +1,8 @@
 name: Keep Render Portfolio Awake
 
 on:
+  push:
+    branches: [main]
   schedule:
     # Render Free services sleep after 15 minutes without inbound traffic.
     # Run every 5 minutes; scheduled GitHub Actions can be delayed.
