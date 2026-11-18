@@ -99,7 +99,15 @@ async function serveStatic(ctx) {
   const { req, res, url } = ctx; if (!['GET', 'HEAD'].includes(req.method)) throw new HttpError(405, 'Method not allowed');
   let p = decodeURIComponent(url.pathname); if (p.includes('\0')) throw new HttpError(400, 'Bad path');
   if (/(^|\/)(_[^/]*|README[^/]*|HOW_TO[^/]*)$/i.test(p) || /\.(md|map)$/i.test(p)) throw new HttpError(404, 'Not found'); // never serve dev docs or hosting-platform config files
-  const isAdmin = p === '/admin' || p.startsWith('/admin/'); let root = config.staticDirs.public, rel = p;
+  const isAdmin = p === '/admin' || p.startsWith('/admin/');
+  const legacyHtml = /\/index\.html$/i.test(p) || /^\/(?:about|projects|services|contact|articles|resume)\.html$/i.test(p);
+  if (!isAdmin && legacyHtml && req.method === 'GET') {
+    let canonical = p.replace(/\/index\.html$/i, '').replace(/\.html$/i, '');
+    if (!canonical || canonical === '/index') canonical = '/';
+    res.writeHead(301, { Location: canonical + url.search, 'Cache-Control': 'public, max-age=86400' });
+    return res.end();
+  }
+  let root = config.staticDirs.public, rel = p;
   if (isAdmin) { root = config.staticDirs.admin; rel = p.replace(/^\/admin/, '') || '/'; }
   else if (p.startsWith('/media/') && config.storage.provider === 'local') { root = join(process.cwd(), config.storage.localDir); rel = p.slice(6); }
   else if (/^\/articles\/[^/]+\/?$/.test(p)) rel = '/article.html';
