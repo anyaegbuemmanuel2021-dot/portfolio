@@ -8,7 +8,7 @@ const cleanText = value => String(value ?? '').replace(/<[^>]*>/g, ' ').replace(
 const normaliseArticleHeadings = html => {
   let previous = 1;
   const levels = [];
-  return String(html || '').replace(/<(\\/?)h([1-6])(\\b[^>]*)>/gi, (tag, closing, level, attrs) => {
+  return String(html || '').replace(/<(\/?)h([1-6])(\b[^>]*)>/gi, (tag, closing, level, attrs) => {
     if (closing) return '</h' + (levels.pop() || Number(level)) + '>';
     const next = Math.min(Number(level), previous + 1);
     levels.push(next);
