@@ -1,0 +1,85 @@
+name: Keep Render Portfolio Awake
+
+on:
+  schedule:
+    # Render Free services sleep after 15 minutes without inbound traffic.
+    # Run every 5 minutes; scheduled GitHub Actions can be delayed.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-keep-awake
+  cancel-in-progress: true
+
+jobs:
+  keep-awake:
+    name: Wake and verify public SEO endpoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Wake portfolio service
+        id: wake
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE="https://anyaegbu-emmanuel.onrender.com"
+          echo "Requesting homepage to wake Render service..."
+          for attempt in 1 2 3; do
+            code="$(curl --silent --show-error --location --max-time 90 --output /tmp/home.html --write-out '%{http_code}' "$SITE/" || true)"
+            echo "Homepage attempt $attempt returned HTTP ${code:-no-response}"
+            if [[ "${code:-}" =~ ^2[0-9][0-9]$ ]]; then
+              break
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "::error::Portfolio did not return a successful homepage response."
+              exit 1
+            fi
+            sleep 10
+          done
+          echo "homepage_status=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Verify robots.txt and XML sitemap
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE="https://anyaegbu-emmanuel.onrender.com"
+          sleep 10
+          for path in /robots.txt /sitemap.xml; do
+            echo "Checking $path"
+            headers="$(mktemp)"
+            body="$(mktemp)"
+            code="$(curl --silent --show-error --location --max-time 30 --dump-header "$headers" --output "$body" --write-out '%{http_code}' "$SITE$path" || true)"
+            echo "$path returned HTTP ${code:-no-response}"
+            if [[ ! "${code:-}" =~ ^2[0-9][0-9]$ ]]; then
+              cat "$headers"
+              echo "::error::SEO endpoint $path did not return a successful response."
+              exit 1
+            fi
+            if [[ "$path" == "/robots.txt" ]]; then
+              if ! grep -Eiq '^User-agent:[[:space:]]*\*' "$body"; then
+                echo "::error::robots.txt is missing the wildcard user-agent rule."
+                cat "$body"
+                exit 1
+              fi
+              if ! grep -Eiq '^Sitemap:[[:space:]]*https://anyaegbu-emmanuel\.onrender\.com/sitemap\.xml' "$body"; then
+                echo "::error::robots.txt does not advertise the expected sitemap."
+                cat "$body"
+                exit 1
+              fi
+              if grep -Eiq '^Disallow:[[:space:]]*/[[:space:]]*$' "$body"; then
+                echo "::error::robots.txt is disallowing the entire website."
+                cat "$body"
+                exit 1
+              fi
+            else
+              if ! grep -Eiq '<urlset|<sitemapindex' "$body"; then
+                echo "::error::sitemap.xml does not contain a valid sitemap root element."
+                head -c 2000 "$body"
+                exit 1
+              fi
+            fi
+            rm -f "$headers" "$body"
+          done
