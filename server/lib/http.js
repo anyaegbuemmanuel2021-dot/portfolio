@@ -134,7 +134,17 @@ async function serveStatic(ctx) {
     const { decorateHtml } = await import('../routes/seo.js');
     data = Buffer.from(await decorateHtml(data.toString('utf8'), p));
   }
-  const long = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.woff2'].includes(ext);
-  res.writeHead(200, { 'Content-Type': mimeFor(found), 'Content-Length': data.length, 'Cache-Control': isAdmin ? 'no-cache' : p.startsWith('/media/') ? 'public, max-age=31536000, immutable' : long ? 'public, max-age=86400' : 'no-cache' });
+  const longLivedAsset = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.woff2'].includes(ext);
+  const codeAsset = ['.css', '.js', '.mjs'].includes(ext);
+  // Keep public assets reusable between visits without making unversioned
+  // styles/scripts stale for a full day after a deployment.
+  const publicCache = p.startsWith('/media/')
+    ? 'public, max-age=31536000, immutable'
+    : longLivedAsset
+      ? 'public, max-age=86400, stale-while-revalidate=604800'
+      : codeAsset
+        ? 'public, max-age=3600, stale-while-revalidate=86400'
+        : 'no-cache';
+  res.writeHead(200, { 'Content-Type': mimeFor(found), 'Content-Length': data.length, 'Cache-Control': isAdmin ? 'no-cache' : publicCache });
   res.end(req.method === 'HEAD' ? undefined : data);
 }
