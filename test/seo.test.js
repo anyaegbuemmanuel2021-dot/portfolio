@@ -67,8 +67,8 @@ test('article and static HTML pages receive clean canonical and social metadata'
   assert.match(decorated, /"@type":"Article"/);
   assert.ok(decorated.includes('<h1 class="article__title">Search Ready Article</h1>'));
   assert.match(decorated, /href="\/resume"/);
-  assert.doesNotMatch(decorated, /Emmanuel_Anyaegbu_CV\\.pdf/);
-  assert.match(decorated, /<h3>Details<\\/h3>/);
+  assert.doesNotMatch(decorated, /Emmanuel_Anyaegbu_CV\.pdf/);
+  assert.match(decorated, /<h3>Details<\/h3>/);
   assert.doesNotMatch(decorated, /<h4>/);
 
   const staticPage = await decorateHtml(html, '/about.html');
