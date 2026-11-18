@@ -52,7 +52,7 @@ test('resume is the only public CV destination and contains confirmed education 
   assert.match(html, /National Diploma \(ND\), Computer Science/);
   assert.match(html, /SIWES Trainee — Web Development/);
   assert.doesNotMatch(html, /15\+ web applications|500\+ transactions|₦2 million|4\.2x/);
-  for (const page of ['public/index.html', 'public/about.html', 'public/projects.html', 'public/services.html', 'public/contact.html', 'public/articles.html']) {
+  for (const page of ['public/index.html', 'public/about.html', 'public/projects.html', 'public/services.html', 'public/contact.html', 'public/articles.html', 'public/article.html']) {
     assert.doesNotMatch(read(page), /assets\/files\/Emmanuel_Anyaegbu_CV\.(?:pdf|docx)/);
   }
 });
