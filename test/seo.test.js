@@ -26,6 +26,7 @@ const db = {
     if (sql.includes("key = 'canonical_base'")) return { rows: [{ value: 'https://portfolio.example/' }] };
     if (sql.includes('FROM article_images')) return { rows: [{ article_id: 'article-1', url: 'https://cdn.example.com/inline.webp', alt: 'Article illustration' }] };
     if (sql.includes('FROM articles') && sql.includes('lower(a.slug)')) return { rows: params[0] === 'draft' ? [] : [article] };
+    if (sql.includes('FROM articles') && sql.includes('excerpt FROM articles')) return { rows: [article] };
     if (sql.includes('FROM articles') && sql.includes('canonical_url')) { assert.match(sql, /SELECT id, title, slug/); return { rows: [article] }; }
     if (sql.includes('FROM projects')) return { rows: [project] };
     if (sql.includes('FROM services')) return { rows: [service] };
@@ -68,6 +69,21 @@ test('article and static HTML pages receive clean canonical and social metadata'
 
   const staticPage = await decorateHtml(html, '/about.html');
   assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
+});
+
+
+test('article, project and service listings expose crawlable links to their detail pages', async () => {
+  const shell = '<!doctype html><html><head><title>Listing</title><meta name="description" content="A useful listing page description for visitors and search engines."></head><body><div id="articleList"></div></body></html>';
+  const articles = await decorateHtml(shell, '/articles');
+  assert.match(articles, /href="\/articles\/search-ready-article"/);
+
+  const projects = await decorateHtml(shell, '/projects');
+  assert.match(projects, /href="\/projects\/seo-project"/);
+  assert.match(projects, /Explore individual project case studies/);
+
+  const services = await decorateHtml(shell, '/services');
+  assert.match(services, /href="\/services\/website-development"/);
+  assert.match(services, /Explore individual service details/);
 });
 
 test('unpublished article slugs return a real 404 instead of an indexable article shell', async () => {
