@@ -35,6 +35,14 @@ const db = {
 };
 setSeoDb(db);
 
+test('sitemap omits articles whose canonical URL points to another host', async () => {
+  article.canonical_url = 'https://external.example/original-article';
+  const xml = await dynamicText('/sitemap.xml');
+  assert.doesNotMatch(xml, /https:\/\/external\.example\/original-article/);
+  assert.doesNotMatch(xml, /https:\/\/portfolio\.example\/articles\/search-ready-article/);
+  article.canonical_url = null;
+});
+
 test('dynamic sitemap includes published articles, projects, services and their images', async () => {
   const xml = await dynamicText('/sitemap.xml');
   assert.match(xml, /https:\/\/portfolio\.example\/articles\/search-ready-article/);
