@@ -18,11 +18,12 @@ const Loader = {
     this.el = document.querySelector('.loader');
     if (!this.el) return;
 
-    // Do not hold the first screen behind an artificial timer or wait for
-    // every below-the-fold asset. The document is already parsed when this
-    // module initializes, so reveal it immediately and let images/fonts load
-    // progressively without blocking the visitor.
-    this.el.hidden = true;
+    // Reveal the page immediately; do not hold the first screen behind an
+    // artificial timer or wait for below-the-fold assets to finish loading.
+    // Use the existing CSS state class so the loader's author styles cannot
+    // override the browser's native [hidden] display rule.
+    this.el.classList.add('hidden');
+    document.body.classList.add('page-enter');
   }
 };
 
