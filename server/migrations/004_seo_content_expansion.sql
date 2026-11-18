@@ -10,7 +10,7 @@ SET description = CASE slug
   WHEN 'basic-seo-performance' THEN 'SEO and performance foundations help search engines discover pages and help visitors reach useful content quickly. The work can include descriptive page titles, useful meta descriptions, canonical URLs, crawlable internal links, XML sitemaps, robots directives, image alternative text and structured data where appropriate. I also review page weight and loading behaviour, while treating indexing and ranking as outcomes that depend on search engines and ongoing content quality.'
   ELSE COALESCE(NULLIF(description, ''), summary, title) || char(10) || char(10) || 'This service is planned around the client''s goals, intended audience and required deliverables. The scope is agreed before work begins, with attention to usability, responsive presentation, accessibility and a clear handover.'
 END,
-updated_at = NOW()
+updated_at = CURRENT_TIMESTAMP
 WHERE is_published = TRUE AND (description IS NULL OR LENGTH(TRIM(description)) < 180);
 
 UPDATE projects
@@ -28,5 +28,5 @@ SET description = CASE slug
   WHEN 'xoft-ai-assistant' THEN 'XOFT is a personal AI assistant project exploring provider-agnostic model routing, tool orchestration, memory, voice interfaces, integrations and a command-centre interface. The project is intended to bring conversational assistance and practical task execution into one workflow. Its scope continues to evolve, so this portfolio description focuses on the architecture and capabilities being developed rather than claiming that every planned feature is complete.'
   ELSE COALESCE(NULLIF(description, ''), summary, title) || char(10) || char(10) || 'This portfolio entry describes the project at a high level and provides a starting point for reviewing its purpose, interface and implementation choices. The available project or repository link should be used for further technical detail.'
 END,
-updated_at = NOW()
+updated_at = CURRENT_TIMESTAMP
 WHERE is_published = TRUE AND (description IS NULL OR LENGTH(TRIM(description)) < 180);
