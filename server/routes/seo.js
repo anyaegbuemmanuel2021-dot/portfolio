@@ -201,8 +201,13 @@ export async function dynamicText(path) {
     _db.query("SELECT ai.article_id, ai.url, ai.alt FROM article_images ai JOIN articles a ON a.id = ai.article_id WHERE a.status = 'published' ORDER BY ai.sort_order ASC")
   ]);
   const entries = new Map();
+  const baseOrigin = new URL(base).origin;
   const add = (pathName, lastmod, images = [], canonicalOverride = null) => {
-    const loc = validUrl(canonicalOverride) || canonicalUrl(base, pathName);
+    const override = validUrl(canonicalOverride);
+    // Sitemap URLs must belong to this site's host. Externally canonicalised
+    // articles are intentionally omitted rather than submitted as foreign URLs.
+    if (override && new URL(override).origin !== baseOrigin) return;
+    const loc = override || canonicalUrl(base, pathName);
     const cleanImages = [...new Map(images.filter(i => i && i.loc).map(i => [i.loc, i])).values()];
     entries.set(loc, { loc, lastmod: dateOnly(lastmod), images: cleanImages });
   };
