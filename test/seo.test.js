@@ -6,7 +6,7 @@ const { setSeoDb, dynamicText, dynamicHtml, decorateHtml } = await import('../se
 
 const article = {
   id: 'article-1', title: 'Search Ready Article', slug: 'search-ready-article',
-  excerpt: 'A useful article description.', content_html: '<p><a href="/assets/files/Emmanuel_Anyaegbu_CV.pdf">Download CV</a></p>', canonical_url: null,
+  excerpt: 'A useful article description.', content_html: '<h2>Overview</h2><h4>Details</h4><p><a href="/assets/files/Emmanuel_Anyaegbu_CV.pdf">Download CV</a></p>', canonical_url: null,
   featured_image_url: 'https://cdn.example.com/article-cover.webp',
   published_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-02T10:00:00.000Z'
 };
@@ -68,6 +68,8 @@ test('article and static HTML pages receive clean canonical and social metadata'
   assert.ok(decorated.includes('<h1 class="article__title">Search Ready Article</h1>'));
   assert.match(decorated, /href="\/resume"/);
   assert.doesNotMatch(decorated, /Emmanuel_Anyaegbu_CV\\.pdf/);
+  assert.match(decorated, /<h3>Details<\\/h3>/);
+  assert.doesNotMatch(decorated, /<h4>/);
 
   const staticPage = await decorateHtml(html, '/about.html');
   assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
