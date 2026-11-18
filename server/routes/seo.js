@@ -119,7 +119,8 @@ export async function decorateHtml(html, pathname) {
   const path = canonicalPath(pathname);
   const found = await entityFor(pathname);
   let title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [null, 'Anyaegbu Emmanuel']).at(1).replace(/<[^>]*>/g, '').trim();
-  let description = ((html.match(/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i) || [null, '']).at(1));
+  const descriptionMatch = html.match(/<meta\s+name=["']description["']\s+content=(["'])(.*?)\1/i);
+  let description = descriptionMatch?.[2] || '';
   let image = null, canonical = canonicalUrl(base, path), type = 'website', jsonLd = null;
   let out = html;
   if (found?.kind === 'article') {
