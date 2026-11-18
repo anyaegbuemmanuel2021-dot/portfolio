@@ -132,7 +132,7 @@ export async function decorateHtml(html, pathname) {
     type = 'article';
     jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, articleBody: cleanText(a.content_html).slice(0, 5000) || undefined, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
     const hero = image ? '<img class="article__hero" src="' + esc(image) + '" alt="' + esc(a.title) + '" loading="eager">' : '';
-    const safeArticleHtml = String(a.content_html || '').replace(/href=(["'])[^"']*Emmanuel_Anyaegbu_CV\\.pdf(?:\\?[^"']*)?\\1/gi, 'href="/resume"');
+    const safeArticleHtml = String(a.content_html || '').replace(/href=(["'])[^"']*Emmanuel_Anyaegbu_CV\.pdf(?:\?[^"']*)?\1/gi, 'href="/resume"');
     const articleBody = '<h1 class="article__title">' + esc(a.title) + '</h1><div class="article__meta">' + esc([dateOnly(a.published_at), a.category_name].filter(Boolean).join(' · ')) + '</div>' + hero + (a.excerpt ? '<p class="article__excerpt">' + esc(a.excerpt) + '</p>' : '') + '<div class="article__body">' + safeArticleHtml + '</div>';
     out = out.replace(/(<article\s+id=["']articleView["'][^>]*>)[\s\S]*?(<\/article>)/i, '$1' + articleBody + '$2');
   } else if (found?.kind === 'project' || found?.kind === 'service') {
