@@ -18,19 +18,11 @@ const Loader = {
     this.el = document.querySelector('.loader');
     if (!this.el) return;
 
-    // Hide loader after content + min delay
-    const minDelay = 1600;
-    const start = performance.now();
-
-    window.addEventListener('load', () => {
-      const elapsed = performance.now() - start;
-      const remaining = Math.max(0, minDelay - elapsed);
-
-      setTimeout(() => {
-        this.el.classList.add('hidden');
-        document.body.classList.add('page-enter');
-      }, remaining);
-    });
+    // Do not hold the first screen behind an artificial timer or wait for
+    // every below-the-fold asset. The document is already parsed when this
+    // module initializes, so reveal it immediately and let images/fonts load
+    // progressively without blocking the visitor.
+    this.el.hidden = true;
   }
 };
 
