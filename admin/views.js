@@ -177,6 +177,7 @@ export function analyticsView() {
       ['Top articles', a.top_articles, [{ label: 'Article', k: 'title' }, { label: 'Views', k: 'views' }]],
       ['Top projects', a.top_projects, [{ label: 'Project', k: 'slug' }, { label: 'Views', k: 'views' }]],
       ['Traffic sources', a.sources, [{ label: 'Source', k: 'source' }, { label: 'Visits', k: 'views' }]],
+      ['Referring websites', a.referrers, [{ label: 'Website / app domain', k: 'source' }, { label: 'Visits', k: 'views' }]],
       ['Campaign performance (UTM)', a.campaigns, [{ label: 'Source', k: 'source' }, { label: 'Medium', k: 'medium' }, { label: 'Campaign', k: 'campaign' }, { label: 'Views', k: 'views' }]],
       ['Recent visitor activity', a.activities, [
         { label: 'Activity', k: 'type' }, { label: 'What', k: 'label' }, { label: 'Page', k: 'path' },
