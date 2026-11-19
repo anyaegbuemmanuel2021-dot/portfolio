@@ -43,7 +43,7 @@ export function tableRepo(db, table, cols, { order = 'sort_order ASC, created_at
     },
     async update(id, data, qdb = db) {
       const work = async tx => {
-        const row = { ...data, ...(timestamps ? { updated_at: now() } : {}) };
+        const row = { ...data, ...(timestamps === true ? { updated_at: now() } : {}) };
         const keys = Object.keys(row).filter(k => cols.includes(k) || k === 'updated_at');
         const column = nameColumn(cols, row);
         if (column) {
