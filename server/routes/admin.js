@@ -37,7 +37,19 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.post('/api/media/upload', { auth: 'media', raw: true, maxBody: config.maxUploadBytes + 1024 }, async ctx => { const name = decodeURIComponent(ctx.req.headers['x-filename'] || 'upload'); const m = await media.upload(ctx.body, { filename: name, folderId: ctx.query.folder || null, alt: ctx.query.alt || null, adminId: ctx.admin.id }); await auth.audit(ctx, 'upload', 'media', m.id); return { status: 201, data: m }; });
   app.get('/api/media', g('media'), async ctx => { const r = await media.list({ q: ctx.query.q, type: ctx.query.type, folderId: ctx.query.folder, page: ctx.query.page, limit: ctx.query.limit }); return { data: r.rows, meta: { total: r.total, page: r.page, limit: r.limit } }; });
   app.get('/api/media/:id/usage', g('media'), ctx => media.usage(ctx.params.id));
-  app.patch('/api/media/:id', g('media'), async ctx => { const d = validate({ alt_text: { max: 200 }, folder_id: { max: 40 } }, ctx.body, { partial: true }); const k = Object.keys(d); if (k.length) await db.query(`UPDATE media_files SET ${k.map((c, i) => `${c} = $${i + 1}`).join(',')} WHERE id = $${k.length + 1}`, [...k.map(c => d[c]), ctx.params.id]); return { updated: true }; });
+  app.patch('/api/media/:id', g('media'), async ctx => {
+    const d = validate({ alt_text: { max: 200 }, folder_id: { max: 40 } }, ctx.body, { partial: true });
+    const current = (await db.query('SELECT id FROM media_files WHERE id = $1', [ctx.params.id])).rows[0];
+    if (!current) throw new HttpError(404, 'Media file not found');
+    if (d.folder_id) {
+      const folder = (await db.query('SELECT id FROM media_folders WHERE id = $1', [d.folder_id])).rows[0];
+      if (!folder) throw new HttpError(422, 'Media folder not found', { field: 'folder_id' });
+    }
+    const keys = Object.keys(d);
+    if (keys.length) await db.query(`UPDATE media_files SET ${keys.map((c, i) => `${c} = ${i + 1}`).join(',')} WHERE id = ${keys.length + 1}`, [...keys.map(c => d[c]), ctx.params.id]);
+    await auth.audit(ctx, 'update', 'media', ctx.params.id, { fields: keys });
+    return { updated: true, data: (await db.query('SELECT * FROM media_files WHERE id = $1', [ctx.params.id])).rows[0] };
+  });
   app.delete('/api/media/:id', g('media'), async ctx => { await media.remove(ctx.params.id, { force: ctx.query.force === '1' }); await auth.audit(ctx, 'delete', 'media', ctx.params.id); return { deleted: true }; });
   // ---- leads / CRM ----
   app.get('/api/leads', g('leads'), async ctx => { const w = [], p = []; if (ctx.query.status) { p.push(ctx.query.status); w.push(`l.status = $${p.length}`); } if (ctx.query.q) { p.push('%' + ctx.query.q + '%'); w.push(`(c.name ILIKE $${p.length} OR c.email ILIKE $${p.length} OR l.message ILIKE $${p.length})`); } const cl = w.length ? ' WHERE ' + w.join(' AND ') : ''; const limit = Math.min(+ctx.query.limit || 20, 100), page = Math.max(+ctx.query.page || 1, 1);
