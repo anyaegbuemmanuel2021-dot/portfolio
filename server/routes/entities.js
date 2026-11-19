@@ -5,8 +5,8 @@ import { validate, slugify, HttpError } from '../lib/validate.js';
 const T = (max, req) => ({ type: 'string', max, required: req }); const U = { type: 'url' }; const I = (min, max) => ({ type: 'int', min, max }); const B = { type: 'bool' };
 const common = { sort_order: I(0, 100000), is_published: B };
 export const ENTITIES = {
-  services: { perm: 'content', rev: 1, slug: 'title', unique: 'title', schema: { title: T(120, true), slug: T(100), summary: T(300), description: T(5000), icon: T(40), price_note: T(120), ...common } },
-  projects: { perm: 'content', rev: 1, slug: 'title', unique: 'title', usage: ['cover_url'], schema: { title: T(120, true), slug: T(100), summary: T(400), description: T(5000), url: U, repo_url: U, category: T(60), tags: T(200), cover_url: U, is_featured: B, ...common } },
+  services: { perm: 'content', rev: 1, slug: 'title', unique: 'title', schema: { title: T(120, true), slug: T(100), summary: T(300), description: T(5000), seo_title: T(60), seo_description: T(160), canonical_url: U, icon: T(40), price_note: T(120), ...common } },
+  projects: { perm: 'content', rev: 1, slug: 'title', unique: 'title', usage: ['cover_url'], schema: { title: T(120, true), slug: T(100), summary: T(400), description: T(5000), seo_title: T(60), seo_description: T(160), canonical_url: U, url: U, repo_url: U, category: T(60), tags: T(200), cover_url: U, is_featured: B, ...common } },
   skills: { perm: 'content', rev: 1, unique: 'name', schema: { name: T(80, true), category: T(60), level: I(0, 100), ...common } },
   experience: { perm: 'content', rev: 1, schema: { role: T(120, true), organization: T(120), location: T(120), start_date: T(30), end_date: T(30), description: T(3000), ...common } },
   testimonials: { perm: 'content', rev: 1, unique: 'author_name', schema: { author_name: T(100, true), author_role: T(120), quote: T(1500, true), avatar_url: U, rating: I(1, 5), ...common } },
