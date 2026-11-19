@@ -32,7 +32,7 @@ test('login ignores any extra authentication-code field and requires only email 
 });
 test('content CRUD, validation, revisions, public visibility', async () => {
   const bad = await api('POST', '/api/admin/services', { title: '' }); assert.equal(bad.s, 422);
-  const c = await api('POST', '/api/admin/services', { title: 'Brand Design', summary: 'Logos', is_published: true }); assert.equal(c.s, 201); const id = c.j.data.id; assert.equal(c.j.data.slug, 'brand-design');
+  const c = await api('POST', '/api/admin/services', { title: 'Brand Design', summary: 'Logos', seo_title: 'Brand identity services', seo_description: 'A carefully planned brand identity service description for potential clients and search visitors.', canonical_url: 'https://portfolio.example/brand-design', is_published: true }); assert.equal(c.s, 201); const id = c.j.data.id; assert.equal(c.j.data.slug, 'brand-design'); assert.equal(c.j.data.seo_title, 'Brand identity services'); assert.equal(c.j.data.canonical_url, 'https://portfolio.example/brand-design');
   const u = await api('PUT', `/api/admin/services/${id}`, { title: 'Brand Design v2' }); assert.equal(u.j.data.title, 'Brand Design v2'); const revs = await api('GET', `/api/admin/services/${id}/revisions`); assert.equal(revs.j.data.length, 1);
   await api('POST', `/api/admin/services/${id}/restore/${revs.j.data[0].id}`); assert.equal((await api('GET', `/api/admin/services/${id}`)).j.data.title, 'Brand Design');
   await api('PUT', `/api/admin/services/${id}`, { is_published: false }); app.invalidate(); const pub = await api('GET', '/api/services', null, { auth: false }); assert.ok(!pub.j.data.find(s => s.id === id)); assert.ok(pub.j.data.length >= 6);
@@ -94,6 +94,7 @@ test('media: content-sniffed upload, reject fake image, usage-check delete', asy
   const up = await api('POST', '/api/media/upload', PNG, { raw: true, headers: { 'x-filename': 'pixel.png', 'content-type': 'application/octet-stream' } }); assert.equal(up.s, 201); assert.equal(up.j.data.mime_type, 'image/png'); assert.equal(up.j.data.width, 1);
   const file = await fetch(base + up.j.data.url); assert.equal(file.status, 200); assert.equal(file.headers.get('content-type'), 'image/png');
   const folder = await api('POST', '/api/admin/media_folders', { name: 'CMS test folder' }); assert.equal(folder.s, 201);
+  const renamedFolder = await api('PUT', `/api/admin/media_folders/${folder.j.data.id}`, { name: 'CMS test folder renamed' }); assert.equal(renamedFolder.s, 200); assert.equal(renamedFolder.j.data.name, 'CMS test folder renamed');
   const moved = await api('PATCH', `/api/media/${up.j.data.id}`, { alt_text: 'Portfolio thumbnail', folder_id: folder.j.data.id });
   assert.equal(moved.s, 200); assert.equal(moved.j.data.data.alt_text, 'Portfolio thumbnail'); assert.equal(moved.j.data.data.folder_id, folder.j.data.id);
   assert.equal((await api('PATCH', `/api/media/${up.j.data.id}`, { folder_id: '00000000-0000-4000-8000-000000000000' })).s, 422);
