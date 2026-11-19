@@ -639,3 +639,30 @@ body > .nav__mobile {
   color: var(--color-text-primary);
   border-color: rgba(15, 14, 12, 0.18);
 }
+
+
+/* Accessibility and small-screen hardening. Keep these rules global so that
+   public pages and the admin shell share predictable keyboard behaviour. */
+:where(a, button, input, textarea, select, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--color-gold-light, #e0c490);
+  outline-offset: 3px;
+}
+:where(button, input, textarea, select) {
+  accent-color: var(--color-gold, #c8a96e);
+}
+:where(.grid-2, .grid-3, .hero__inner, .about-preview__inner, .footer__inner,
+       .services-grid, .featured-projects__grid) > * {
+  min-width: 0;
+}
+:where(p, li, .article__body, .footer__tagline) {
+  overflow-wrap: break-word;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
