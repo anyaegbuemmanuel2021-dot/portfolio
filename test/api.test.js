@@ -127,6 +127,14 @@ test('email: log provider never claims delivery; subscribe/unsubscribe; AI needs
   const s = await api('POST', '/api/email/send', { to: 'c@example.com', subject: 'Hi', body: 'Hello' }); assert.equal(s.j.data.delivered, false); assert.ok(s.j.data.note);
   assert.equal((await api('POST', '/api/email/subscribe', { email: 'sub@example.com' }, { auth: false })).s, 201); const subs = await api('GET', '/api/email/subscribers'); assert.equal(subs.j.data.length, 1);
   const tok = (await db.query('SELECT unsubscribe_token t FROM email_subscribers')).rows[0].t; assert.equal((await api('GET', `/api/email/unsubscribe/${tok}`, null, { auth: false })).s, 200); assert.equal((await api('GET', '/api/email/subscribers')).j.data[0].status, 'unsubscribed');
+  await api('POST', '/api/email/subscribe', { email: 'campaign@example.com' }, { auth: false });
+  const campaign = await api('POST', '/api/admin/email_campaigns', { name: 'Retryable campaign', subject: 'Campaign test', body: 'This must not be marked delivered.' });
+  assert.equal(campaign.s, 201);
+  const attempted = await api('POST', `/api/email/campaigns/${campaign.j.data.id}/send`, {});
+  assert.equal(attempted.s, 200); assert.equal(attempted.j.data.delivered, false);
+  assert.equal(attempted.j.data.sent, 0); assert.equal(attempted.j.data.simulated, 1);
+  const campaignState = (await db.query('SELECT status, sent_count, failed_count, sent_at FROM email_campaigns WHERE id = $1', [campaign.j.data.id])).rows[0];
+  assert.equal(campaignState.status, 'draft'); assert.equal(Number(campaignState.sent_count), 0); assert.equal(campaignState.sent_at, null);
   const ai = await api('POST', '/api/email/ai-assist', { subject: 'Quote', body: 'How much for a website? Urgent.' }); assert.equal(ai.j.data.category, 'quote'); assert.equal(ai.j.data.requiresApproval, true); assert.equal(ai.j.data.urgency, 'high');
   assert.equal((await api('POST', '/api/email/inbound', { from: 'x@example.com', body: 'hi' }, { auth: false })).s, 401); assert.ok((await api('GET', '/api/email/logs')).j.data.length >= 1);
 });
