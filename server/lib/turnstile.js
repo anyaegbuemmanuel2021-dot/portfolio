@@ -19,7 +19,9 @@ export async function verifyTurnstile(token, ip, { secret, expectedHostname, exp
   let result;
   try { result = await response.json(); } catch { throw new HttpError(503, 'Human verification could not be checked.'); }
   if (!result.success) throw new HttpError(403, 'Human verification failed. Please try again.');
-  if (expectedHostname && result.hostname && result.hostname !== expectedHostname) throw new HttpError(403, 'Human verification came from an unexpected website.');
-  if (expectedAction && result.action && result.action !== expectedAction) throw new HttpError(403, 'Human verification action did not match.');
+  // Treat missing verification context as a failure too; a successful token must
+  // be bound to the exact hostname and action expected by this endpoint.
+  if (expectedHostname && result.hostname !== expectedHostname) throw new HttpError(403, 'Human verification came from an unexpected website.');
+  if (expectedAction && result.action !== expectedAction) throw new HttpError(403, 'Human verification action did not match.');
   return { enabled: true, success: true, hostname: result.hostname || null, action: result.action || null };
 }
