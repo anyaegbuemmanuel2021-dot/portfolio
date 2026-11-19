@@ -27,3 +27,21 @@ test('Turnstile rejects failed verification, wrong hostname, wrong action and pr
   await assert.rejects(() => verifyTurnstile('valid-token-value', null, { secret: 's', expectedAction: 'contact', fetchImpl: fake({ success: true, action: 'newsletter' }) }), e => e.status === 403);
   await assert.rejects(() => verifyTurnstile('valid-token-value', null, { secret: 's', fetchImpl: async () => { throw new Error('network'); } }), e => e.status === 503);
 });
+
+test('Turnstile rejects successful tokens with missing hostname or action context', async () => {
+  const fake = body => async () => ({ ok: true, json: async () => body });
+  await assert.rejects(
+    () => verifyTurnstile('valid-token-value', null, {
+      secret: 's', expectedHostname: 'example.com', expectedAction: 'contact',
+      fetchImpl: fake({ success: true, action: 'contact' }),
+    }),
+    e => e.status === 403,
+  );
+  await assert.rejects(
+    () => verifyTurnstile('valid-token-value', null, {
+      secret: 's', expectedHostname: 'example.com', expectedAction: 'contact',
+      fetchImpl: fake({ success: true, hostname: 'example.com' }),
+    }),
+    e => e.status === 403,
+  );
+});
