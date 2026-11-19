@@ -18,7 +18,7 @@ export const ENTITIES = {
   media_folders: { perm: 'media', unique: 'name', schema: { name: T(80, true), parent_id: T(40) }, noTimestamps: 1, order: 'name ASC' },
   email_templates: { perm: 'email', unique: 'name', schema: { name: T(80, true), subject: T(200, true), body: T(10000, true) }, order: 'name ASC' },
   email_saved_replies: { perm: 'email', unique: 'title', schema: { title: T(100, true), body: T(5000, true) }, order: 'title ASC' },
-  email_campaigns: { perm: 'email', unique: 'name', schema: { name: T(100, true), subject: T(200, true), body: T(20000, true) }, order: 'created_at DESC' },
+  email_campaigns: { perm: 'email', unique: 'name', timestamps: 'created', schema: { name: T(100, true), subject: T(200, true), body: T(20000, true) }, order: 'created_at DESC' },
   advertisers: { perm: 'ads', unique: 'name', schema: { name: T(120, true), contact_email: { type: 'email' }, notes: T(1000) }, order: 'name ASC' },
   ad_placements: { perm: 'ads', unique: 'key', schema: { key: { type: 'string', required: true, max: 40, pattern: /^[a-z0-9_-]+$/ }, label: T(80, true), description: T(200), is_active: B }, noTimestamps: 1, order: 'key ASC' },
   ad_campaigns: { perm: 'ads', unique: 'name', schema: { advertiser_id: T(40), name: T(120, true), start_at: { type: 'date' }, end_at: { type: 'date' }, is_active: B, notes: T(1000) }, order: 'created_at DESC' },
@@ -26,7 +26,7 @@ export const ENTITIES = {
 };
 export function entityRoutes(app, { db, auth, syncUsage }) {
   const invalidate = () => { if (typeof app.invalidate === 'function') app.invalidate(); };
-  const repos = {}; for (const [name, e] of Object.entries(ENTITIES)) repos[name] = tableRepo(db, name, Object.keys(e.schema), { order: e.order || 'sort_order ASC, created_at ASC', searchCols: ['title', 'name', 'label', 'subject', 'platform', 'role', 'author_name'].filter(c => c in e.schema), timestamps: !e.noTimestamps });
+  const repos = {}; for (const [name, e] of Object.entries(ENTITIES)) repos[name] = tableRepo(db, name, Object.keys(e.schema), { order: e.order || 'sort_order ASC, created_at ASC', searchCols: ['title', 'name', 'label', 'subject', 'platform', 'role', 'author_name'].filter(c => c in e.schema), timestamps: e.timestamps ?? !e.noTimestamps });
   const ent = ctx => { const e = ENTITIES[ctx.params.entity]; if (!e) throw new HttpError(404, 'Unknown resource'); ctx.ent = e; ctx.repo = repos[ctx.params.entity]; return e; };
   const guard = { auth: true }; const check = async ctx => { ent(ctx); if (!ctx.admin.permissions.includes(ctx.ent.perm)) throw new HttpError(403, 'Forbidden'); };
   const prep = async (ctx, partial) => { const d = validate(ctx.ent.schema, ctx.body, { partial }); if (ctx.ent.slug && (d[ctx.ent.slug] || d.slug)) d.slug = slugify(d.slug || d[ctx.ent.slug]); else if (ctx.ent.slug && !partial) d.slug = slugify(d[ctx.ent.slug]); if ('is_active' in ctx.ent.schema && d.is_active === undefined && !partial) d.is_active = true; return d; };
