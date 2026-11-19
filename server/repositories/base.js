@@ -33,7 +33,7 @@ export function tableRepo(db, table, cols, { order = 'sort_order ASC, created_at
           const duplicate = (await tx.query(`SELECT id FROM ${table} WHERE lower(trim(${column})) = lower(trim($1)) LIMIT 1`, [String(data[column]).trim()])).rows[0];
           if (duplicate) throw new HttpError(409, 'Name already exists', { field: column });
         }
-        const id = randomUUID(), t = now(), row = { id, ...data, ...(timestamps ? { created_at: t, updated_at: t } : {}) };
+        const id = randomUUID(), t = now(), stamp = timestamps === 'created' ? { created_at: t } : timestamps ? { created_at: t, updated_at: t } : {}, row = { id, ...data, ...stamp };
         const keys = Object.keys(row);
         const sql = 'INSERT INTO ' + table + ' (' + keys.join(',') + ') VALUES (' + keys.map((_, i) => '$' + (i + 1)).join(',') + ')';
         await tx.query(sql, keys.map(k => row[k]));
