@@ -28,8 +28,8 @@ const db = {
     if (sql.includes('FROM articles') && sql.includes('lower(a.slug)')) return { rows: params[0] === 'draft' ? [] : [article] };
     if (sql.includes('FROM articles') && sql.includes('excerpt FROM articles')) return { rows: [article] };
     if (sql.includes('FROM articles') && sql.includes('canonical_url')) { assert.match(sql, /SELECT id, title, slug/); return { rows: [article] }; }
-    if (sql.includes('FROM projects')) return { rows: [project] };
-    if (sql.includes('FROM services')) return { rows: [service] };
+    if (sql.includes('FROM projects')) return { rows: sql.includes('is_published = TRUE') && !project.is_published ? [] : [project] };
+    if (sql.includes('FROM services')) return { rows: sql.includes('is_published = TRUE') && !service.is_published ? [] : [service] };
     return { rows: [] };
   }
 };
@@ -73,12 +73,16 @@ test('CMS project and service slugs render editable SEO metadata and canonical U
   assert.match(servicePage, /Custom Service SEO Title/);
 });
 
-test('unpublished CMS projects and services cannot fall through to legacy static pages', async () => {
+test('unpublished CMS projects and services cannot fall through to legacy static pages or stay in the sitemap', async () => {
   project.is_published = false;
   assert.deepEqual(await dynamicHtml('/projects/seo-project'), { status: 404, body: 'Not found' });
-  project.is_published = true;
   service.is_published = false;
   assert.deepEqual(await dynamicHtml('/services/website-development'), { status: 404, body: 'Not found' });
+  const sitemap = await dynamicText('/sitemap.xml');
+  assert.doesNotMatch(sitemap, /projects\\/seo-project/);
+  assert.doesNotMatch(sitemap, /services\\/website-development/);
+  assert.doesNotMatch(sitemap, /projects\\/(restaurant|agency|blog|shop|event|calculator)/);
+  project.is_published = true;
   service.is_published = true;
 });
 
