@@ -54,17 +54,42 @@ test('dynamic sitemap includes published articles, projects, services and their 
   assert.match(xml, /xmlns:image="http:\/\/www\.google\.com\/schemas\/sitemap-image\/1\.1"/);
 });
 
-test('CMS project and service slugs render crawlable detail pages with canonical URLs and structured data', async () => {
+test('CMS project and service slugs render editable SEO metadata and canonical URLs', async () => {
+  project.seo_title = 'Custom Project SEO Title';
+  project.seo_description = 'A custom description written for this project page and intended to explain its purpose to search visitors.';
+  project.canonical_url = 'https://portfolio.example/work/seo-project';
+  service.seo_title = 'Custom Service SEO Title';
+  service.seo_description = 'A custom service description written for this page and intended to explain its value to potential clients.';
+  service.canonical_url = 'https://portfolio.example/offerings/web-development';
   const projectPage = await dynamicHtml('/projects/seo-project');
-  assert.match(projectPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/projects\/seo-project">/);
+  assert.match(projectPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/work\/seo-project">/);
   assert.match(projectPage, /"@type":"CreativeWork"/);
-  assert.match(projectPage, /SEO Project/);
+  assert.match(projectPage, /Custom Project SEO Title/);
   assert.match(projectPage, /project\.webp/);
 
   const servicePage = await dynamicHtml('/services/website-development');
-  assert.match(servicePage, /<link rel="canonical" href="https:\/\/portfolio\.example\/services\/website-development">/);
+  assert.match(servicePage, /<link rel="canonical" href="https:\/\/portfolio\.example\/offerings\/web-development">/);
   assert.match(servicePage, /"@type":"Service"/);
-  assert.match(servicePage, /Responsive websites for businesses/);
+  assert.match(servicePage, /Custom Service SEO Title/);
+});
+
+test('project and service HTML decoration honours CMS SEO overrides', async () => {
+  const shell = '<!doctype html><html><head><title>Old</title><meta name="description" content="Old description"></head><body></body></html>';
+  const projectHtml = await decorateHtml(shell, '/projects/seo-project');
+  assert.match(projectHtml, /<link rel="canonical" href="https:\/\/portfolio\.example\/work\/seo-project">/);
+  assert.match(projectHtml, /Custom Project SEO Title/);
+  assert.match(projectHtml, /custom description written for this project page/i);
+  const serviceHtml = await decorateHtml(shell, '/services/website-development');
+  assert.match(serviceHtml, /<link rel="canonical" href="https:\/\/portfolio\.example\/offerings\/web-development">/);
+  assert.match(serviceHtml, /Custom Service SEO Title/);
+  assert.match(serviceHtml, /custom service description written for this page/i);
+  project.canonical_url = 'https://external.example/canonical-project';
+  const sitemap = await dynamicText('/sitemap.xml');
+  assert.doesNotMatch(sitemap, /external\.example\/canonical-project/);
+  project.canonical_url = 'https://portfolio.example/work/seo-project';
+  assert.match(await dynamicText('/sitemap.xml'), /https:\/\/portfolio\.example\/work\/seo-project/);
+  project.canonical_url = null;
+  service.canonical_url = null;
 });
 
 test('article and static HTML pages receive clean canonical and social metadata', async () => {
