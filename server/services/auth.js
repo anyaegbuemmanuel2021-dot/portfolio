@@ -47,7 +47,18 @@ export function authService(db, mailer) {
       email = String(email || '').toLowerCase(); const a = (await db.query('SELECT id, email FROM admins WHERE email = $1 AND is_active = TRUE', [email])).rows[0]; await event('reset_requested', email, ipHash); if (!a) return;
       const raw = token(32); await db.query('INSERT INTO password_reset_requests (id,admin_id,token_hash,expires_at,created_at) VALUES ($1,$2,$3,$4,$5)', [randomUUID(), a.id, sha256(raw), new Date(Date.now() + 3600e3).toISOString(), now()]);
       const link = `${config.siteUrl}/admin/#reset=${raw}`;
-      try { if (mailer.real) await mailer.send({ to: a.email, subject: 'Reset your admin password', text: `Use this link within 1 hour:\n${link}\n\nIgnore this email if you did not request it.` }); else console.log('[password reset link — email provider is "log"]', link); } catch (e) { console.error('reset email failed', e.message); }
+      try {
+        if (mailer.real) {
+          await mailer.send({ to: a.email, subject: 'Reset your admin password', text: `Use this link within 1 hour:\n${link}\n\nIgnore this email if you did not request it.` });
+        } else if (!config.isProd) {
+          // Local development convenience only. Never write password-reset tokens to production logs.
+          console.info('[development password reset link]', link);
+        } else {
+          console.warn('Password reset email was not sent: configure a real email provider.');
+        }
+      } catch (e) {
+        console.error('reset email failed', e.message);
+      }
     },
     async resetPassword(raw, password) {
       const r = (await db.query('SELECT * FROM password_reset_requests WHERE token_hash = $1', [sha256(raw || '')])).rows[0]; if (!r || r.used_at || new Date(r.expires_at) < new Date()) throw new HttpError(400, 'Reset link is invalid or expired');
