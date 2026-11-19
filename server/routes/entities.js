@@ -15,7 +15,7 @@ export const ENTITIES = {
   homepage_sections: { perm: 'content', rev: 1, unique: 'key', schema: { key: { type: 'string', required: true, max: 60, pattern: /^[a-z0-9_-]+$/ }, title: T(200), body: T(8000), data: T(8000), ...common } },
   article_categories: { perm: 'articles', slug: 'name', unique: 'name', schema: { name: T(80, true), slug: T(80), description: T(300) }, order: 'name ASC' },
   article_tags: { perm: 'articles', slug: 'name', unique: 'name', schema: { name: T(40, true), slug: T(60) }, order: 'name ASC' },
-  media_folders: { perm: 'media', unique: 'name', schema: { name: T(80, true), parent_id: T(40) }, noTimestamps: 1, order: 'name ASC' },
+  media_folders: { perm: 'media', unique: 'name', timestamps: 'created', schema: { name: T(80, true), parent_id: T(40) }, order: 'name ASC' },
   email_templates: { perm: 'email', unique: 'name', schema: { name: T(80, true), subject: T(200, true), body: T(10000, true) }, order: 'name ASC' },
   email_saved_replies: { perm: 'email', unique: 'title', schema: { title: T(100, true), body: T(5000, true) }, order: 'title ASC' },
   email_campaigns: { perm: 'email', unique: 'name', timestamps: 'created', schema: { name: T(100, true), subject: T(200, true), body: T(20000, true) }, order: 'created_at DESC' },
