@@ -79,9 +79,9 @@ test('unpublished CMS projects and services cannot fall through to legacy static
   service.is_published = false;
   assert.deepEqual(await dynamicHtml('/services/website-development'), { status: 404, body: 'Not found' });
   const sitemap = await dynamicText('/sitemap.xml');
-  assert.doesNotMatch(sitemap, /projects\\/seo-project/);
-  assert.doesNotMatch(sitemap, /services\\/website-development/);
-  assert.doesNotMatch(sitemap, /projects\\/(restaurant|agency|blog|shop|event|calculator)/);
+  assert.doesNotMatch(sitemap, /projects\/seo-project/);
+  assert.doesNotMatch(sitemap, /services\/website-development/);
+  assert.doesNotMatch(sitemap, /projects\/(restaurant|agency|blog|shop|event|calculator)/);
   project.is_published = true;
   service.is_published = true;
 });
