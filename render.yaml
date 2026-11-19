@@ -1,4 +1,4 @@
-# Render Blueprint: one Node.js web service serves the existing public site,
+# Render Blueprint: one Docker web service serves the existing public site,
 # admin dashboard and API from the same origin. PostgreSQL remains on Neon.
 #
 # CURRENT FREE CONFIGURATION:
@@ -16,15 +16,15 @@
 services:
   - type: web
     name: portfolio-platform
-    runtime: node
+    runtime: docker
     plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     # PAID MULTI-INSTANCE SETTINGS — enable only after the checklist is complete:
     # plan: starter
     # numInstances: 2
-    buildCommand: if [ -f package-lock.json ]; then npm ci --omit=dev --no-audit --no-fund; else npm install --omit=dev --no-audit --no-fund; fi
-    startCommand: npm start
     healthCheckPath: /api/health
-    autoDeploy: false # GitHub Actions runs tests before triggering the Render deploy hook.
+    autoDeploy: true # Matches the live service: deploy each main-branch commit after CI checks run.
     envVars:
       - key: NODE_ENV
         value: production
