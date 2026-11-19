@@ -92,6 +92,11 @@ test('media: content-sniffed upload, reject fake image, usage-check delete', asy
   const svg = await api('POST', '/api/media/upload', Buffer.from('<svg onload=alert(1)></svg>'), { raw: true, headers: { 'x-filename': 'x.svg', 'content-type': 'image/svg+xml' } }); assert.equal(svg.s, 415);
   const up = await api('POST', '/api/media/upload', PNG, { raw: true, headers: { 'x-filename': 'pixel.png', 'content-type': 'application/octet-stream' } }); assert.equal(up.s, 201); assert.equal(up.j.data.mime_type, 'image/png'); assert.equal(up.j.data.width, 1);
   const file = await fetch(base + up.j.data.url); assert.equal(file.status, 200); assert.equal(file.headers.get('content-type'), 'image/png');
+  const folder = await api('POST', '/api/admin/media_folders', { name: 'CMS test folder' }); assert.equal(folder.s, 201);
+  const moved = await api('PATCH', `/api/media/${up.j.data.id}`, { alt_text: 'Portfolio thumbnail', folder_id: folder.j.data.id });
+  assert.equal(moved.s, 200); assert.equal(moved.j.data.data.alt_text, 'Portfolio thumbnail'); assert.equal(moved.j.data.data.folder_id, folder.j.data.id);
+  assert.equal((await api('PATCH', `/api/media/${up.j.data.id}`, { folder_id: '00000000-0000-4000-8000-000000000000' })).s, 422);
+  assert.equal((await api('PATCH', '/api/media/00000000-0000-4000-8000-000000000000', { alt_text: 'Missing' })).s, 404);
   const art = await api('POST', '/api/admin/articles', { title: 'With Image', content_md: `![p](${up.j.data.url})`, featured_image_url: up.j.data.url }); assert.equal(art.s, 201);
   const usage = await api('GET', `/api/media/${up.j.data.id}/usage`); assert.equal(usage.j.data.length, 1); assert.equal((await api('DELETE', `/api/media/${up.j.data.id}`)).s, 409);
   await api('DELETE', `/api/admin/articles/${art.j.data.id}`); assert.equal((await api('DELETE', `/api/media/${up.j.data.id}`)).s, 200);
