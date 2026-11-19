@@ -14,12 +14,12 @@ const project = {
   id: 'project-1', title: 'SEO Project', slug: 'seo-project', summary: 'A project summary.',
   description: 'A longer project description.', cover_url: 'https://cdn.example.com/project.webp',
   url: 'https://project.example.com', repo_url: 'https://github.com/example/project',
-  category: 'Web development', updated_at: '2026-11-03T10:00:00.000Z'
+  category: 'Web development', is_published: true, updated_at: '2026-11-03T10:00:00.000Z'
 };
 const service = {
   id: 'service-1', title: 'Website Development', slug: 'website-development',
   summary: 'Responsive websites for businesses.', description: 'Planning, design and development.',
-  price_note: 'Scoped to your needs', updated_at: '2026-11-04T10:00:00.000Z'
+  price_note: 'Scoped to your needs', is_published: true, updated_at: '2026-11-04T10:00:00.000Z'
 };
 const db = {
   async query(sql, params = []) {
@@ -71,6 +71,15 @@ test('CMS project and service slugs render editable SEO metadata and canonical U
   assert.match(servicePage, /<link rel="canonical" href="https:\/\/portfolio\.example\/offerings\/web-development">/);
   assert.match(servicePage, /"@type":"Service"/);
   assert.match(servicePage, /Custom Service SEO Title/);
+});
+
+test('unpublished CMS projects and services cannot fall through to legacy static pages', async () => {
+  project.is_published = false;
+  assert.deepEqual(await dynamicHtml('/projects/seo-project'), { status: 404, body: 'Not found' });
+  project.is_published = true;
+  service.is_published = false;
+  assert.deepEqual(await dynamicHtml('/services/website-development'), { status: 404, body: 'Not found' });
+  service.is_published = true;
 });
 
 test('project and service HTML decoration honours CMS SEO overrides', async () => {
