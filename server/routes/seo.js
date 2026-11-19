@@ -103,7 +103,7 @@ function pageHtml(kind, row, base) {
   const title = cleanText(row.seo_title || row.title);
   const description = metaDescription(row.seo_description, [row.summary, row.description, row.category, row.tags && 'Technologies: ' + row.tags].filter(Boolean).join(' '));
   const path = '/' + (kind === 'project' ? 'projects' : 'services') + '/' + encodeURIComponent(row.slug);
-  const canonical = canonicalUrl(base, path);
+  const canonical = validUrl(row.canonical_url) || canonicalUrl(base, path);
   const image = imageUrl(kind === 'project' ? row.cover_url : row.image_url, base);
   const paragraphs = String(row.description || row.summary || '').split(/\r?\n{2,}/).map(s => s.trim()).filter(Boolean).map(s => '<p>' + esc(s).replace(/\r?\n/g, '<br>') + '</p>').join('\n');
   const links = [];
@@ -149,7 +149,7 @@ export async function decorateHtml(html, pathname) {
   } else if (found?.kind === 'project' || found?.kind === 'service') {
     const r = found.row; title = clip((r.seo_title || r.title) + ' | Anyaegbu Emmanuel', 60);
     description = metaDescription(r.seo_description, [r.summary, r.description, r.category, r.tags && 'Technologies: ' + r.tags].filter(Boolean).join(' '));
-    image = imageUrl(r.cover_url || r.image_url, base);
+    image = imageUrl(r.cover_url || r.image_url, base); canonical = validUrl(r.canonical_url) || canonical;
   }
   if (path === '/articles') {
     const rows = (await _db.query("SELECT title, slug, excerpt FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT 30")).rows;
@@ -196,8 +196,8 @@ export async function dynamicText(path) {
   if (path !== '/sitemap.xml') return null;
   const [arts, projects, services, articleImages] = await Promise.all([
     _db.query("SELECT id, title, slug, excerpt, canonical_url, featured_image_url, published_at, updated_at FROM articles WHERE status = 'published' ORDER BY published_at DESC"),
-    _db.query('SELECT title, slug, summary, cover_url, updated_at FROM projects WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
-    _db.query('SELECT title, slug, summary, updated_at FROM services WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
+    _db.query('SELECT title, slug, summary, cover_url, canonical_url, updated_at FROM projects WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
+    _db.query('SELECT title, slug, summary, canonical_url, updated_at FROM services WHERE is_published = TRUE ORDER BY sort_order ASC, updated_at DESC'),
     _db.query("SELECT ai.article_id, ai.url, ai.alt FROM article_images ai JOIN articles a ON a.id = ai.article_id WHERE a.status = 'published' ORDER BY ai.sort_order ASC")
   ]);
   const entries = new Map();
@@ -226,9 +226,9 @@ export async function dynamicText(path) {
   }
   for (const p of projects.rows) {
     const img = imageUrl(p.cover_url, base);
-    add('/projects/' + encodeURIComponent(p.slug), p.updated_at, img ? [{ loc: img, title: p.title }] : []);
+    add('/projects/' + encodeURIComponent(p.slug), p.updated_at, img ? [{ loc: img, title: p.title }] : [], p.canonical_url);
   }
-  for (const s of services.rows) add('/services/' + encodeURIComponent(s.slug), s.updated_at);
+  for (const s of services.rows) add('/services/' + encodeURIComponent(s.slug), s.updated_at, [], s.canonical_url);
   const urls = [...entries.values()].map(e => '<url><loc>' + esc(e.loc) + '</loc>' + (e.lastmod ? '<lastmod>' + e.lastmod + '</lastmod>' : '') + e.images.map(i => '<image:image><image:loc>' + esc(i.loc) + '</image:loc>' + (i.title ? '<image:title>' + esc(i.title) + '</image:title>' : '') + '</image:image>').join('') + '</url>').join('');
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' + urls + '</urlset>';
 }
