@@ -83,12 +83,12 @@ async function entityFor(path) {
   }
   const projectSlug = slugMatch(path, 'projects');
   if (projectSlug) {
-    const row = (await _db.query('SELECT * FROM projects WHERE is_published = TRUE AND lower(slug) = lower($1) LIMIT 1', [projectSlug])).rows[0];
+    const row = (await _db.query('SELECT * FROM projects WHERE lower(slug) = lower($1) LIMIT 1', [projectSlug])).rows[0];
     if (row) return { kind: 'project', row };
   }
   const serviceSlug = slugMatch(path, 'services');
   if (serviceSlug) {
-    const row = (await _db.query('SELECT * FROM services WHERE is_published = TRUE AND lower(slug) = lower($1) LIMIT 1', [serviceSlug])).rows[0];
+    const row = (await _db.query('SELECT * FROM services WHERE lower(slug) = lower($1) LIMIT 1', [serviceSlug])).rows[0];
     if (row) return { kind: 'service', row };
   }
   return null;
@@ -121,6 +121,8 @@ export async function dynamicHtml(pathname) {
   const found = await entityFor(pathname);
   if (!found) return slugMatch(pathname, 'articles') ? { status: 404, body: 'Not found' } : null;
   if (found.kind === 'article') return null;
+  // If a CMS record exists but is unpublished, do not fall through to an old static demo page.
+  if (found.row.is_published === false || found.row.is_published === 0) return { status: 404, body: 'Not found' };
   const base = await siteBase();
   return pageHtml(found.kind, found.row, base);
 }
