@@ -46,7 +46,7 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
       if (!folder) throw new HttpError(422, 'Media folder not found', { field: 'folder_id' });
     }
     const keys = Object.keys(d);
-    if (keys.length) { const assignments = keys.map((key, index) => key + ' = 
+    if (keys.length) { const mark = String.fromCharCode(36); const assignments = keys.map((key, index) => key + ' = ' + mark + (index + 1)).join(','); await db.query('UPDATE media_files SET ' + assignments + ' WHERE id = ' + mark + (keys.length + 1), [...keys.map(key => d[key]), ctx.params.id]); }
     await auth.audit(ctx, 'update', 'media', ctx.params.id, { fields: keys });
     return { updated: true, data: (await db.query('SELECT * FROM media_files WHERE id = $1', [ctx.params.id])).rows[0] };
   });
