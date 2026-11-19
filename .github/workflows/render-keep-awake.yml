@@ -5,8 +5,8 @@ on:
     branches: [main]
   schedule:
     # Render Free services sleep after 15 minutes without inbound traffic.
-    # Run every 5 minutes; scheduled GitHub Actions can be delayed.
-    - cron: "*/5 * * * *"
+    # GitHub Actions has a 5-minute minimum. Offset by 2 minutes to avoid the top-of-hour rush.
+    - cron: "2-59/5 * * * *"
   workflow_dispatch:
 
 permissions:
