@@ -213,7 +213,8 @@ export async function dynamicText(path) {
     const cleanImages = [...new Map(images.filter(i => i && i.loc).map(i => [i.loc, i])).values()];
     entries.set(loc, { loc, lastmod: dateOnly(lastmod), images: cleanImages });
   };
-  ['/','/about','/projects','/services','/contact','/articles','/resume','/projects/restaurant/','/projects/agency/','/projects/blog/','/projects/shop/','/projects/event/','/projects/calculator/'].forEach(p => add(p));
+  // CMS project/service detail URLs are added below only when their records are published.
+  ['/','/about','/projects','/services','/contact','/articles','/resume'].forEach(p => add(p));
   const byArticle = new Map();
   for (const i of articleImages.rows) {
     if (!byArticle.has(i.article_id)) byArticle.set(i.article_id, []);
