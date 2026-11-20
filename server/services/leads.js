@@ -4,12 +4,12 @@ import { HttpError } from '../lib/validate.js';
 import { sealOutboundLink } from '../lib/security.js';
 const now = () => new Date().toISOString(); const day = () => now().slice(0, 10);
 export const waUrl = (lead, c) => {
-  const message = `Hello Emmanuel, this is ${c.name}. I just sent an inquiry on your website${lead.service ? ` about "${lead.service}"` : ''}.\\n\\n${String(lead.message).slice(0, 400)}${lead.budget ? `\\n\\nBudget: ${lead.budget}` : ''}`;
+  const message = `Hello Emmanuel, this is ${c.name}. I just sent an inquiry on your website${lead.service ? ` about "${lead.service}"` : ''}.\n\n${String(lead.message).slice(0, 400)}${lead.budget ? `\n\nBudget: ${lead.budget}` : ''}`;
   return config.siteUrl + '/api/links/' + sealOutboundLink(`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent(message)}`);
 };
 const emailUrl = (lead, c) => {
   const subject = lead.service ? `Portfolio Enquiry — ${lead.service}` : 'Portfolio Enquiry';
-  const body = [`Name: ${c.name}`, c.email && `Email: ${c.email}`, c.phone && `Phone: ${c.phone}`, lead.service && `Service: ${lead.service}`, lead.budget && `Budget: ${lead.budget}`, '', 'Message:', lead.message].filter(x => x !== false && x != null).join('\\n');
+  const body = [`Name: ${c.name}`, c.email && `Email: ${c.email}`, c.phone && `Phone: ${c.phone}`, lead.service && `Service: ${lead.service}`, lead.budget && `Budget: ${lead.budget}`, '', 'Message:', lead.message].filter(x => x !== false && x != null).join('\n');
   return config.siteUrl + '/api/links/' + sealOutboundLink(`mailto:${config.ownerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
 };
 const SPAM = /(backlinks?|seo (ranking|services)|crypto|casino|viagra|forex|loan offer|guest post|click here|whatsapp group|earn \$|telegram)/i;
