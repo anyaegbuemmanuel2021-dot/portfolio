@@ -54,3 +54,10 @@ td.actions{white-space:nowrap}
 .notice{border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:.6rem .8rem;margin:.6rem 0;font-size:.9rem}
 
 .field-image-preview{display:block;width:min(100%,320px);max-height:190px;object-fit:contain;object-position:left center;margin:.65rem 0;padding:.35rem;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.field-image-preview[hidden]{display:none}
+
+/* Accessible show/hide control for the admin login password */
+.password-field{position:relative;display:flex;align-items:center}
+.password-field input{padding-right:3.25rem}
+.password-toggle{position:absolute;right:.35rem;top:50%;transform:translateY(-50%);width:2.5rem;height:2.5rem;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
+.password-toggle:hover{color:var(--gold);background:var(--panel2)}
+.password-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
