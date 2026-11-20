@@ -121,7 +121,8 @@ img,video,iframe,svg{max-width:100%}
 }
 
 
-/* Articles listing: use the full desktop content width; do not reserve space for an empty ad sidebar. */
+/* Article listing: use available width for the grid, but keep cards at a readable fixed size.
+   A single published article must not stretch into a full-screen banner. */
 body[data-page="articles"] main.section > .container.articles-layout {
   display: block;
   width: 100%;
@@ -133,12 +134,14 @@ body[data-page="articles"] .articles-layout > div:first-child {
 }
 body[data-page="articles"] .article-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 360px));
+  justify-content: start;
+  align-items: start;
   width: 100%;
   gap: clamp(1rem, 1.5vw, 1.5rem);
 }
-@media (min-width: 1500px) {
-  body[data-page="articles"] .article-grid {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  }
+body[data-page="articles"] .article-card {
+  width: 100%;
+  max-width: 360px;
+  min-width: 0;
 }
