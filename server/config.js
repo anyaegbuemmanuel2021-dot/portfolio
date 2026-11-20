@@ -31,8 +31,8 @@ export const config = {
 export function assertConfig() {
   if (config.storage.provider === 'dbrij') {
     const d = config.storage.dbrij;
-    if (!d.bucket || !d.accessKeyId || !d.secretAccessKey || !d.publicBase) throw new Error('Dbrij storage requires DBRIJ_BUCKET, DBRIJ_KEY_ID, DBRIJ_KEY_SECRET and DBRIJ_MEDIA_PUBLIC_BASE');
-    if (!/^https:\/\//i.test(d.endpoint) || !/^https:\/\//i.test(d.publicBase)) throw new Error('Dbrij S3 endpoint and media public base must use HTTPS');
+    if (!d.bucket || !d.accessKeyId || !d.secretAccessKey) throw new Error('Dbrij storage requires DBRIJ_BUCKET, DBRIJ_KEY_ID and DBRIJ_KEY_SECRET');
+    if (!/^https:\/\//i.test(d.endpoint)) throw new Error('Dbrij S3 endpoint must use HTTPS');
   }
   if (Boolean(config.turnstile.siteKey) !== Boolean(config.turnstile.secretKey)) throw new Error('Configure both TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY, or leave both unset');
   if (config.isProd && (config.authSecret.length < 32)) throw new Error('AUTH_SECRET must be set (>=32 chars) in production');
