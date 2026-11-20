@@ -2,7 +2,7 @@
 
 Personal portfolio and content management platform for Anyaegbu Emmanuel Ikenna.
 
-The application combines the public portfolio, project demonstrations, article pages, admin dashboard and API in one Node.js service. The public website is built with HTML, CSS and vanilla JavaScript. The backend uses Node.js and PostgreSQL.
+The application combines the public portfolio, project demonstrations, article pages, admin dashboard and API in one Node.js service. The public website uses HTML, CSS and vanilla JavaScript, while the application includes a Node.js backend, API routes and PostgreSQL data storage. Together, these provide a full-stack web application architecture.
 
 ## Project structure
 
