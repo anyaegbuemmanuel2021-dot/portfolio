@@ -6,13 +6,24 @@ import { join } from 'node:path';
 const root = process.cwd();
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('homepage uses clear frontend positioning and avoids invented metrics', () => {
+test('homepage uses clear full-stack positioning and avoids invented metrics', () => {
   const html = read('public/index.html');
-  assert.match(html, /Frontend Developer & AI Creative Technologist/);
-  assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development/);
+  assert.match(html, /Full-Stack Developer/);
+  assert.match(html, /Frontend & Backend Development/);
   assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
   assert.match(html, /AI Creative Technologist/);
   assert.match(html, /AI-assisted creative tools/);
+});
+
+test('public profile pages consistently describe frontend and backend development', () => {
+  for (const page of ['public/index.html', 'public/about.html', 'public/services.html', 'public/projects.html', 'public/resume.html', 'public/contact.html', 'public/articles.html', 'public/article.html']) {
+    const html = read(page);
+    assert.match(html, /Full-Stack|full-stack/i, page + ' should identify full-stack development');
+  }
+  const services = read('public/services.html');
+  assert.match(services, /frontend/i);
+  assert.match(services, /backend/i);
+  assert.doesNotMatch(services, /current delivery focus is frontend websites/i);
 });
 
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
