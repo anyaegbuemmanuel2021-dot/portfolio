@@ -12,7 +12,7 @@ test('homepage uses clear full-stack positioning and avoids invented metrics', (
   assert.match(html, /Frontend & Backend Development/);
   assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
   assert.match(html, /AI Creative Technologist/);
-  assert.match(html, /AI-assisted creative tools/);
+  assert.match(html, /AI-assisted promotional videos/);
 });
 
 test('public profile pages consistently describe frontend and backend development', () => {
