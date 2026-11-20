@@ -119,3 +119,26 @@ img,video,iframe,svg{max-width:100%}
     margin-block: 0 1rem;
   }
 }
+
+
+/* Articles listing: use the full desktop content width; do not reserve space for an empty ad sidebar. */
+body[data-page="articles"] main.section > .container.articles-layout {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 1800px);
+}
+body[data-page="articles"] .articles-layout > div:first-child {
+  width: 100%;
+  min-width: 0;
+}
+body[data-page="articles"] .article-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  width: 100%;
+  gap: clamp(1rem, 1.5vw, 1.5rem);
+}
+@media (min-width: 1500px) {
+  body[data-page="articles"] .article-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
