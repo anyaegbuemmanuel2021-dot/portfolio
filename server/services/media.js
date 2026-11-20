@@ -19,6 +19,27 @@ export function imageSize(b, kind) {
 let sharpP; const getSharp = () => (sharpP ||= import('sharp').then(m => m.default).catch(() => null)); // optional dependency
 export function mediaService(db, storage) {
   const svc = {
+    // Migrate existing references to stable same-origin URLs without moving or deleting stored objects.
+    async repairPublicUrls() {
+      const rows = (await db.query('SELECT id, url, storage_key, variants FROM media_files WHERE storage_key IS NOT NULL')).rows;
+      let repaired = 0;
+      for (const row of rows) {
+        const nextUrl = storage.publicUrl(row.storage_key);
+        if (row.url === nextUrl) continue;
+        await db.tx(async tx => {
+          await tx.query('UPDATE media_files SET url = $1 WHERE id = $2', [nextUrl, row.id]);
+          await tx.query('UPDATE articles SET featured_image_url = $1 WHERE featured_image_url = $2', [nextUrl, row.url]);
+          await tx.query('UPDATE article_images SET url = $1 WHERE url = $2', [nextUrl, row.url]);
+          await tx.query('UPDATE articles SET content_md = REPLACE(content_md, $1, $2), content_html = REPLACE(content_html, $1, $2) WHERE content_md LIKE $3 OR content_html LIKE $3', [row.url, nextUrl, `%${row.url}%`]);
+          await tx.query('UPDATE article_revisions SET content_md = REPLACE(content_md, $1, $2) WHERE content_md LIKE $3', [row.url, nextUrl, `%${row.url}%`]);
+          await tx.query('UPDATE biography SET photo_url = $1 WHERE photo_url = $2', [nextUrl, row.url]);
+          await tx.query('UPDATE project_images SET url = $1 WHERE url = $2', [nextUrl, row.url]);
+          if (row.variants) await tx.query('UPDATE media_files SET variants = REPLACE(variants, $1, $2) WHERE id = $3', [row.url, nextUrl, row.id]);
+        });
+        repaired++;
+      }
+      return { checked: rows.length, repaired };
+    },
     async upload(buf, { filename = 'upload', folderId = null, alt = null, adminId }) {
       if (!buf.length) throw new HttpError(400, 'Empty file'); if (buf.length > config.maxUploadBytes) throw new HttpError(413, `File exceeds ${config.maxUploadBytes / 1048576} MB limit`);
       const kind = sniff(buf, filename); if (!kind) throw new HttpError(415, 'Unsupported file type. Allowed: PNG, JPEG, GIF, WebP, PDF, DOCX');
