@@ -1,8 +1,17 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { config } from '../config.js';
 import { HttpError } from '../lib/validate.js';
+import { sealOutboundLink } from '../lib/security.js';
 const now = () => new Date().toISOString(); const day = () => now().slice(0, 10);
-export const waUrl = (lead, c) => `https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent(`Hello Emmanuel, this is ${c.name}. I just sent an inquiry on your website${lead.service ? ` about "${lead.service}"` : ''}.\n\n${String(lead.message).slice(0, 400)}${lead.budget ? `\n\nBudget: ${lead.budget}` : ''}`)}`;
+export const waUrl = (lead, c) => {
+  const message = `Hello Emmanuel, this is ${c.name}. I just sent an inquiry on your website${lead.service ? ` about "${lead.service}"` : ''}.\\n\\n${String(lead.message).slice(0, 400)}${lead.budget ? `\\n\\nBudget: ${lead.budget}` : ''}`;
+  return config.siteUrl + '/api/links/' + sealOutboundLink(`https://wa.me/${config.whatsappNumber}?text=${encodeURIComponent(message)}`);
+};
+const emailUrl = (lead, c) => {
+  const subject = lead.service ? `Portfolio Enquiry — ${lead.service}` : 'Portfolio Enquiry';
+  const body = [`Name: ${c.name}`, c.email && `Email: ${c.email}`, c.phone && `Phone: ${c.phone}`, lead.service && `Service: ${lead.service}`, lead.budget && `Budget: ${lead.budget}`, '', 'Message:', lead.message].filter(x => x !== false && x != null).join('\\n');
+  return config.siteUrl + '/api/links/' + sealOutboundLink(`mailto:${config.ownerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+};
 const SPAM = /(backlinks?|seo (ranking|services)|crypto|casino|viagra|forex|loan offer|guest post|click here|whatsapp group|earn \$|telegram)/i;
 const INTENT = /(website|web ?site|app|landing page|redesign|build|develop|e-?commerce|shop|portfolio|quote|hire|project|price|pricing|logo|seo|booking|restaurant|school|business)/i;
 export function qualify({ name, email, phone, service, budget, message }) {
@@ -24,7 +33,8 @@ export function leadService(db, { mailer }) {
       const existing = input.email ? (await db.query('SELECT id FROM contacts WHERE email = $1', [input.email])).rows[0] : null; const contactId = existing?.id || cId;
       let src = (await db.query('SELECT id FROM lead_sources WHERE name = $1', [source])).rows[0];
       const lead = { id: lId, service: input.service, message: input.message, budget: input.budget };
-      const wa = q.status === 'qualified' ? waUrl(lead, input) : null;
+      const wa = waUrl(lead, input);
+      const email = emailUrl(lead, input);
       await db.tx(async tx => {
         if (!existing) await tx.query('INSERT INTO contacts (id,name,email,phone,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$5)', [cId, input.name, input.email || null, input.phone || null, t]);
         await tx.query('INSERT INTO leads (id,contact_id,source_id,service,budget,message,status,score,qualification_reason,whatsapp_url,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11)', [lId, contactId, src?.id || null, input.service || null, input.budget || null, input.message, q.status, q.score, q.reason, wa, t]);
@@ -36,7 +46,7 @@ export function leadService(db, { mailer }) {
       });
       let notified = false; // owner notification (only true if a real provider accepted it)
       if (q.status !== 'spam') { try { const r = await mailer.send({ to: config.ownerEmail, replyTo: input.email, subject: `New ${q.status} lead: ${input.name}`, text: `${input.message}\n\nName: ${input.name}\nEmail: ${input.email || '-'}\nPhone: ${input.phone || '-'}\nService: ${input.service || '-'}\nBudget: ${input.budget || '-'}\n\n${q.reason}` }); notified = !!mailer.real; await db.query('INSERT INTO email_delivery_logs (id,to_email,subject,provider,provider_message_id,status,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)', [randomUUID(), config.ownerEmail, `New lead: ${input.name}`, mailer.name, r.id, mailer.real ? 'sent' : 'not_sent_log_provider', now()]); } catch (e) { await db.query('INSERT INTO email_delivery_logs (id,to_email,subject,provider,status,error,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)', [randomUUID(), config.ownerEmail, `New lead: ${input.name}`, mailer.name, 'failed', e.message.slice(0, 300), now()]); } }
-      return { id: lId, status: q.status === 'spam' ? 'new' : q.status, whatsapp_url: wa, owner_notified_by_email: notified, whatsapp_message_sent: false };
+      return { id: lId, status: q.status === 'spam' ? 'new' : q.status, whatsapp_url: wa, email_url: email, owner_notified_by_email: notified, whatsapp_message_sent: false };
     },
   };
   return svc;
