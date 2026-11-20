@@ -294,7 +294,7 @@
       try {
         const response = await window.PortfolioAPI.submitContact(payload);
         if (!response || !response.data || !response.data.received || !response.data.id) throw new Error('The server did not confirm that your message was saved. Please try again.');
-        savedContact = { ...d, whatsappUrl: response.data.whatsapp_url || '' };
+        savedContact = { ...d, whatsappUrl: response.data.whatsapp_url || '', emailUrl: response.data.email_url || '' };
         waBtn.disabled = false; emailBtn.disabled = false;
         showMsg('Your message has been saved successfully and is now available in the admin dashboard. You can optionally continue through WhatsApp or email.', 'success');
         turnstileToken = '';
@@ -309,26 +309,12 @@
     });
 
     waBtn.addEventListener('click', () => {
-      if (!savedContact) { showMsg('Submit your message first so it is saved to the database.', 'error'); return; }
-      let body = `Hello Emmanuel, I just submitted an enquiry through your portfolio website.\n\nName: ${savedContact.name}\n`;
-      if (savedContact.email) body += `Email: ${savedContact.email}\n`;
-      if (savedContact.phone) body += `Phone: ${savedContact.phone}\n`;
-      if (savedContact.service) body += `Service: ${savedContact.service}\n`;
-      if (savedContact.budget) body += `Budget: ${savedContact.budget}\n`;
-      body += `\nMessage:\n${savedContact.message}`;
-      const url = savedContact.whatsappUrl || `https://wa.me/2347046947391?text=${encodeURIComponent(body)}`;
-      window.open(url, '_blank', 'noopener');
+      if (!savedContact || !savedContact.whatsappUrl) { showMsg('Submit your message first so a secure WhatsApp link can be created.', 'error'); return; }
+      window.open(savedContact.whatsappUrl, '_blank', 'noopener,noreferrer');
     });
     emailBtn.addEventListener('click', () => {
-      if (!savedContact) { showMsg('Submit your message first so it is saved to the database.', 'error'); return; }
-      const subject = savedContact.service ? `Portfolio Enquiry — ${savedContact.service}` : 'Portfolio Enquiry';
-      let body = `Name: ${savedContact.name}\n`;
-      if (savedContact.email) body += `Email: ${savedContact.email}\n`;
-      if (savedContact.phone) body += `Phone: ${savedContact.phone}\n`;
-      if (savedContact.service) body += `Service: ${savedContact.service}\n`;
-      if (savedContact.budget) body += `Budget: ${savedContact.budget}\n`;
-      body += `\nMessage:\n${savedContact.message}`;
-      window.location.href = `mailto:anyaegbuemmanuel2021@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      if (!savedContact || !savedContact.emailUrl) { showMsg('Submit your message first so a secure email link can be created.', 'error'); return; }
+      window.location.href = savedContact.emailUrl;
     });
   </script>
 
