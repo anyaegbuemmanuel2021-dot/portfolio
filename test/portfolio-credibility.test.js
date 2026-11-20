@@ -129,12 +129,13 @@ test('homepage showcases eleven projects and builds while retaining all six labe
 });
 
 
-test('public article empty state has no admin link and single article cards stay compact', () => {
-  const articles = read('public/assets/js/articles.js');
+test('public article page has no empty-state copy or admin manager link and cards stay compact', () => {
+  const articles = read('public/articles.html') + read('public/assets/js/articles.js');
   const css = read('public/assets/css/platform.css');
-  assert.match(articles, /New articles are being prepared/);
-  assert.doesNotMatch(articles, /\/admin\/#\/articles|Open article manager|admin dashboard/i);
-  assert.match(css, /grid-template-columns:\s*repeat\(auto-fill,\s*minmax\(min\(100%,\s*320px\),\s*360px\)\)/);
-  assert.match(css, /justify-content:\s*start/);
-  assert.match(css, /max-width:\s*360px/);
+  for (const phrase of ['Articles are on the way', 'New articles are being prepared', 'Open article manager', '/admin/#/articles']) {
+    assert.equal(articles.includes(phrase), false, `Public articles source should not contain: ${phrase}`);
+  }
+  assert.match(css, /grid-template-columns:\\s*repeat\\(auto-fill,\\s*minmax\\(min\\(100%,\\s*320px\\),\\s*360px\\)\\)/);
+  assert.match(css, /justify-content:\\s*start/);
+  assert.match(css, /max-width:\\s*360px/);
 });
