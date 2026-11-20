@@ -68,8 +68,9 @@ test('resume is the only public CV destination and contains confirmed education 
   }
 });
 
-test('articles page provides a useful empty state when no posts are published', () => {
-  assert.match(read('public/assets/js/articles.js'), /Articles are on the way/);
+test('public articles page does not expose an empty-state admin prompt or manager link', () => {
+  const articles = read('public/articles.html') + read('public/assets/js/articles.js');
+  assert.doesNotMatch(articles, /Articles are on the way|New articles are being prepared|Open article manager|admin\\/#\\/articles/i);
 });
 
 test('CMS skills are allowlisted and testimonials stay hidden until verified', () => {
