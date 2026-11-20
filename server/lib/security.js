@@ -21,7 +21,7 @@ export const safeEq = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.f
 const outboundKey = () => createHash('sha256').update('portfolio-outbound-link:' + config.authSecret).digest();
 export function sealOutboundLink(destination, ttlMs = 30 * 60 * 1000) {
   const value = String(destination || ''), u = new URL(value);
-  const allowed = (u.protocol === 'https:' && u.hostname === 'wa.me' && /^\\/\\/\\d{8,15}$/.test(u.pathname))
+  const allowed = (u.protocol === 'https:' && u.hostname === 'wa.me' && /^\/\d{8,15}$/.test(u.pathname))
     || (u.protocol === 'mailto:' && u.pathname.toLowerCase() === config.ownerEmail.toLowerCase());
   if (!allowed) throw new Error('Unsupported outbound link destination');
   const payload = Buffer.from(JSON.stringify({ v: 1, exp: Date.now() + ttlMs, url: value }));
@@ -39,7 +39,7 @@ export function openOutboundLink(tokenValue) {
     const payload = JSON.parse(raw.toString('utf8'));
     if (payload.v !== 1 || !Number.isFinite(payload.exp) || payload.exp < Date.now()) return null;
     const u = new URL(payload.url);
-    const allowed = (u.protocol === 'https:' && u.hostname === 'wa.me' && /^\\/\\/\\d{8,15}$/.test(u.pathname))
+    const allowed = (u.protocol === 'https:' && u.hostname === 'wa.me' && /^\/\d{8,15}$/.test(u.pathname))
       || (u.protocol === 'mailto:' && u.pathname.toLowerCase() === config.ownerEmail.toLowerCase());
     return allowed ? u.href : null;
   } catch { return null; }
