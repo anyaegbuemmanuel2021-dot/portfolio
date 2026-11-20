@@ -107,7 +107,13 @@ test('media: content-sniffed upload, reject fake image, usage-check delete', asy
 test('contact form: validation, qualification, WhatsApp URL, no-budget lead kept, spam, duplicate, honeypot', async () => {
   assert.equal((await api('POST', '/api/contacts', { name: 'A', message: 'hello there friend' }, { auth: false })).s, 422);
   const q = await api('POST', '/api/contacts', { name: 'Ada Obi', email: 'ada@example.com', phone: '+2348012345678', service: 'Website Development', message: 'I need a website for my restaurant business, with online menu and booking. Need it soon.' }, { auth: false });
-  assert.equal(q.s, 201); assert.equal(q.j.data.status, 'qualified'); assert.ok(q.j.data.whatsapp_url.startsWith('https://wa.me/2347046947391?text=')); assert.equal(q.j.data.whatsapp_message_sent, false); assert.equal(q.j.data.owner_notified_by_email, false);
+  assert.equal(q.s, 201); assert.equal(q.j.data.status, 'qualified'); assert.ok(q.j.data.whatsapp_url.startsWith(base + '/api/links/')); assert.ok(q.j.data.email_url.startsWith(base + '/api/links/'));
+  const waRedirect = await api('GET', q.j.data.whatsapp_url.replace(base, ''), null, { auth: false });
+  assert.equal(waRedirect.s, 302); assert.match(waRedirect.r.headers.get('location'), /^https:\/\/wa\.me\/2347046947391\?text=/);
+  const emailRedirect = await api('GET', q.j.data.email_url.replace(base, ''), null, { auth: false });
+  assert.equal(emailRedirect.s, 302); assert.match(emailRedirect.r.headers.get('location'), /^mailto:anyaegbuemmanuel2021@gmail.com\?/);
+  const tampered = await api('GET', q.j.data.whatsapp_url.replace(base, '').replace(/.$/, 'x'), null, { auth: false });
+  assert.equal(tampered.s, 404); assert.equal(q.j.data.whatsapp_message_sent, false); assert.equal(q.j.data.owner_notified_by_email, false);
   const n = await api('POST', '/api/contacts', { name: 'Tunde', email: 'tunde@example.com', message: 'Hi, can we talk about a project please?' }, { auth: false }); assert.equal(n.s, 201); assert.notEqual(n.j.data.status, 'rejected'); assert.notEqual(n.j.data.status, 'spam');
   assert.equal((await api('POST', '/api/contacts', { name: 'Tunde', email: 'tunde@example.com', message: 'Hi, can we talk about a project please?' }, { auth: false })).s, 409);
   await api('POST', '/api/contacts', { name: 'Spam', email: 's@example.com', message: 'Buy cheap backlinks and crypto http://a.com http://b.com http://c.com' }, { auth: false });
