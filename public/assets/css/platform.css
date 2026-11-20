@@ -145,3 +145,46 @@ body[data-page="articles"] .article-card {
   max-width: 360px;
   min-width: 0;
 }
+
+
+/* Articles page layout: full-width content area with compact, left-aligned cards. */
+body.articles-page main.articles-main > .articles-page-layout {
+  display: block !important;
+  width: min(100% - 2 * clamp(1rem, 4vw, 3rem), 1600px) !important;
+  max-width: 1600px !important;
+  margin-inline: auto !important;
+}
+body.articles-page .articles-page-layout > div:first-child {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+body.articles-page .articles-page-layout > aside {
+  display: none !important;
+}
+body.articles-page .articles-tools {
+  width: 100%;
+  max-width: 900px;
+}
+body.articles-page #articleList.article-grid {
+  display: grid !important;
+  width: 100% !important;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 360px)) !important;
+  justify-content: start !important;
+  align-items: start !important;
+  gap: clamp(1rem, 1.5vw, 1.5rem) !important;
+}
+body.articles-page #articleList .article-card {
+  width: 100% !important;
+  max-width: 360px !important;
+  min-width: 0 !important;
+}
+@media (max-width: 700px) {
+  body.articles-page main.articles-main > .articles-page-layout {
+    width: calc(100% - 2rem) !important;
+  }
+  body.articles-page #articleList.article-grid {
+    grid-template-columns: minmax(0, 360px) !important;
+  }
+}
