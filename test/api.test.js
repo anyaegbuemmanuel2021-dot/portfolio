@@ -112,7 +112,7 @@ test('contact form: validation, qualification, WhatsApp URL, no-budget lead kept
   assert.equal(waRedirect.s, 302); assert.match(waRedirect.r.headers.get('location'), /^https:\/\/wa\.me\/2347046947391\?text=/);
   const emailRedirect = await api('GET', q.j.data.email_url.replace('http://localhost', ''), null, { auth: false });
   assert.equal(emailRedirect.s, 302); assert.match(emailRedirect.r.headers.get('location'), /^mailto:anyaegbuemmanuel2021@gmail.com\?/);
-  const tampered = await api('GET', q.j.data.whatsapp_url.replace(base, '').replace(/.$/, 'x'), null, { auth: false });
+  const tampered = await api('GET', q.j.data.whatsapp_url.replace('http://localhost', '').replace(/.$/, 'x'), null, { auth: false });
   assert.equal(tampered.s, 404); assert.equal(q.j.data.whatsapp_message_sent, false); assert.equal(q.j.data.owner_notified_by_email, false);
   const n = await api('POST', '/api/contacts', { name: 'Tunde', email: 'tunde@example.com', message: 'Hi, can we talk about a project please?' }, { auth: false }); assert.equal(n.s, 201); assert.notEqual(n.j.data.status, 'rejected'); assert.notEqual(n.j.data.status, 'spam');
   assert.equal((await api('POST', '/api/contacts', { name: 'Tunde', email: 'tunde@example.com', message: 'Hi, can we talk about a project please?' }, { auth: false })).s, 409);
