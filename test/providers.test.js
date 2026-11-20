@@ -32,7 +32,7 @@ test('Dbrij provider signs path-style S3 requests and supports put/get/delete', 
     assert.ok(calls.every(call => call.url.startsWith('https://s3.dbrij.com/portfolio-media/')));
     assert.ok(calls.every(call => call.init.headers.Authorization.startsWith('AWS4-HMAC-SHA256')));
     assert.ok(calls[0].init.headers.Authorization.includes('/auto/s3/aws4_request'));
-    assert.equal(store.publicUrl('uploads/a.webp'), 'https://files.dbrij.com/test-media-bucket-id/uploads/a.webp');
+    assert.equal(store.publicUrl('uploads/a.webp'), '/api/media/file?key=uploads%2Fa.webp');
   } finally {
     globalThis.fetch = originalFetch;
   }
