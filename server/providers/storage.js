@@ -21,7 +21,7 @@ export function localStorageProvider(dir = config.storage.localDir) {
   };
   return {
     name: 'local',
-    publicUrl: key => `${config.storage.publicBase || ''}/media/${safeKey(key)}`,
+    publicUrl: key => `/api/media/file?key=${encodeURIComponent(safeKey(key))}`,
     async put(key, buffer) {
       const file = full(key);
       await mkdir(dirname(file), { recursive: true });
@@ -40,9 +40,9 @@ const hmac = (key, data) => createHmac('sha256', key).update(data).digest();
  * Uses path-style URLs as required by Dbrij's documented S3 endpoint.
  */
 export function dbrijStorageProvider(options = config.storage.dbrij) {
-  const { endpoint, region, bucket, accessKeyId, secretAccessKey, publicBase } = options || {};
-  if (!endpoint || !bucket || !accessKeyId || !secretAccessKey || !publicBase) {
-    throw new Error('Dbrij storage is not fully configured. Set DBRIJ_S3_ENDPOINT, DBRIJ_BUCKET, DBRIJ_KEY_ID, DBRIJ_KEY_SECRET and DBRIJ_MEDIA_PUBLIC_BASE.');
+  const { endpoint, region, bucket, accessKeyId, secretAccessKey } = options || {};
+  if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
+    throw new Error('Dbrij storage is not fully configured. Set DBRIJ_S3_ENDPOINT, DBRIJ_BUCKET, DBRIJ_KEY_ID and DBRIJ_KEY_SECRET.');
   }
   const base = new URL(endpoint);
   if (base.protocol !== 'https:' || base.hostname !== 's3.dbrij.com' || base.port || base.pathname !== '/' || base.search || base.hash) {
@@ -51,10 +51,8 @@ export function dbrijStorageProvider(options = config.storage.dbrij) {
   if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket)) {
     throw new Error('DBRIJ_BUCKET must be a 3-63 character lowercase bucket name using letters, numbers and hyphens');
   }
-  if (!/^https:\/\//i.test(publicBase)) throw new Error('DBRIJ_MEDIA_PUBLIC_BASE must be an HTTPS public delivery URL');
   const host = base.host;
   const signingRegion = region || 'auto';
-  const publicRoot = publicBase.replace(/\/$/, '');
 
   async function request(method, key, body = Buffer.alloc(0), mimeType) {
     const objectKey = safeKey(key);
@@ -92,7 +90,7 @@ export function dbrijStorageProvider(options = config.storage.dbrij) {
 
   return {
     name: 'dbrij',
-    publicUrl: key => `${publicRoot}/${safeKey(key).split('/').map(encodeURIComponent).join('/')}`,
+    publicUrl: key => `/api/media/file?key=${encodeURIComponent(safeKey(key))}`,
     put: (key, buffer, mimeType) => request('PUT', key, buffer, mimeType),
     async get(key) {
       return Buffer.from(await (await request('GET', key)).arrayBuffer());
