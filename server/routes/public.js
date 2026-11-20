@@ -2,6 +2,7 @@ import { verifyTurnstile } from '../lib/turnstile.js';
 import { config } from '../config.js';
 import { HttpError, validate } from '../lib/validate.js';
 import { rateLimit } from '../lib/http.js';
+import { openOutboundLink } from '../lib/security.js';
 import { tableRepo, kv, fixRow } from '../repositories/base.js';
 const PUBLIC_SETTINGS = ['site_title', 'site_tagline', 'contact_email', 'whatsapp_number', 'footer_text', 'seo_default_title', 'seo_default_description', 'canonical_base', 'adsense_enabled', 'adsense_client', 'contact_phone', 'contact_location', 'education', 'portfolio_url', 'about_story_1', 'about_story_2', 'about_story_3', 'about_story_4', 'certifications_json', 'pricing_json', 'process_json', 'contact_intro', 'service_cta_title', 'service_cta_body', 'footer_tagline', 'page_home_visible', 'page_about_visible', 'page_projects_visible', 'page_services_visible', 'page_articles_visible', 'page_contact_visible'];
 export function publicRoutes(app, { db, leads, articles, analytics, ads, email, aiOn }) {
@@ -13,6 +14,12 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
     cache = { t: Date.now(), v: { settings: settingsPub, biography: bio, navigation: await pub('navigation_items'), services: await pub('services'), projects: await pub('projects'), skills: await pub('skills'), experience: await pub('experience'), testimonials: await pub('testimonials'), social_links: await pub('social_links'), homepage_sections: await pub('homepage_sections'), ads: { adsense: { enabled: !!net.adsense?.enabled, client: net.adsense?.enabled ? net.adsense.value : null }, self_managed_enabled: net.self_managed ? net.self_managed.enabled : true } } }; return cache.v;
   }
   app.invalidate = () => { cache.t = 0; };
+  app.get('/api/links/:token', async ctx => {
+    rateLimit('outbound-link:' + ctx.ipHash, 30, 60e3);
+    const destination = openOutboundLink(ctx.params.token);
+    if (!destination) throw new HttpError(404, 'This contact link is invalid or has expired');
+    return { __raw: true, status: 302, headers: { Location: destination, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }, body: '' };
+  });
   app.get('/api/security/config', async () => ({ turnstile: { enabled: Boolean(config.turnstile.siteKey && config.turnstile.secretKey), siteKey: config.turnstile.siteKey || null } }));
   app.get('/api/content', async () => ({ data: await content(), headers: { 'Cache-Control': 'no-store, max-age=0' } }));
   app.get('/api/services', async () => (await content()).services);
