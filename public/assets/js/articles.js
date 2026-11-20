@@ -7,6 +7,19 @@
   var fmt = function (d) { try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) { return ''; } };
   function setMeta(name, content, prop) { if (!content) return; var sel = prop ? 'meta[property="' + name + '"]' : 'meta[name="' + name + '"]'; var m = document.head.querySelector(sel); if (!m) { m = document.createElement('meta'); m.setAttribute(prop ? 'property' : 'name', name); document.head.appendChild(m); } m.setAttribute('content', content); }
   function safeImg(u) { if (typeof u !== 'string' || !u.trim()) return ''; u = u.trim(); if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('//') || u.startsWith('/') || u.startsWith('data:image/')) return u; if (u.startsWith('uploads/') || u.startsWith('./uploads/')) return '/' + (u.startsWith('./') ? u.slice(2) : u); return ''; }
+  function attachImage(img, url) {
+    var attempts = 0; var delays = [500, 1500, 3500];
+    function load() {
+      var next = url;
+      if (/^\/api\/media\/file\?/.test(url)) next += (url.indexOf('?') >= 0 ? '&' : '?') + 'retry=' + attempts;
+      img.src = next;
+    }
+    img.onerror = function () {
+      if (attempts >= delays.length) return;
+      var wait = delays[attempts++]; setTimeout(load, wait);
+    };
+    load();
+  }
 
   var list = $('#articleList');
   if (list) {
@@ -20,7 +33,7 @@
         list.textContent = ''; if (!r.data.length) { var empty = el('div', 'article-empty'); empty.appendChild(el('h2', 'article-card__title', 'Articles are on the way')); empty.appendChild(el('p', 'article-card__excerpt', 'Articles saved as drafts remain private. Publish an article from the admin dashboard and it will appear here.')); var admin = el('a', 'btn btn--primary btn--sm', 'Open article manager'); admin.href = '/admin/#/articles'; empty.appendChild(admin); list.appendChild(empty); }
         r.data.forEach(function (a) {
           var c = el('a', 'article-card'); c.href = '/articles/' + encodeURIComponent(a.slug);
-          if (safeImg(a.featured_image_url)) { var i = el('img', 'article-card__img'); i.src = a.featured_image_url; i.alt = ''; i.loading = 'lazy'; i.decoding = 'async'; c.appendChild(i); }
+          if (safeImg(a.featured_image_url)) { var i = el('img', 'article-card__img'); attachImage(i, a.featured_image_url); i.alt = ''; i.loading = 'lazy'; i.decoding = 'async'; c.appendChild(i); }
           var b = el('div', 'article-card__body'); b.appendChild(el('div', 'article-card__meta', [a.category_name, fmt(a.published_at)].filter(Boolean).join(' · ')));
           b.appendChild(el('h2', 'article-card__title', a.title)); if (a.excerpt) b.appendChild(el('p', 'article-card__excerpt', a.excerpt)); c.appendChild(b); list.appendChild(c);
         });
@@ -42,8 +55,8 @@
       setMeta('description', a.seo_description || a.excerpt); setMeta('og:title', a.seo_title || a.title, 1); setMeta('og:description', a.seo_description || a.excerpt, 1); setMeta('og:type', 'article', 1); if (safeImg(a.featured_image_url)) setMeta('og:image', a.featured_image_url, 1);
       var link = document.head.querySelector('link[rel=canonical]') || document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' })); link.href = a.canonical_url || link.href || location.origin + '/articles/' + a.slug;
       box.textContent = ''; box.appendChild(el('h1', 'article__title', a.title)); box.appendChild(el('div', 'article__meta', [fmt(a.published_at), a.category_name].filter(Boolean).join(' · ')));
-      if (safeImg(a.featured_image_url)) { var h = el('img', 'article__hero'); h.src = a.featured_image_url; h.alt = ''; box.appendChild(h); }
-      var body = el('div', 'article__body'); body.innerHTML = a.content_html; box.appendChild(body); // server-rendered from escaped Markdown (no raw HTML possible)
+      if (safeImg(a.featured_image_url)) { var h = el('img', 'article__hero'); attachImage(h, a.featured_image_url); h.alt = ''; box.appendChild(h); }
+      var body = el('div', 'article__body'); body.innerHTML = a.content_html; Array.prototype.forEach.call(body.querySelectorAll('img'), function (img) { var src = img.getAttribute('src') || ''; if (/^\/api\/media\/file\?/.test(src)) { img.removeAttribute('src'); attachImage(img, src); } }); box.appendChild(body); // server-rendered from escaped Markdown (no raw HTML possible)
       var ad = el('div', 'ad-slot'); ad.hidden = true; ad.setAttribute('data-ad-slot', 'article'); box.appendChild(ad);
       if (a.tags && a.tags.length) { var tg = el('div', 'article__tags'); a.tags.forEach(function (x) { tg.appendChild(el('span', 'article__tag', '#' + x.name)); }); box.appendChild(tg); }
       var sh = el('div', 'article__share');
