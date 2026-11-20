@@ -295,7 +295,8 @@ const Counters = {
 const Typer = {
   el: null,
   phrases: [
-    'Frontend Developer',
+    'Full-Stack Developer',
+    'Frontend & Backend Developer',
     'AI Creative Technologist',
     'Responsive Design Specialist',
     'UI/UX Enthusiast',
