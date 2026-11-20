@@ -30,7 +30,7 @@
       var qs = '?page=' + state.page + '&limit=9' + (state.q ? '&q=' + encodeURIComponent(state.q) : '') + (state.category ? '&category=' + encodeURIComponent(state.category) : '');
       API.get('/api/articles' + qs).then(function (r) {
         if (!r || !Array.isArray(r.data) || !r.meta) throw new Error('The article service returned an invalid response.');
-        list.textContent = ''; if (!r.data.length) { var empty = el('div', 'article-empty'); empty.appendChild(el('h2', 'article-card__title', 'Articles are on the way')); empty.appendChild(el('p', 'article-card__excerpt', 'New articles are being prepared. Please check back soon.')); list.appendChild(empty); }
+        list.textContent = '';
         r.data.forEach(function (a) {
           var c = el('a', 'article-card'); c.href = '/articles/' + encodeURIComponent(a.slug);
           if (safeImg(a.featured_image_url)) { var i = el('img', 'article-card__img'); attachImage(i, a.featured_image_url); i.alt = ''; i.loading = 'lazy'; i.decoding = 'async'; c.appendChild(i); }
