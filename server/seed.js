@@ -41,7 +41,7 @@ export async function seed(db) {
   const articleCategories = [
     ['Technology', 'technology', 'Technology, software and digital innovation'],
     ['Artificial Intelligence', 'artificial-intelligence', 'AI tools, applications and responsible use'],
-    ['Web Development', 'web-development', 'Frontend development, web design and the modern web'],
+    ['Web Development', 'web-development', 'Frontend interfaces, backend functionality and modern full-stack web development'],
     ['Business', 'business', 'Business operations, strategy and digital transformation'],
     ['Productivity', 'productivity', 'Work, productivity and practical professional skills']
   ];
