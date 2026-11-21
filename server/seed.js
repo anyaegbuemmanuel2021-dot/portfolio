@@ -20,6 +20,7 @@ export async function seed(db) {
 
   // Add the five independently developed GitHub projects without overwriting admin edits.
   const additionalProjects = [
+    { title: 'RetailOS — Multi-Business Retail Management Platform', slug: 'retailos', summary: 'A full-stack retail operations platform in active development, bringing together product catalogues, inventory, point-of-sale sales, customers, staff permissions, purchasing, transfers, returns and multi-branch operations with business-level tenant isolation.', description: 'RetailOS is a multi-business retail management platform built around business-level tenant boundaries and explicit branch access. Its modules cover business onboarding, products, inventory, point-of-sale sales, customer records, staff and role permissions, purchasing, stock transfers, returns, expenses and platform administration.\n\nThe project uses a React and TypeScript web application, a Fastify and TypeScript API, Prisma and PostgreSQL, with shared types across the application. It is currently in active development; payment and subscription workflows, database migration history and production operations are still being completed and verified before a full public launch.', url: null, repo_url: null, category: 'App', tags: 'React, TypeScript, Fastify, Prisma, PostgreSQL, Multi-Tenant SaaS', is_featured: true, sort_order: 0 },
     { title: 'MedPulse — Medical Learning Platform', slug: 'medpulse', summary: 'A medical learning and community platform with learning resources, user profiles, posts, discussions, messaging, verification and moderation workflows.', url: null, repo_url: 'https://github.com/anyaegbuemmanuel2021-dot/med', category: 'Business', tags: 'Next.js, TypeScript, Firebase, Cloudinary', is_featured: true },
     { title: 'CMBS — Church Media Broadcast System', slug: 'church-media-broadcast-system', summary: 'A church media and broadcasting system repository covering live media workflows, streaming infrastructure, administration and service operations.', url: null, repo_url: 'https://github.com/anyaegbuemmanuel2021-dot/cbms', category: 'Business', tags: 'Node.js, Express, Appwrite, PostgreSQL, Redis', is_featured: false },
     { title: 'Softly Digital CBT — Computer-Based Testing', slug: 'softly-digital-cbt', summary: 'A computer-based testing application with candidate and centre workflows, examination management and an Appwrite-backed application structure.', url: null, repo_url: 'https://github.com/anyaegbuemmanuel2021-dot/cbt-appwrite', category: 'App', tags: 'JavaScript, Appwrite, Cloudinary', is_featured: false },
@@ -28,7 +29,7 @@ export async function seed(db) {
   ];
   for (const p of additionalProjects) {
     if (await missing('projects', 'slug', p.slug)) {
-      const row = { id: randomUUID(), ...p, sort_order: await count('projects'), is_published: true, created_at: t, updated_at: t };
+      const row = { id: randomUUID(), ...p, sort_order: p.sort_order ?? await count('projects'), is_published: true, created_at: t, updated_at: t };
       const cols = Object.keys(row);
       const sql = 'INSERT INTO projects (' + cols.join(',') + ') VALUES (' + cols.map((_, i) => '$' + (i + 1)).join(',') + ')';
       await db.query(sql, cols.map(k => row[k]));
