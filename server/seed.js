@@ -56,7 +56,7 @@ export async function seed(db) {
   const articleTitle = 'The Future of Technology: How Artificial Intelligence Is Changing the Way We Work';
   const articleSlug = 'future-of-technology-artificial-intelligence-changing-work';
   const articleExcerpt = 'Artificial intelligence is transforming how businesses operate, how professionals work, and how people solve everyday problems. Discover the opportunities, challenges, and possibilities of an AI-powered world.';
-  const articleImage = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=85';
+  const articleImage = 'https://images.stockcake.com/public/a/1/f/a1f507a9-d94d-4f8f-97f0-1980a77d0d1d_medium/future-office-technology-stockcake.jpg';
   const articleMarkdown = [
     '## Artificial intelligence is changing the workplace',
     'Artificial intelligence (AI) is becoming part of everyday work. From writing and research tools to customer support systems and data analysis, AI is changing how people complete tasks and how organisations deliver services. What once required hours of manual effort can increasingly be supported by software that helps people organise information, identify patterns and produce a useful first draft.',
