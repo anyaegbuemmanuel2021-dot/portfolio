@@ -86,7 +86,7 @@ export async function seed(db) {
   )).rows[0];
   if (existingArticle) {
     await db.query(
-      "UPDATE articles SET status = 'published', published_at = COALESCE(published_at, $1), publish_at = NULL, category_id = COALESCE(category_id, $2), excerpt = COALESCE(excerpt, $3), content_md = CASE WHEN content_md IS NULL OR content_md = '' THEN $4 ELSE content_md END, content_html = CASE WHEN content_html IS NULL OR content_html = '' THEN $5 ELSE content_html END, featured_image_url = COALESCE(NULLIF(featured_image_url, ''), $6), updated_at = $1 WHERE id = $7",
+      "UPDATE articles SET status = 'published', published_at = COALESCE(published_at, $1), publish_at = NULL, category_id = COALESCE(category_id, $2), excerpt = COALESCE(excerpt, $3), content_md = CASE WHEN content_md IS NULL OR content_md = '' THEN $4 ELSE content_md END, content_html = CASE WHEN content_html IS NULL OR content_html = '' THEN $5 ELSE content_html END, featured_image_url = $6, updated_at = $1 WHERE id = $7",
       [t, technologyCategory?.id || null, articleExcerpt, articleMarkdown, articleHtml, articleImage, existingArticle.id]
     );
   } else {
@@ -99,8 +99,8 @@ export async function seed(db) {
   }
   const futureArticle = (await db.query("SELECT id, featured_image_url FROM articles WHERE lower(title) = lower($1) OR lower(slug) = $2 OR lower(slug) LIKE $2 || '-%' ORDER BY CASE WHEN lower(slug) = $2 THEN 0 ELSE 1 END LIMIT 1", [articleTitle, articleSlug])).rows[0];
   if (futureArticle) {
-    if (!futureArticle.featured_image_url) await db.query("UPDATE articles SET featured_image_url = $1, updated_at = $2 WHERE id = $3", [articleImage, t, futureArticle.id]);
-    await db.query("INSERT INTO article_images (id,article_id,url,alt,sort_order) SELECT $1,$2,$3,$4,0 WHERE NOT EXISTS (SELECT 1 FROM article_images WHERE article_id = $2)", [randomUUID(), futureArticle.id, articleImage, articleTitle]);
+    await db.query("UPDATE articles SET featured_image_url = $1, updated_at = $2 WHERE id = $3", [articleImage, t, futureArticle.id]);
+    await db.query("INSERT INTO article_images (id,article_id,url,alt,sort_order) SELECT $1,$2,$3,$4,0 WHERE NOT EXISTS (SELECT 1 FROM article_images WHERE article_id = $2 AND url = $3)", [randomUUID(), futureArticle.id, articleImage, articleTitle]);
   }
 
 
