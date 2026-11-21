@@ -135,7 +135,7 @@ test('public article page has no empty-state copy or admin manager link and card
   for (const phrase of ['Articles are on the way', 'New articles are being prepared', 'Open article manager', '/admin/#/articles']) {
     assert.equal(articles.includes(phrase), false, `Public articles source should not contain: ${phrase}`);
   }
-  assert.match(css, /grid-template-columns:\\s*repeat\\(auto-fill,\\s*minmax\\(min\\(100%,\\s*320px\\),\\s*360px\\)\\)/);
-  assert.match(css, /justify-content:\\s*start/);
-  assert.match(css, /max-width:\\s*360px/);
+  assert.match(css, /grid-template-columns:\s*repeat\(auto-fill,\s*minmax\(min\(100%,\s*320px\),\s*360px\)\)/);
+  assert.match(css, /justify-content:\s*start/);
+  assert.match(css, /max-width:\s*360px/);
 });
