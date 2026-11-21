@@ -55,6 +55,7 @@ export async function seed(db) {
   const articleTitle = 'The Future of Technology: How Artificial Intelligence Is Changing the Way We Work';
   const articleSlug = 'future-of-technology-artificial-intelligence-changing-work';
   const articleExcerpt = 'Artificial intelligence is transforming how businesses operate, how professionals work, and how people solve everyday problems. Discover the opportunities, challenges, and possibilities of an AI-powered world.';
+  const articleImage = 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=85';
   const articleMarkdown = [
     '## Artificial intelligence is changing the workplace',
     'Artificial intelligence (AI) is becoming part of everyday work. From writing and research tools to customer support systems and data analysis, AI is changing how people complete tasks and how organisations deliver services. What once required hours of manual effort can increasingly be supported by software that helps people organise information, identify patterns and produce a useful first draft.',
@@ -84,16 +85,21 @@ export async function seed(db) {
   )).rows[0];
   if (existingArticle) {
     await db.query(
-      "UPDATE articles SET status = 'published', published_at = COALESCE(published_at, $1), publish_at = NULL, category_id = COALESCE(category_id, $2), excerpt = COALESCE(excerpt, $3), content_md = CASE WHEN content_md IS NULL OR content_md = '' THEN $4 ELSE content_md END, content_html = CASE WHEN content_html IS NULL OR content_html = '' THEN $5 ELSE content_html END, updated_at = $1 WHERE id = $6",
-      [t, technologyCategory?.id || null, articleExcerpt, articleMarkdown, articleHtml, existingArticle.id]
+      "UPDATE articles SET status = 'published', published_at = COALESCE(published_at, $1), publish_at = NULL, category_id = COALESCE(category_id, $2), excerpt = COALESCE(excerpt, $3), content_md = CASE WHEN content_md IS NULL OR content_md = '' THEN $4 ELSE content_md END, content_html = CASE WHEN content_html IS NULL OR content_html = '' THEN $5 ELSE content_html END, featured_image_url = COALESCE(NULLIF(featured_image_url, ''), $6), updated_at = $1 WHERE id = $7",
+      [t, technologyCategory?.id || null, articleExcerpt, articleMarkdown, articleHtml, articleImage, existingArticle.id]
     );
   } else {
     let slug = articleSlug, suffix = 2;
     while (!(await missing('articles', 'slug', slug))) slug = articleSlug + '-' + suffix++;
     await db.query(
-      "INSERT INTO articles (id,title,slug,excerpt,content_md,content_html,category_id,status,published_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,'published',$8,$8,$8)",
-      [randomUUID(), articleTitle, slug, articleExcerpt, articleMarkdown, articleHtml, technologyCategory?.id || null, t]
+      "INSERT INTO articles (id,title,slug,excerpt,content_md,content_html,featured_image_url,category_id,status,published_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'published',$9,$9,$9)",
+      [randomUUID(), articleTitle, slug, articleExcerpt, articleMarkdown, articleHtml, articleImage, technologyCategory?.id || null, t]
     );
+  }
+  const futureArticle = (await db.query("SELECT id, featured_image_url FROM articles WHERE lower(title) = lower($1) OR lower(slug) = $2 OR lower(slug) LIKE $2 || '-%' ORDER BY CASE WHEN lower(slug) = $2 THEN 0 ELSE 1 END LIMIT 1", [articleTitle, articleSlug])).rows[0];
+  if (futureArticle) {
+    if (!futureArticle.featured_image_url) await db.query("UPDATE articles SET featured_image_url = $1, updated_at = $2 WHERE id = $3", [articleImage, t, futureArticle.id]);
+    await db.query("INSERT INTO article_images (id,article_id,url,alt,sort_order) SELECT $1,$2,$3,$4,0 WHERE NOT EXISTS (SELECT 1 FROM article_images WHERE article_id = $2)", [randomUUID(), futureArticle.id, articleImage, articleTitle]);
   }
 
 
