@@ -438,6 +438,11 @@ test('analytics tracking is privacy-preserving and respects DNT; summary is real
 });
 test('email: log provider never claims delivery; subscribe/unsubscribe; AI needs approval flag; inbound secret', async () => {
   const s = await api('POST', '/api/email/send', { to: 'c@example.com', subject: 'Hi', body: 'Hello' }); assert.equal(s.j.data.delivered, false); assert.ok(s.j.data.note);
+  const testBefore = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'email' AND action = 'test_send'")).rows[0].c);
+  assert.equal((await api('POST', '/api/email/test', {})).s, 200);
+  const testAudit = await db.query("SELECT admin_id FROM audit_logs WHERE entity = 'email' AND action = 'test_send' ORDER BY created_at DESC LIMIT 1");
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'email' AND action = 'test_send'")).rows[0].c), testBefore + 1);
+  assert.ok(testAudit.rows[0].admin_id);
   assert.equal((await api('POST', '/api/email/subscribe', { email: 'sub@example.com' }, { auth: false })).s, 201); const subs = await api('GET', '/api/email/subscribers'); assert.equal(subs.j.data.length, 1);
   const tok = (await db.query('SELECT unsubscribe_token t FROM email_subscribers')).rows[0].t; assert.equal((await api('GET', `/api/email/unsubscribe/${tok}`, null, { auth: false })).s, 200); assert.equal((await api('GET', '/api/email/subscribers')).j.data[0].status, 'unsubscribed');
   await api('POST', '/api/email/subscribe', { email: 'campaign@example.com' }, { auth: false });
