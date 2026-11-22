@@ -11,6 +11,6 @@ export function authRoutes(app, { auth, db }) {
   app.post('/api/auth/password', { auth: true }, async ctx => { await auth.changePassword(ctx.admin.id, ctx.body.current, ctx.body.next, ctx.session.id); await auth.audit(ctx, 'password_change', 'admin', ctx.admin.id); return { changed: true }; });
   app.get('/api/auth/sessions', { auth: true }, async ctx => (await auth.sessions(ctx.admin.id)).map(s => ({ ...s, current: s.id === ctx.session.id })));
   app.post('/api/auth/sessions/revoke-others', { auth: true }, async ctx => { await auth.revokeOthers(ctx.admin.id, ctx.session.id); return { revoked: true }; });
-  app.post('/api/auth/forgot', async ctx => { rateLimit('forgot:' + ctx.ipHash, 5, 3600e3); await auth.requestReset(ctx.body.email, ctx.ipHash); return { message: 'If that account exists, a reset link has been sent.' }; });
-  app.post('/api/auth/reset', async ctx => { rateLimit('reset:' + ctx.ipHash, 10, 3600e3); await auth.resetPassword(ctx.body.token, ctx.body.password); return { reset: true }; });
+  app.post('/api/auth/forgot', async ctx => { await rateLimit('forgot:' + ctx.ipHash, 5, 3600e3, db); await auth.requestReset(ctx.body.email, ctx.ipHash); return { message: 'If that account exists, a reset link has been sent.' }; });
+  app.post('/api/auth/reset', async ctx => { await rateLimit('reset:' + ctx.ipHash, 10, 3600e3, db); await auth.resetPassword(ctx.body.token, ctx.body.password); return { reset: true }; });
 }
