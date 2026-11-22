@@ -58,12 +58,30 @@ export function isDocxPackage(buf) {
       if (data.length !== entry.uncompressed || zipCrc32(data) !== entry.crc) throw new Error('Invalid ZIP entry checksum');
       return new TextDecoder('utf-8', { fatal: true }).decode(data);
     };
-    const typesXml = readXml(required.get('[Content_Types].xml'));
+    const cleanXml = xml => xml.replace(/^\\uFEFF/, '').replace(/<\\?xml[^?]*\\?>/i, '').replace(/<!--[\\s\\S]*?-->/g, '').trim();
+    const typesXml = cleanXml(readXml(required.get('[Content_Types].xml')));
+    const documentXml = cleanXml(readXml(required.get('word/document.xml')));
+    // These two package parts are metadata only: reject DTD/entity declarations
+    // and require a genuine root element with the expected namespace.
+    if (/<!\\s*(?:DOCTYPE|ENTITY)\\b/i.test(typesXml + documentXml)) return false;
+    const typeRoot = typesXml.match(/^<((?:[A-Za-z_][\\w.-]*:)?)Types\\b([^>]*)>/);
+    const documentRoot = documentXml.match(/^<((?:[A-Za-z_][\\w.-]*:)?)document\\b([^>]*)>/);
+    if (!typeRoot || !documentRoot) return false;
+    const namespaceValue = (attrs, name) => {
+      const escaped = name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\    const typesXml = readXml(required.get('[Content_Types].xml'));
     const documentXml = readXml(required.get('word/document.xml'));
     return /<(?:[A-Za-z0-9_]+:)?Types\b/.test(typesXml)
       && typesXml.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml')
       && /<(?:[A-Za-z0-9_]+:)?document\b/.test(documentXml)
-      && documentXml.includes('wordprocessingml/2006/main');
+      && documentXml.includes('wordprocessingml/2006/main');');
+      const match = attrs.match(new RegExp('(?:^|\\\\s)' + escaped + '\\\\s*=\\\\s*["\\\\']([^"\\\\']+)["\\\\']'));
+      return match?.[1] || '';
+    };
+    const typeNsName = typeRoot[1] ? 'xmlns:' + typeRoot[1].slice(0, -1) : 'xmlns';
+    const documentNsName = documentRoot[1] ? 'xmlns:' + documentRoot[1].slice(0, -1) : 'xmlns';
+    return namespaceValue(typeRoot[2], typeNsName) === 'http://schemas.openxmlformats.org/package/2006/content-types'
+      && namespaceValue(documentRoot[2], documentNsName) === 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+      && /<(?:[A-Za-z_][\\w.-]*:)?Override\\b(?=[^>]*\\bPartName=["']\\/word\\/document\\.xml["'])(?=[^>]*\\bContentType=["']application\\/vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document\\.main\\+xml["'])[^>]*\\/?\s*>/i.test(typesXml);
   } catch { return false; }
 }
 
