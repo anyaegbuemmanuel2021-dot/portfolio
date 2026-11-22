@@ -27,7 +27,7 @@ export async function buildApp({ db, storage, mailer } = {}) {
   if (process.env.AUTO_MIGRATE !== 'false') await migrate(db, m => log.info('migration ' + m)); await seed(db);
   const auth = authService(db, mailer); const media = mediaService(db, storage); await media.repairPublicUrls(); const ads = adService(db);
   const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const social = socialService(db);
-  const app = createApp({ log });
+  const app = createApp({ log, db });
   // Public, same-origin media delivery. Object-storage credentials remain server-side.
   app.get('/api/media/file', async ctx => {
     const key = String(ctx.query.key || '');
@@ -54,7 +54,7 @@ export async function buildApp({ db, storage, mailer } = {}) {
         if (!trustedOrigins.has(origin)) throw new HttpError(403, 'Cross-origin request blocked');
       }
     }
-    if (!opts.auth) return; rateLimit('adm:' + ctx.ipHash, 300, 60e3);
+    if (!opts.auth) return; await rateLimit('adm:' + ctx.ipHash, 300, 60e3, db);
     const r = await auth.resolve(ctx.cookies.sid); if (!r) throw new HttpError(401, 'Authentication required');
     if (m !== 'GET' && !safeEq(ctx.req.headers['x-csrf-token'] || '', r.csrf)) throw new HttpError(403, 'Invalid CSRF token');
     if (typeof opts.auth === 'string' && !r.admin.permissions.includes(opts.auth)) throw new HttpError(403, 'You do not have permission for this action');
