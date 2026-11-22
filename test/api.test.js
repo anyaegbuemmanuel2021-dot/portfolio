@@ -171,6 +171,31 @@ test('media: reject ZIP files that merely claim to be DOCX and accept a valid OO
   assert.equal(valid.s, 201);
   assert.equal(valid.j.data.mime_type, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   await api('DELETE', `/api/media/${valid.j.data.id}`);
+
+  const corrupt = Buffer.from(docx);
+  const xmlOffset = corrupt.indexOf(Buffer.from('<w:body/>'));
+  corrupt[xmlOffset] = 0x58;
+  const badChecksum = await api('POST', '/api/media/upload', corrupt, {
+    raw: true, headers: { 'x-filename': 'corrupt.docx', 'content-type': 'application/octet-stream' }
+  });
+  assert.equal(badChecksum.s, 415);
+
+  const traversal = storedZip({
+    '[Content_Types].xml': '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+    'word/document.xml': '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>',
+    '../outside.txt': 'not allowed'
+  });
+  assert.equal((await api('POST', '/api/media/upload', traversal, {
+    raw: true, headers: { 'x-filename': 'traversal.docx', 'content-type': 'application/octet-stream' }
+  })).s, 415);
+
+  const bomb = Buffer.from(docx);
+  const eocd = bomb.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const centralOffset = bomb.readUInt32LE(eocd + 16);
+  bomb.writeUInt32LE(0xffffffff, centralOffset + 24);
+  assert.equal((await api('POST', '/api/media/upload', bomb, {
+    raw: true, headers: { 'x-filename': 'oversized-package.docx', 'content-type': 'application/octet-stream' }
+  })).s, 415);
 });
 
 test('media: reject images whose decoded pixel count exceeds the safe processing budget', async () => {
