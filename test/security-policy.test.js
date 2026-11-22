@@ -6,6 +6,7 @@ process.env.SITE_URL = 'http://localhost';
 process.env.TRUST_PROXY = 'false';
 const { buildApp } = await import('../server/index.js');
 const { clientIp, parseCookies, isPathInsideRoot } = await import('../server/lib/http.js');
+const { isSafeBackupColumn } = await import('../server/services/backup.js');
 const { authService } = await import('../server/services/auth.js');
 const { app, db } = await buildApp();
 const server = app.server().listen(0);
@@ -92,4 +93,13 @@ test('write endpoints reject malformed and untrusted Origin values', async () =>
     body: JSON.stringify({ name: 'Test', message: 'Hello there, this is a test.' })
   });
   assert.equal(foreign.status, 403);
+});
+
+
+test('backup import accepts only simple SQL identifier column names', () => {
+  assert.equal(isSafeBackupColumn('featured_image_url'), true);
+  assert.equal(isSafeBackupColumn('updated_at'), true);
+  assert.equal(isSafeBackupColumn('id) VALUES (1); DROP TABLE admins; --'), false);
+  assert.equal(isSafeBackupColumn('column name'), false);
+  assert.equal(isSafeBackupColumn(''), false);
 });
