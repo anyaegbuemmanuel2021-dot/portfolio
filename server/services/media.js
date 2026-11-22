@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { HttpError } from '../lib/validate.js';
 import { config } from '../config.js';
 const now = () => new Date().toISOString();
+const MAX_IMAGE_PIXELS = 40_000_000;
 const TYPES = { png: ['image/png', 'png'], jpeg: ['image/jpeg', 'jpg'], gif: ['image/gif', 'gif'], webp: ['image/webp', 'webp'], pdf: ['application/pdf', 'pdf'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx'] };
 export function sniff(b, name = '') { // validate by actual content (magic bytes), never by the client's claim
   if (b.length > 12 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
@@ -51,10 +52,11 @@ export function mediaService(db, storage) {
           const duplicate = (await tx.query('SELECT id FROM media_files WHERE lower(trim(original_name)) = lower(trim($1)) LIMIT 1', [safeName])).rows[0];
           if (duplicate) throw new HttpError(409, 'Name already exists', { field: 'filename' });
           let [mime, ext] = TYPES[kind]; let data = buf, size = imageSize(buf, kind); const variants = []; const id = randomUUID(); const d = new Date(); const base = `uploads/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${id}`;
+          if (['png', 'jpeg', 'gif', 'webp'].includes(kind) && size.width && size.height && size.width * size.height > MAX_IMAGE_PIXELS) throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit');
           const sharp = ['png', 'jpeg', 'webp'].includes(kind) ? await getSharp() : null;
-          if (sharp) { try { const img = sharp(buf, { failOn: 'error' }).rotate(); const meta = await img.metadata(); const out = await img.resize({ width: Math.min(meta.width || 2400, 2400), withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
+          if (sharp) { try { const img = sharp(buf, { failOn: 'error', limitInputPixels: MAX_IMAGE_PIXELS }).rotate(); const meta = await img.metadata(); if (meta.width && meta.height && meta.width * meta.height > MAX_IMAGE_PIXELS) throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit'); const out = await img.resize({ width: Math.min(meta.width || 2400, 2400), withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
             if (out.data.length < buf.length) { data = out.data; mime = 'image/webp'; ext = 'webp'; size = { width: out.info.width, height: out.info.height }; }
-            for (const w of [480, 960]) if ((size.width || 0) > w) { const v = await sharp(data).resize({ width: w }).webp({ quality: 78 }).toBuffer(); const variantKey = `${base}-${w}.webp`; await storage.put(variantKey, v, 'image/webp'); uploadedKeys.push(variantKey); variants.push({ width: w, url: storage.publicUrl(variantKey) }); } } catch { throw new HttpError(422, 'Image could not be processed'); } }
+            for (const w of [480, 960]) if ((size.width || 0) > w) { const v = await sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).resize({ width: w }).webp({ quality: 78 }).toBuffer(); const variantKey = `${base}-${w}.webp`; await storage.put(variantKey, v, 'image/webp'); uploadedKeys.push(variantKey); variants.push({ width: w, url: storage.publicUrl(variantKey) }); } } catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(422, 'Image could not be processed'); } }
           const key = `${base}.${ext}`; await storage.put(key, data, mime); uploadedKeys.push(key);
           const row = { id, folder_id: folderId, storage_provider: storage.name, storage_key: key, url: storage.publicUrl(key), original_name: safeName, mime_type: mime, size_bytes: data.length, width: size.width || null, height: size.height || null, checksum: createHash('sha256').update(data).digest('hex'), alt_text: alt, variants: JSON.stringify(variants), created_by: adminId, created_at: now() };
           const keys = Object.keys(row); await tx.query(`INSERT INTO media_files (${keys.join(',')}) VALUES (${keys.map((_, i) => '$' + (i + 1)).join(',')})`, keys.map(k => row[k]));

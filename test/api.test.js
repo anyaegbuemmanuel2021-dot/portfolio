@@ -107,6 +107,29 @@ test('published articles create idempotent social drafts for all three platforms
   assert.equal(hidden.s, 401);
 });
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+
+function pngWithDimensions(width, height) {
+  const buf = Buffer.from(PNG);
+  buf.writeUInt32BE(width, 16);
+  buf.writeUInt32BE(height, 20);
+  let crc = 0xffffffff;
+  for (let i = 12; i < 29; i++) {
+    crc ^= buf[i];
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  buf.writeUInt32BE((crc ^ 0xffffffff) >>> 0, 29);
+  return buf;
+}
+test('media: reject images whose decoded pixel count exceeds the safe processing budget', async () => {
+  const oversized = pngWithDimensions(10000, 10000);
+  const response = await api('POST', '/api/media/upload', oversized, {
+    raw: true,
+    headers: { 'x-filename': 'oversized-image.png', 'content-type': 'image/png' }
+  });
+  assert.equal(response.s, 413);
+  assert.match(response.j.error.message, /image dimensions/i);
+});
+
 test('media: content-sniffed upload, reject fake image, usage-check delete', async () => {
   const bad = await api('POST', '/api/media/upload', Buffer.from('<?php evil ?>'), { raw: true, headers: { 'x-filename': 'shell.png', 'content-type': 'image/png' } }); assert.equal(bad.s, 415);
   const svg = await api('POST', '/api/media/upload', Buffer.from('<svg onload=alert(1)></svg>'), { raw: true, headers: { 'x-filename': 'x.svg', 'content-type': 'image/svg+xml' } }); assert.equal(svg.s, 415);
