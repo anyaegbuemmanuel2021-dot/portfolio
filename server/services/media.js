@@ -33,7 +33,7 @@ export function isDocxPackage(buf) {
       const recordEnd = cursor + 46 + nameLength + extraLength + commentLength;
       if (recordEnd > end || !nameLength || diskStart !== 0 || (flags & 1) || (method !== 0 && method !== 8)) return false;
       const name = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(cursor + 46, cursor + 46 + nameLength));
-      if (!name || name.startsWith('/') || name.includes('\\\\') || name.includes('\\0') || name.split('/').some(part => part === '..' || part === '.')) return false;
+      if (!name || name.startsWith('/') || name.includes(String.fromCharCode(92)) || name.includes(String.fromCharCode(0)) || name.split('/').some(part => part === '..' || part === '.')) return false;
       if (names.has(name) || ((externalAttrs >>> 16) & 0xf000) === 0xa000) return false;
       names.add(name);
       if (uncompressed > MAX_DOCX_ENTRY_UNCOMPRESSED) return false;
