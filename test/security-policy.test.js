@@ -74,3 +74,19 @@ test('static path containment rejects sibling-prefix traversal and accepts in-ro
   assert.equal(isPathInsideRoot('/srv/app/public', '/srv/app/publicity/secret.txt'), false);
   assert.equal(isPathInsideRoot('/srv/app/public', '/srv/app/admin/index.html'), false);
 });
+
+
+test('write endpoints reject malformed and untrusted Origin values', async () => {
+  const malformed = await fetch(base + '/api/contacts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'not a valid origin' },
+    body: JSON.stringify({ name: 'Test', message: 'Hello there, this is a test.' })
+  });
+  assert.equal(malformed.status, 403);
+  const foreign = await fetch(base + '/api/contacts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'https://attacker.example' },
+    body: JSON.stringify({ name: 'Test', message: 'Hello there, this is a test.' })
+  });
+  assert.equal(foreign.status, 403);
+});
