@@ -6,6 +6,7 @@ import { migrationStatus } from '../migrate.js';
 import { createHash } from 'node:crypto';
 import { config } from '../config.js';
 import { safeEq } from '../lib/security.js';
+import { rateLimit } from '../lib/http.js';
 const now = () => new Date().toISOString();
 export function adminRoutes(app, { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social }) {
   const settings = kv(db, 'site_settings'); const sys = kv(db, 'system_settings');
