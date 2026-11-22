@@ -5,7 +5,7 @@ process.env.AUTH_SECRET = 'security-policy-test-secret-which-is-long-enough-1234
 process.env.SITE_URL = 'http://localhost';
 process.env.TRUST_PROXY = 'false';
 const { buildApp } = await import('../server/index.js');
-const { clientIp, parseCookies, isPathInsideRoot } = await import('../server/lib/http.js');
+const { clientIp, parseCookies, isPathInsideRoot, rateLimit } = await import('../server/lib/http.js');
 const { isSafeBackupColumn } = await import('../server/services/backup.js');
 const { authService } = await import('../server/services/auth.js');
 const { app, db } = await buildApp();
@@ -138,4 +138,12 @@ test('web database restore remains disabled in production even if legacy overrid
     config.isProd = oldProd;
     if (oldOverride === undefined) delete process.env.ALLOW_WEB_IMPORT; else process.env.ALLOW_WEB_IMPORT = oldOverride;
   }
+});
+
+
+test('request rate limits are shared through atomic database counters', async () => {
+  const key = 'security-test-shared-bucket';
+  await rateLimit(key, 2, 60e3, db);
+  await rateLimit(key, 2, 60e3, db);
+  await assert.rejects(() => rateLimit(key, 2, 60e3, db), error => error.status === 429);
 });
