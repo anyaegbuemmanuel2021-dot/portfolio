@@ -260,3 +260,22 @@ test('changing an admin password invalidates all outstanding password-reset link
     await db.query('UPDATE admins SET password_hash = $1 WHERE email = $2', [await sec.hashPassword('Str0ng-Password-1'), 'owner@example.com']);
   }
 });
+
+
+test('system overview is restricted to admins with the system permission', async () => {
+  const login = await api('POST', '/api/auth/login', { email: 'owner@example.com', password: 'Str0ng-Password-1' }, { auth: false });
+  assert.equal(login.s, 200);
+  cookie = login.r.headers.get('set-cookie').split(';')[0];
+  csrf = login.j.data.csrf;
+  const admin = (await db.query('SELECT id FROM admins WHERE email = $1', ['owner@example.com'])).rows[0];
+  const permission = (await db.query("SELECT id FROM permissions WHERE key = 'system'")).rows[0];
+  const removed = await db.query('DELETE FROM role_permissions WHERE permission_id = $1 AND role_id IN (SELECT role_id FROM admin_role_assignments WHERE admin_id = $2) RETURNING role_id', [permission.id, admin.id]);
+  try {
+    const response = await api('GET', '/api/system/overview');
+    assert.equal(response.s, 403);
+  } finally {
+    for (const row of removed.rows) {
+      await db.query('INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [row.role_id, permission.id]);
+    }
+  }
+});
