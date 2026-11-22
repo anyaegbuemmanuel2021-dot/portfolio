@@ -73,6 +73,31 @@ test('articles: draft→publish, slug, clean html, schedule, revisions, unpublis
   await api('POST', `/api/admin/articles/${a.j.data.id}/unpublish`); assert.equal((await api('GET', '/api/articles/my-first-article', null, { auth: false })).s, 404); const hiddenMap = await api('GET', '/sitemap.xml', null, { auth: false }); assert.ok(!hiddenMap.j.includes('/articles/my-first-article'));
   const list = await api('GET', '/api/articles?page=abc', null, { auth: false }); assert.equal(list.s, 200); await api('POST', `/api/admin/articles/${a.j.data.id}/publish`);
 });
+test('restoring an article revision invalidates content cache and records an audit event', async () => {
+  const article = await api('POST', '/api/admin/articles', {
+    title: 'Revision Restore Audit',
+    content_md: 'Original revision',
+    status: 'published'
+  });
+  assert.equal(article.s, 201);
+  const id = article.j.data.id;
+  await api('PUT', `/api/admin/articles/${id}`, {
+    title: 'Revision Restore Audit',
+    content_md: 'Updated revision',
+    status: 'published'
+  });
+  const revisions = await api('GET', `/api/admin/articles/${id}/revisions`);
+  assert.ok(revisions.j.data.length >= 1);
+  const revisionId = revisions.j.data[revisions.j.data.length - 1].id;
+  const before = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'article' AND action = 'restore'")).rows[0].c);
+  const restored = await api('POST', `/api/admin/articles/${id}/restore/${revisionId}`);
+  assert.equal(restored.s, 200);
+  assert.equal(restored.j.data.content_md, 'Original revision');
+  const after = await db.query("SELECT admin_id, action, entity, entity_id, details FROM audit_logs WHERE entity = 'article' AND action = 'restore' ORDER BY created_at DESC LIMIT 1");
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'article' AND action = 'restore'")).rows[0].c), before + 1);
+  assert.ok(after.rows[0].admin_id);
+  assert.equal(after.rows[0].entity_id, id);
+});
 test('published articles create idempotent social drafts for all three platforms', async () => {
   const a = await api('POST', '/api/admin/articles', { title: 'Social Distribution Test', excerpt: 'A practical guide to shipping better websites.', content_md: '# Social test', status: 'published', tags: ['Web Development', 'Portfolio'] });
   assert.equal(a.s, 201);
