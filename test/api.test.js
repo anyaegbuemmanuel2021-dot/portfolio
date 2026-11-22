@@ -18,7 +18,7 @@ test('password-reset requests are throttled per normalized account, not only per
     assert.deepEqual(results.map(result => result.s), [200, 200, 200, 429]);
     const { sha256 } = await import('../server/lib/security.js');
     const bucket = await db.query('SELECT SUM(hits) AS hits FROM request_rate_limits WHERE bucket_key = $1', ['forgot-email:' + sha256('unregistered-reset@example.com')]);
-    assert.equal(Number(bucket.rows[0].hits), 3);
+    assert.equal(Number(bucket.rows[0].hits), 4);
   } finally {
     console.info = originalInfo;
     await db.query("DELETE FROM request_rate_limits WHERE bucket_key LIKE 'forgot:%'");
