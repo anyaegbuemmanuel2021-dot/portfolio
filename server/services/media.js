@@ -4,11 +4,60 @@ import { config } from '../config.js';
 const now = () => new Date().toISOString();
 const MAX_IMAGE_PIXELS = 40_000_000;
 const TYPES = { png: ['image/png', 'png'], jpeg: ['image/jpeg', 'jpg'], gif: ['image/gif', 'gif'], webp: ['image/webp', 'webp'], pdf: ['application/pdf', 'pdf'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx'] };
+
+const MAX_DOCX_ENTRIES = 512;
+const MAX_DOCX_UNCOMPRESSED = 64 * 1024 * 1024;
+const MAX_DOCX_ENTRY_UNCOMPRESSED = 16 * 1024 * 1024;
+const MAX_DOCX_COMPRESSION_RATIO = 100;
+
+export function isDocxPackage(buf) {
+  try {
+    if (!Buffer.isBuffer(buf) || buf.length < 22 || buf.length > config.maxUploadBytes) return false;
+    const min = Math.max(0, buf.length - 22 - 0xffff);
+    let end = -1;
+    for (let i = buf.length - 22; i >= min; i--) {
+      if (buf.readUInt32LE(i) === 0x06054b50 && i + 22 + buf.readUInt16LE(i + 20) === buf.length) { end = i; break; }
+    }
+    if (end < 0 || buf.readUInt16LE(end + 4) !== 0 || buf.readUInt16LE(end + 6) !== 0) return false;
+    const diskEntries = buf.readUInt16LE(end + 8), entries = buf.readUInt16LE(end + 10);
+    const centralSize = buf.readUInt32LE(end + 12), centralOffset = buf.readUInt32LE(end + 16);
+    if (!entries || entries !== diskEntries || entries > MAX_DOCX_ENTRIES || centralOffset + centralSize !== end) return false;
+    const names = new Set();
+    let cursor = centralOffset, totalUncompressed = 0;
+    for (let n = 0; n < entries; n++) {
+      if (cursor + 46 > end || buf.readUInt32LE(cursor) !== 0x02014b50) return false;
+      const flags = buf.readUInt16LE(cursor + 8), method = buf.readUInt16LE(cursor + 10);
+      const compressed = buf.readUInt32LE(cursor + 20), uncompressed = buf.readUInt32LE(cursor + 24);
+      const nameLength = buf.readUInt16LE(cursor + 28), extraLength = buf.readUInt16LE(cursor + 30), commentLength = buf.readUInt16LE(cursor + 32);
+      const diskStart = buf.readUInt16LE(cursor + 34), externalAttrs = buf.readUInt32LE(cursor + 38), localOffset = buf.readUInt32LE(cursor + 42);
+      const recordEnd = cursor + 46 + nameLength + extraLength + commentLength;
+      if (recordEnd > end || !nameLength || diskStart !== 0 || (flags & 1) || (method !== 0 && method !== 8)) return false;
+      const name = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(cursor + 46, cursor + 46 + nameLength));
+      if (!name || name.startsWith('/') || name.includes('\\\\') || name.includes('\\0') || name.split('/').some(part => part === '..' || part === '.')) return false;
+      if (names.has(name) || ((externalAttrs >>> 16) & 0xf000) === 0xa000) return false;
+      names.add(name);
+      if (uncompressed > MAX_DOCX_ENTRY_UNCOMPRESSED) return false;
+      totalUncompressed += uncompressed;
+      if (totalUncompressed > MAX_DOCX_UNCOMPRESSED) return false;
+      if (uncompressed > 0 && (compressed === 0 || uncompressed / compressed > MAX_DOCX_COMPRESSION_RATIO)) return false;
+      if (localOffset + 30 > centralOffset || buf.readUInt32LE(localOffset) !== 0x04034b50) return false;
+      const localNameLength = buf.readUInt16LE(localOffset + 26), localExtraLength = buf.readUInt16LE(localOffset + 28);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      if (dataStart + compressed > centralOffset) return false;
+      const localName = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(localOffset + 30, localOffset + 30 + localNameLength));
+      if (localName !== name) return false;
+      cursor = recordEnd;
+    }
+    if (cursor !== centralOffset + centralSize) return false;
+    return names.has('[Content_Types].xml') && names.has('word/document.xml');
+  } catch { return false; }
+}
+
 export function sniff(b, name = '') { // validate by actual content (magic bytes), never by the client's claim
   if (b.length > 12 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'; if (b.slice(0, 4).toString() === 'GIF8') return 'gif';
   if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return 'webp'; if (b.slice(0, 5).toString() === '%PDF-') return 'pdf';
-  if (b[0] === 0x50 && b[1] === 0x4b && /\.docx$/i.test(name)) return 'docx'; return null;
+  if (b[0] === 0x50 && b[1] === 0x4b && /\.docx$/i.test(name)) return isDocxPackage(b) ? 'docx' : null; return null;
 }
 export function imageSize(b, kind) {
   try {
