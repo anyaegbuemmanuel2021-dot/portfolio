@@ -1,6 +1,7 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { HttpError } from '../lib/validate.js';
 import { config } from '../config.js';
+import { inflateRawSync } from 'node:zlib';
 const now = () => new Date().toISOString();
 const MAX_IMAGE_PIXELS = 40_000_000;
 const TYPES = { png: ['image/png', 'png'], jpeg: ['image/jpeg', 'jpg'], gif: ['image/gif', 'gif'], webp: ['image/webp', 'webp'], pdf: ['application/pdf', 'pdf'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx'] };
@@ -9,6 +10,7 @@ const MAX_DOCX_ENTRIES = 512;
 const MAX_DOCX_UNCOMPRESSED = 64 * 1024 * 1024;
 const MAX_DOCX_ENTRY_UNCOMPRESSED = 16 * 1024 * 1024;
 const MAX_DOCX_COMPRESSION_RATIO = 100;
+function zipCrc32(data) { let crc = 0xffffffff; for (const byte of data) { crc ^= byte; for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1)); } return (crc ^ 0xffffffff) >>> 0; }
 
 export function isDocxPackage(buf) {
   try {
@@ -22,7 +24,7 @@ export function isDocxPackage(buf) {
     const diskEntries = buf.readUInt16LE(end + 8), entries = buf.readUInt16LE(end + 10);
     const centralSize = buf.readUInt32LE(end + 12), centralOffset = buf.readUInt32LE(end + 16);
     if (!entries || entries !== diskEntries || entries > MAX_DOCX_ENTRIES || centralOffset + centralSize !== end) return false;
-    const names = new Set();
+    const names = new Set(), required = new Map();
     let cursor = centralOffset, totalUncompressed = 0;
     for (let n = 0; n < entries; n++) {
       if (cursor + 46 > end || buf.readUInt32LE(cursor) !== 0x02014b50) return false;
@@ -45,11 +47,23 @@ export function isDocxPackage(buf) {
       const dataStart = localOffset + 30 + localNameLength + localExtraLength;
       if (dataStart + compressed > centralOffset) return false;
       const localName = new TextDecoder('utf-8', { fatal: true }).decode(buf.subarray(localOffset + 30, localOffset + 30 + localNameLength));
-      if (localName !== name) return false;
+      if (localName !== name || buf.readUInt16LE(localOffset + 6) !== flags || buf.readUInt16LE(localOffset + 8) !== method) return false;
+      if (name === '[Content_Types].xml' || name === 'word/document.xml') required.set(name, { start: dataStart, compressed, uncompressed, method, crc: buf.readUInt32LE(cursor + 16) });
       cursor = recordEnd;
     }
-    if (cursor !== centralOffset + centralSize) return false;
-    return names.has('[Content_Types].xml') && names.has('word/document.xml');
+    if (cursor !== centralOffset + centralSize || !names.has('[Content_Types].xml') || !names.has('word/document.xml') || required.size !== 2) return false;
+    const readXml = entry => {
+      const packed = buf.subarray(entry.start, entry.start + entry.compressed);
+      const data = entry.method === 0 ? packed : inflateRawSync(packed, { maxOutputLength: MAX_DOCX_ENTRY_UNCOMPRESSED });
+      if (data.length !== entry.uncompressed || zipCrc32(data) !== entry.crc) throw new Error('Invalid ZIP entry checksum');
+      return new TextDecoder('utf-8', { fatal: true }).decode(data);
+    };
+    const typesXml = readXml(required.get('[Content_Types].xml'));
+    const documentXml = readXml(required.get('word/document.xml'));
+    return /<(?:[A-Za-z0-9_]+:)?Types\\b/.test(typesXml)
+      && typesXml.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml')
+      && /<(?:[A-Za-z0-9_]+:)?document\\b/.test(documentXml)
+      && documentXml.includes('wordprocessingml/2006/main');
   } catch { return false; }
 }
 
