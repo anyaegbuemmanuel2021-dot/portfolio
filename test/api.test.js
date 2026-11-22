@@ -467,6 +467,9 @@ test('sessions: logout revokes; seo endpoints; permissions', async () => {
   const out = await api('POST', '/api/auth/logout'); assert.equal(out.s, 200); assert.equal((await api('GET', '/api/auth/me')).s, 401);
 });
 test('session logout and revoke-others actions are recorded in the admin audit trail', async () => {
+  const primary = await api('POST', '/api/auth/login', { email: 'owner@example.com', password: 'Str0ng-Password-1' }, { auth: false });
+  assert.equal(primary.s, 200);
+  cookie = primary.r.headers.get('set-cookie').split(';')[0]; csrf = primary.j.data.csrf;
   const other = await api('POST', '/api/auth/login', { email: 'owner@example.com', password: 'Str0ng-Password-1' }, { auth: false });
   assert.equal(other.s, 200);
   const beforeRevoke = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'session' AND action = 'revoke_others'")).rows[0].c);
