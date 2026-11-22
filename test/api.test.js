@@ -21,6 +21,7 @@ test('password-reset requests are throttled per normalized account, not only per
     assert.equal(Number(bucket.rows[0].hits), 3);
   } finally {
     console.info = originalInfo;
+    await db.query("DELETE FROM request_rate_limits WHERE bucket_key LIKE 'forgot:%'");
   }
 });
 
