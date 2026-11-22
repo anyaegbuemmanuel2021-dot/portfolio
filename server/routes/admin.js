@@ -90,7 +90,7 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.get('/api/system/audit', g('system'), async () => (await db.query('SELECT a.*, d.email FROM audit_logs a LEFT JOIN admins d ON d.id = a.admin_id ORDER BY a.created_at DESC LIMIT 100')).rows);
   app.get('/api/system/security-events', g('system'), async () => (await db.query('SELECT type, email, created_at FROM security_events ORDER BY created_at DESC LIMIT 100')).rows);
   app.get('/api/system/logs', g('system'), async () => (await db.query('SELECT level, message, created_at FROM application_logs ORDER BY created_at DESC LIMIT 100')).rows);
-  app.post('/api/system/purge', g('system'), async ctx => ({ purged_rows: await analytics.purge(config.retentionDays) }));
+  app.post('/api/system/purge', g('system'), async ctx => { const purged = await analytics.purge(config.retentionDays); const result = { purged_rows: purged }; await auth.audit(ctx, 'purge', 'system', null, result); return result; });
   app.get('/api/migrations', g('system'), async () => { const s = await migrationStatus(db); return { applied: s.applied, pending: s.pending.map(p => p.name), drift: s.drift }; });
   // ---- backups ----
   app.get('/api/backups', g('system'), async () => (await db.query('SELECT * FROM backup_history ORDER BY created_at DESC LIMIT 50')).rows);
