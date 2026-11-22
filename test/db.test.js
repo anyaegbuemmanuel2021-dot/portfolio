@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { connect } from '../server/db.js';
+import { connect, normalizePgSslMode } from '../server/db.js';
 import { tableRepo } from '../server/repositories/base.js';
 
 test('SQLite adapter maps PostgreSQL numbered placeholders in occurrence order', async () => {
@@ -27,4 +27,15 @@ test('SQLite transaction handle is distinct so repositories do not open nested t
     });
     assert.equal((await db.query('SELECT COUNT(*) AS c FROM sample_items')).rows[0].c, 1);
   } finally { await db.close(); }
+});
+
+
+test('legacy PostgreSQL SSL modes are normalized to explicit full certificate verification', () => {
+  const base = 'postgres://user:pass@db.example.com:5432/portfolio';
+  for (const mode of ['prefer', 'require', 'verify-ca']) {
+    const parsed = new URL(normalizePgSslMode(base + '?sslmode=' + mode));
+    assert.equal(parsed.searchParams.get('sslmode'), 'verify-full');
+  }
+  assert.equal(new URL(normalizePgSslMode(base + '?sslmode=disable')).searchParams.get('sslmode'), 'disable');
+  assert.equal(new URL(normalizePgSslMode(base)).searchParams.has('sslmode'), false);
 });

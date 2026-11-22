@@ -24,9 +24,19 @@ async function createSqlite(url) {
   return api;
 }
 
+export function normalizePgSslMode(url) {
+  const parsed = new URL(url);
+  const mode = parsed.searchParams.get('sslmode');
+  // pg-connection-string currently treats these legacy modes as verify-full;
+  // make that intent explicit before the next major version changes semantics.
+  if (['prefer', 'require', 'verify-ca'].includes(mode)) parsed.searchParams.set('sslmode', 'verify-full');
+  return parsed.toString();
+}
+
 async function createPg(url) {
   let pg; try { pg = (await import('pg')).default; } catch { throw new Error('The "pg" package is not installed. Run: npm install'); }
-  const pool = new pg.Pool({ connectionString: url, max: Number(process.env.DB_POOL_MAX || 5), ssl: /sslmode=disable/.test(url) || /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: true } });
+  const connectionString = normalizePgSslMode(url);
+  const pool = new pg.Pool({ connectionString, max: Number(process.env.DB_POOL_MAX || 5), ssl: /sslmode=disable/.test(connectionString) || /localhost|127\.0\.0\.1/.test(connectionString) ? false : { rejectUnauthorized: true } });
   const wrap = c => ({ dialect: 'postgres', query: (s, p) => c.query(s, (p || []).map(v => v === undefined ? null : v)), exec: s => c.query(s) });
   const api = { ...wrap(pool), tx: async fn => { const c = await pool.connect(); try { await c.query('BEGIN'); const r = await fn(wrap(c)); await c.query('COMMIT'); return r; } catch (e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); } }, close: () => pool.end() };
   return api;
