@@ -235,3 +235,28 @@ test('using one password-reset link invalidates every other outstanding link for
     await db.query('UPDATE admins SET password_hash = $1 WHERE email = $2', [await sec.hashPassword('Str0ng-Password-1'), 'owner@example.com']);
   }
 });
+
+
+test('changing an admin password invalidates all outstanding password-reset links', async () => {
+  const service = authService(db, { real: false });
+  const links = [];
+  const originalInfo = console.info;
+  console.info = (...args) => {
+    const match = String(args[1] || '').match(/reset=([A-Za-z0-9_-]+)/);
+    if (match) links.push(match[1]);
+  };
+  try {
+    await service.requestReset('owner@example.com', 'password-change-reset-test');
+    assert.equal(links.length, 1);
+    const admin = (await db.query('SELECT id FROM admins WHERE email = $1', ['owner@example.com'])).rows[0];
+    await service.changePassword(admin.id, 'Str0ng-Password-1', 'Changed-Password-123', 'current-session-test');
+    await assert.rejects(
+      () => service.resetPassword(links[0], 'Reset-Should-Not-Work-123'),
+      error => error.status === 400
+    );
+  } finally {
+    console.info = originalInfo;
+    await db.query('UPDATE password_reset_requests SET used_at = COALESCE(used_at, $1) WHERE admin_id = (SELECT id FROM admins WHERE email = $2)', [new Date().toISOString(), 'owner@example.com']);
+    await db.query('UPDATE admins SET password_hash = $1 WHERE email = $2', [await sec.hashPassword('Str0ng-Password-1'), 'owner@example.com']);
+  }
+});

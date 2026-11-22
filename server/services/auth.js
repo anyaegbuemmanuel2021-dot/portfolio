@@ -41,7 +41,14 @@ export function authService(db, mailer) {
     async changePassword(adminId, current, next, currentSessionId) {
       const a = (await db.query('SELECT * FROM admins WHERE id = $1', [adminId])).rows[0]; if (!(await verifyPassword(current || '', a.password_hash))) throw new HttpError(403, 'Current password is incorrect');
       const pr = passwordProblems(next); if (pr.length) throw new HttpError(422, 'New password needs ' + pr.join(', '));
-      await db.query('UPDATE admins SET password_hash = $1, updated_at = $2 WHERE id = $3', [await hashPassword(next), now(), adminId]); await svc.revokeOthers(adminId, currentSessionId);
+      const changedAt = now();
+      const passwordHash = await hashPassword(next);
+      await db.tx(async t => {
+        await t.query('UPDATE admins SET password_hash = $1, updated_at = $2 WHERE id = $3', [passwordHash, changedAt, adminId]);
+        // An authenticated password change makes every previously issued reset link stale.
+        await t.query('UPDATE password_reset_requests SET used_at = $1 WHERE admin_id = $2 AND used_at IS NULL', [changedAt, adminId]);
+        await t.query('UPDATE sessions SET revoked_at = $1 WHERE admin_id = $2 AND id <> $3 AND revoked_at IS NULL', [changedAt, adminId, currentSessionId]);
+      });
     },
     async requestReset(email, ipHash) { // Always succeeds from the caller's view (no account enumeration)
       email = String(email || '').toLowerCase(); const a = (await db.query('SELECT id, email FROM admins WHERE email = $1 AND is_active = TRUE', [email])).rows[0]; await event('reset_requested', email, ipHash); if (!a) return;
