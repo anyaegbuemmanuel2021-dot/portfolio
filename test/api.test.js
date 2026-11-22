@@ -120,6 +120,84 @@ function pngWithDimensions(width, height) {
   buf.writeUInt32BE((crc ^ 0xffffffff) >>> 0, 29);
   return buf;
 }
+
+function crc32(data) {
+  let crc = 0xffffffff;
+  for (const byte of data) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+function storedZip(entries) {
+  const locals = [], centrals = [];
+  let offset = 0;
+  for (const [name, value] of Object.entries(entries)) {
+    const filename = Buffer.from(name);
+    const data = Buffer.from(value);
+    const crc = crc32(data);
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4);
+    local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18);
+    local.writeUInt32LE(data.length, 22); local.writeUInt16LE(filename.length, 26);
+    locals.push(local, filename, data);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6); central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(data.length, 20); central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(filename.length, 28); central.writeUInt32LE(offset, 42);
+    centrals.push(central, filename);
+    offset += local.length + filename.length + data.length;
+  }
+  const centralData = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(Object.keys(entries).length, 8);
+  end.writeUInt16LE(Object.keys(entries).length, 10); end.writeUInt32LE(centralData.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, centralData, end]);
+}
+test('media: reject ZIP files that merely claim to be DOCX and accept a valid OOXML package', async () => {
+  const fake = await api('POST', '/api/media/upload', Buffer.from('PK\\x03\\x04not-a-real-docx'), {
+    raw: true, headers: { 'x-filename': 'fake.docx', 'content-type': 'application/octet-stream' }
+  });
+  assert.equal(fake.s, 415);
+  const docx = storedZip({
+    '[Content_Types].xml': '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+    'word/document.xml': '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>'
+  });
+  const valid = await api('POST', '/api/media/upload', docx, {
+    raw: true, headers: { 'x-filename': 'valid.docx', 'content-type': 'application/octet-stream' }
+  });
+  assert.equal(valid.s, 201);
+  assert.equal(valid.j.data.mime_type, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  await api('DELETE', `/api/media/${valid.j.data.id}`);
+
+  const corrupt = Buffer.from(docx);
+  const xmlOffset = corrupt.indexOf(Buffer.from('<w:body/>'));
+  corrupt[xmlOffset] = 0x58;
+  const badChecksum = await api('POST', '/api/media/upload', corrupt, {
+    raw: true, headers: { 'x-filename': 'corrupt.docx', 'content-type': 'application/octet-stream' }
+  });
+  assert.equal(badChecksum.s, 415);
+
+  const traversal = storedZip({
+    '[Content_Types].xml': '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+    'word/document.xml': '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>',
+    '../outside.txt': 'not allowed'
+  });
+  assert.equal((await api('POST', '/api/media/upload', traversal, {
+    raw: true, headers: { 'x-filename': 'traversal.docx', 'content-type': 'application/octet-stream' }
+  })).s, 415);
+
+  const bomb = Buffer.from(docx);
+  const eocd = bomb.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const centralOffset = bomb.readUInt32LE(eocd + 16);
+  bomb.writeUInt32LE(0xffffffff, centralOffset + 24);
+  assert.equal((await api('POST', '/api/media/upload', bomb, {
+    raw: true, headers: { 'x-filename': 'oversized-package.docx', 'content-type': 'application/octet-stream' }
+  })).s, 415);
+});
+
 test('media: reject images whose decoded pixel count exceeds the safe processing budget', async () => {
   const oversized = pngWithDimensions(10000, 10000);
   const response = await api('POST', '/api/media/upload', oversized, {
