@@ -18,7 +18,7 @@ export function authRoutes(app, { auth, db }) {
     ctx.setCookies.push(cookie('sid', r.raw, { maxAge: config.sessionHours * 3600, path: '/' }));
     return { admin: r.admin, csrf: r.csrf };
   });
-  app.post('/api/auth/logout', { auth: true }, async ctx => { await auth.logout(ctx.rawToken); ctx.setCookies.push(cookie('sid', '', { maxAge: 0 })); return { loggedOut: true }; });
+  app.post('/api/auth/logout', { auth: true }, async ctx => { await auth.audit(ctx, 'logout', 'session', ctx.session.id); await auth.logout(ctx.rawToken); ctx.setCookies.push(cookie('sid', '', { maxAge: 0 })); return { loggedOut: true }; });
   app.get('/api/auth/me', { auth: true }, ctx => ({ admin: ctx.admin, csrf: ctx.csrf }));
   app.post('/api/auth/password', { auth: true }, async ctx => {
     const current = passwordField(ctx.body?.current, 'current');
@@ -28,7 +28,7 @@ export function authRoutes(app, { auth, db }) {
     return { changed: true };
   });
   app.get('/api/auth/sessions', { auth: true }, async ctx => (await auth.sessions(ctx.admin.id)).map(s => ({ ...s, current: s.id === ctx.session.id })));
-  app.post('/api/auth/sessions/revoke-others', { auth: true }, async ctx => { await auth.revokeOthers(ctx.admin.id, ctx.session.id); return { revoked: true }; });
+  app.post('/api/auth/sessions/revoke-others', { auth: true }, async ctx => { const result = await auth.revokeOthers(ctx.admin.id, ctx.session.id); await auth.audit(ctx, 'revoke_others', 'session', ctx.session.id, { revoked: result.rowCount }); return { revoked: true }; });
   app.post('/api/auth/forgot', async ctx => {
     await rateLimit('forgot:' + ctx.ipHash, 5, 3600e3, db);
     const { email } = validate({ email: { type: 'email', required: true, max: 254 } }, ctx.body);

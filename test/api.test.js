@@ -466,6 +466,32 @@ test('sessions: logout revokes; seo endpoints; permissions', async () => {
   assert.match((await api('GET', '/robots.txt', null, { auth: false })).j, /Disallow: \/admin/); assert.match((await api('GET', '/sitemap.xml', null, { auth: false })).j, /<urlset/); assert.equal((await api('GET', '/articles/anything', null, { auth: false })).s, 404); assert.equal((await api('GET', '/admin', null, { auth: false })).s, 404 === 0 ? 0 : (await api('GET', '/admin', null, { auth: false })).s);
   const out = await api('POST', '/api/auth/logout'); assert.equal(out.s, 200); assert.equal((await api('GET', '/api/auth/me')).s, 401);
 });
+test('session logout and revoke-others actions are recorded in the admin audit trail', async () => {
+  const auth = authService(db, { real: false });
+  const primary = await auth.login({ email: 'owner@example.com', password: 'Str0ng-Password-1' }, { ipHash: 'test-primary', userAgent: 'test' });
+  const other = await auth.login({ email: 'owner@example.com', password: 'Str0ng-Password-1' }, { ipHash: 'test-other', userAgent: 'test' });
+  cookie = 'sid=' + primary.raw; csrf = primary.csrf;
+  const beforeRevoke = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'session' AND action = 'revoke_others'")).rows[0].c);
+  const revoked = await api('POST', '/api/auth/sessions/revoke-others');
+  assert.equal(revoked.s, 200);
+  const revokeAudit = await db.query("SELECT admin_id FROM audit_logs WHERE entity = 'session' AND action = 'revoke_others' ORDER BY created_at DESC LIMIT 1");
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'session' AND action = 'revoke_others'")).rows[0].c), beforeRevoke + 1);
+  assert.ok(revokeAudit.rows[0].admin_id);
+  assert.equal((await api('GET', '/api/auth/me')).s, 200);
+  const otherSession = await fetch(base + '/api/auth/me', { headers: { cookie: 'sid=' + other.raw } });
+  assert.equal(otherSession.status, 401);
+
+  const beforeLogout = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'session' AND action = 'logout'")).rows[0].c);
+  const loggedOut = await api('POST', '/api/auth/logout');
+  assert.equal(loggedOut.s, 200);
+  const logoutAudit = await db.query("SELECT admin_id FROM audit_logs WHERE entity = 'session' AND action = 'logout' ORDER BY created_at DESC LIMIT 1");
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'session' AND action = 'logout'")).rows[0].c), beforeLogout + 1);
+  assert.ok(logoutAudit.rows[0].admin_id);
+
+  const restored = await auth.login({ email: 'owner@example.com', password: 'Str0ng-Password-1' }, { ipHash: 'test-restored', userAgent: 'test' });
+  cookie = 'sid=' + restored.raw; csrf = restored.csrf;
+});
+
 test('pagination parameters are clamped (no 500 on fractional/negative values)', async () => {
   const li = await api('POST', '/api/auth/login', { email: 'owner@example.com', password: 'Str0ng-Password-1' }, { auth: false }); assert.equal(li.s, 200); cookie = li.r.headers.get('set-cookie').split(';')[0]; csrf = li.j.data.csrf;
   for (const q of ['limit=-1', 'limit=0.5&page=1.5', 'limit=abc', 'limit=999999']) { const r = await api('GET', `/api/admin/services?${q}`); assert.equal(r.s, 200, q); const m = await api('GET', `/api/media?${q}`); assert.equal(m.s, 200, 'media ' + q); }
