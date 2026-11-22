@@ -59,10 +59,10 @@ export function isDocxPackage(buf) {
       return new TextDecoder('utf-8', { fatal: true }).decode(data);
     };
     const typesXml = readXml(required.get('[Content_Types].xml'));
-      && /<(?:[A-Za-z0-9_]+:)?document\b/.test(documentXml)
+    const documentXml = readXml(required.get('word/document.xml'));
     return /<(?:[A-Za-z0-9_]+:)?Types\b/.test(typesXml)
       && typesXml.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml')
-      && /<(?:[A-Za-z0-9_]+:)?document\\b/.test(documentXml)
+      && /<(?:[A-Za-z0-9_]+:)?document\b/.test(documentXml)
       && documentXml.includes('wordprocessingml/2006/main');
   } catch { return false; }
 }
