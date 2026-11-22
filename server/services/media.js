@@ -73,6 +73,17 @@ export function sniff(b, name = '') { // validate by actual content (magic bytes
   if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return 'webp'; if (b.slice(0, 5).toString() === '%PDF-') return 'pdf';
   if (b[0] === 0x50 && b[1] === 0x4b && /\.docx$/i.test(name)) return isDocxPackage(b) ? 'docx' : null; return null;
 }
+export function validateImageDimensions(size) {
+  const width = size?.width, height = size?.height;
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1) {
+    throw new HttpError(422, 'Image dimensions could not be verified');
+  }
+  if (width > MAX_IMAGE_PIXELS / height) {
+    throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit');
+  }
+  return { width, height };
+}
+
 export function imageSize(b, kind) {
   try {
     if (kind === 'png') return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) }; if (kind === 'gif') return { width: b.readUInt16LE(6), height: b.readUInt16LE(8) };
@@ -115,7 +126,7 @@ export function mediaService(db, storage) {
           const duplicate = (await tx.query('SELECT id FROM media_files WHERE lower(trim(original_name)) = lower(trim($1)) LIMIT 1', [safeName])).rows[0];
           if (duplicate) throw new HttpError(409, 'Name already exists', { field: 'filename' });
           let [mime, ext] = TYPES[kind]; let data = buf, size = imageSize(buf, kind); const variants = []; const id = randomUUID(); const d = new Date(); const base = `uploads/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${id}`;
-          if (['png', 'jpeg', 'gif', 'webp'].includes(kind) && size.width && size.height && size.width * size.height > MAX_IMAGE_PIXELS) throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit');
+          if (['png', 'jpeg', 'gif', 'webp'].includes(kind)) size = validateImageDimensions(size);
           const sharp = ['png', 'jpeg', 'webp'].includes(kind) ? await getSharp() : null;
           if (sharp) { try { const img = sharp(buf, { failOn: 'error', limitInputPixels: MAX_IMAGE_PIXELS }).rotate(); const meta = await img.metadata(); if (meta.width && meta.height && meta.width * meta.height > MAX_IMAGE_PIXELS) throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit'); const out = await img.resize({ width: Math.min(meta.width || 2400, 2400), withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
             if (out.data.length < buf.length) { data = out.data; mime = 'image/webp'; ext = 'webp'; size = { width: out.info.width, height: out.info.height }; }
