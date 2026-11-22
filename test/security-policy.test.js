@@ -5,7 +5,7 @@ process.env.AUTH_SECRET = 'security-policy-test-secret-which-is-long-enough-1234
 process.env.SITE_URL = 'http://localhost';
 process.env.TRUST_PROXY = 'false';
 const { buildApp } = await import('../server/index.js');
-const { clientIp } = await import('../server/lib/http.js');
+const { clientIp, parseCookies, isPathInsideRoot } = await import('../server/lib/http.js');
 const { authService } = await import('../server/services/auth.js');
 const { app, db } = await buildApp();
 const server = app.server().listen(0);
@@ -62,4 +62,15 @@ test('trusted proxy client IP uses the rightmost forwarded address and ignores s
   assert.equal(clientIp(req), '203.0.113.24');
   process.env.TRUST_PROXY = 'false';
   assert.equal(clientIp(req), '10.0.0.8');
+});
+
+
+test('malformed cookie encoding cannot throw before request error handling', () => {
+  assert.deepEqual(parseCookies('sid=%E0%A4%A; theme=dark'), { sid: '', theme: 'dark' });
+});
+
+test('static path containment rejects sibling-prefix traversal and accepts in-root paths', () => {
+  assert.equal(isPathInsideRoot('/srv/app/public', '/srv/app/public/assets/app.js'), true);
+  assert.equal(isPathInsideRoot('/srv/app/public', '/srv/app/publicity/secret.txt'), false);
+  assert.equal(isPathInsideRoot('/srv/app/public', '/srv/app/admin/index.html'), false);
 });
