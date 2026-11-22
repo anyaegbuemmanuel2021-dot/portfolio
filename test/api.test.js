@@ -227,6 +227,8 @@ test('media: reject images whose decoded pixel count exceeds the safe processing
 test('media: content-sniffed upload, reject fake image, usage-check delete', async () => {
   const bad = await api('POST', '/api/media/upload', Buffer.from('<?php evil ?>'), { raw: true, headers: { 'x-filename': 'shell.png', 'content-type': 'image/png' } }); assert.equal(bad.s, 415);
   const svg = await api('POST', '/api/media/upload', Buffer.from('<svg onload=alert(1)></svg>'), { raw: true, headers: { 'x-filename': 'x.svg', 'content-type': 'image/svg+xml' } }); assert.equal(svg.s, 415);
+  const malformedName = await api('POST', '/api/media/upload', PNG, { raw: true, headers: { 'x-filename': '%E0%A4%A', 'content-type': 'application/octet-stream' } }); assert.equal(malformedName.s, 400);
+  const longName = await api('POST', '/api/media/upload', PNG, { raw: true, headers: { 'x-filename': encodeURIComponent('a'.repeat(256)), 'content-type': 'application/octet-stream' } }); assert.equal(longName.s, 400);
   const up = await api('POST', '/api/media/upload', PNG, { raw: true, headers: { 'x-filename': 'pixel.png', 'content-type': 'application/octet-stream' } }); assert.equal(up.s, 201); assert.equal(up.j.data.mime_type, 'image/png'); assert.equal(up.j.data.width, 1);
   const file = await fetch(base + up.j.data.url); assert.equal(file.status, 200); assert.equal(file.headers.get('content-type'), 'image/png');
   const folder = await api('POST', '/api/admin/media_folders', { name: 'CMS test folder' }); assert.equal(folder.s, 201);
