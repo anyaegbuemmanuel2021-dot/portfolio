@@ -37,7 +37,16 @@ export async function buildApp({ db, storage, mailer } = {}) {
   });
   app.middleware = async (ctx, opts) => {
     const m = ctx.req.method;
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) { const o = ctx.req.headers.origin; if (o && o !== config.siteUrl && !config.allowedOrigins.includes(o) && new URL(o).host !== ctx.req.headers.host) throw new HttpError(403, 'Cross-origin request blocked'); }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(m)) {
+      const origin = ctx.req.headers.origin;
+      if (origin) {
+        let parsed;
+        try { parsed = new URL(origin); } catch { throw new HttpError(403, 'Cross-origin request blocked'); }
+        if (parsed.origin !== origin || parsed.username || parsed.password) throw new HttpError(403, 'Cross-origin request blocked');
+        const trustedOrigins = new Set([new URL(config.siteUrl).origin, ...config.allowedOrigins]);
+        if (!trustedOrigins.has(origin)) throw new HttpError(403, 'Cross-origin request blocked');
+      }
+    }
     if (!opts.auth) return; rateLimit('adm:' + ctx.ipHash, 300, 60e3);
     const r = await auth.resolve(ctx.cookies.sid); if (!r) throw new HttpError(401, 'Authentication required');
     if (m !== 'GET' && !safeEq(ctx.req.headers['x-csrf-token'] || '', r.csrf)) throw new HttpError(403, 'Invalid CSRF token');
