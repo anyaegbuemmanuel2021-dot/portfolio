@@ -41,7 +41,9 @@ export function rateLimit(key, limit, windowMs) {
 setInterval(() => { const now = Date.now(); for (const [k, v] of buckets) if (!v.length || now - v[v.length - 1] > 3600e3) buckets.delete(k); }, 600e3).unref();
 
 export const clientIp = req => {
-  if (process.env.TRUST_PROXY !== 'false') {
+  // Forwarded headers are caller-controlled unless the deployment explicitly
+  // guarantees a trusted proxy overwrites them. Default to the socket peer. 
+  if (process.env.TRUST_PROXY === 'true') {
     // Render routes public traffic through Cloudflare, which supplies the
     // verified visitor address in CF-Connecting-IP. Never use X-Forwarded-For:
     // callers can prepend spoofed values to that chain.
