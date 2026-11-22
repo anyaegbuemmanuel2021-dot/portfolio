@@ -61,9 +61,19 @@ export function authService(db, mailer) {
       }
     },
     async resetPassword(raw, password) {
-      const r = (await db.query('SELECT * FROM password_reset_requests WHERE token_hash = $1', [sha256(raw || '')])).rows[0]; if (!r || r.used_at || new Date(r.expires_at) < new Date()) throw new HttpError(400, 'Reset link is invalid or expired');
       const pr = passwordProblems(password); if (pr.length) throw new HttpError(422, 'Password needs ' + pr.join(', '));
-      await db.tx(async t => { await t.query('UPDATE admins SET password_hash = $1, updated_at = $2 WHERE id = $3', [await hashPassword(password), now(), r.admin_id]); await t.query('UPDATE password_reset_requests SET used_at = $1 WHERE id = $2', [now(), r.id]); await t.query('UPDATE sessions SET revoked_at = $1 WHERE admin_id = $2 AND revoked_at IS NULL', [now(), r.admin_id]); });
+      const passwordHash = await hashPassword(password);
+      const usedAt = now();
+      await db.tx(async t => {
+        // Consume the token atomically. A concurrent or replayed request gets no row.
+        const consumed = await t.query('UPDATE password_reset_requests SET used_at = $1 WHERE token_hash = $2 AND used_at IS NULL AND expires_at > $1 RETURNING admin_id', [usedAt, sha256(raw || '')]);
+        const reset = consumed.rows[0];
+        if (!reset) throw new HttpError(400, 'Reset link is invalid or expired');
+        await t.query('UPDATE admins SET password_hash = $1, updated_at = $2 WHERE id = $3', [passwordHash, usedAt, reset.admin_id]);
+        // A successful reset invalidates every other outstanding link for this admin.
+        await t.query('UPDATE password_reset_requests SET used_at = $1 WHERE admin_id = $2 AND used_at IS NULL', [usedAt, reset.admin_id]);
+        await t.query('UPDATE sessions SET revoked_at = $1 WHERE admin_id = $2 AND revoked_at IS NULL', [usedAt, reset.admin_id]);
+      });
     },
     audit: (ctx, action, entity, entityId, details) => db.query('INSERT INTO audit_logs (id,admin_id,action,entity,entity_id,ip_hash,details,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [randomUUID(), ctx.admin?.id || null, action, entity || null, entityId || null, ctx.ipHash, details ? JSON.stringify(details).slice(0, 2000) : null, now()]).catch(() => {}),
   };
