@@ -3,7 +3,6 @@ import { kv, tableRepo, fixRow } from '../repositories/base.js';
 import { randomUUID } from 'node:crypto';
 import { exportAll, importAll, recordBackup } from '../services/backup.js';
 import { migrationStatus } from '../migrate.js';
-import { connect } from '../db.js';
 import { createHash } from 'node:crypto';
 import { config } from '../config.js';
 const now = () => new Date().toISOString();
@@ -96,5 +95,10 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.post('/api/backups/export', g('system'), async ctx => { const x = await exportAll(db); await recordBackup(db, { kind: 'manual-json', status: 'ok', size: x.size, checksum: x.checksum, verified: true, notes: 'Downloaded by admin', adminId: ctx.admin.id }); await auth.audit(ctx, 'backup_export', 'system', null, { size: x.size });
     return { __raw: true, headers: { 'Content-Type': 'application/json', 'Content-Disposition': `attachment; filename="portfolio-backup-${now().slice(0, 10)}.json"`, 'X-Backup-Checksum': x.checksum, 'Cache-Control': 'no-store' }, body: x.json }; });
   app.post('/api/backups/import', { auth: 'system', maxBody: 200 * 1024 * 1024 }, async ctx => { // Restore INTO ANOTHER database: body {target_url, backup, force}
-    if (config.isProd && process.env.ALLOW_WEB_IMPORT !== 'true') throw new HttpError(403, 'Web import is disabled in production. Use: npm run import -- <file> (see docs/MIGRATION.md).'); const t = await connect(String(ctx.body.target_url || '')); try { return await importAll(t, ctx.body.backup, { force: !!ctx.body.force }); } finally { await t.close(); } });
+    // A caller-supplied database URL is an SSRF primitive. Web restore is
+    // intentionally unavailable in production, even with legacy env overrides.
+    if (config.isProd) throw new HttpError(403, 'Web import is disabled in production. Use the offline CLI restore procedure (see docs/MIGRATION.md).');
+    if (process.env.ALLOW_WEB_IMPORT !== 'true') throw new HttpError(403, 'Web import is disabled. Set ALLOW_WEB_IMPORT=true only in an isolated local environment.');
+    const t = await (await import('../db.js')).connect(String(ctx.body.target_url || ''));
+    try { return await importAll(t, ctx.body.backup, { force: !!ctx.body.force }); } finally { await t.close(); } });
 }
