@@ -192,3 +192,27 @@ test('password-management endpoints reject malformed input before reaching auth 
   const badPasswordChange = await api('POST', '/api/auth/password', { current: 123, next: 'Strong-Password-123' });
   assert.equal(badPasswordChange.s, 422);
 });
+
+test('using one password-reset link invalidates every other outstanding link for that admin', async () => {
+  const service = authService(db, { real: false });
+  const links = [];
+  const originalInfo = console.info;
+  console.info = (...args) => {
+    const match = String(args[1] || '').match(/reset=([A-Za-z0-9_-]+)/);
+    if (match) links.push(match[1]);
+  };
+  try {
+    await service.requestReset('owner@example.com', 'reset-token-test');
+    await service.requestReset('owner@example.com', 'reset-token-test');
+    assert.equal(links.length, 2);
+    await service.resetPassword(links[0], 'Another-Strong-Password-123');
+    await assert.rejects(
+      () => service.resetPassword(links[1], 'YetAnother-Strong-Password-123'),
+      error => error.status === 400
+    );
+  } finally {
+    console.info = originalInfo;
+    await db.query('UPDATE password_reset_requests SET used_at = COALESCE(used_at, $1) WHERE admin_id = (SELECT id FROM admins WHERE email = $2)', [new Date().toISOString(), 'owner@example.com']);
+    await db.query('UPDATE admins SET password_hash = $1 WHERE email = $2', [await sec.hashPassword('Str0ng-Password-1'), 'owner@example.com']);
+  }
+});
