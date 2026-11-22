@@ -79,7 +79,7 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.put('/api/advertisements/network', g('ads'), async ctx => { for (const [k, v] of Object.entries(ctx.body || {})) { if (!['adsense', 'adsense_ads_txt', 'self_managed'].includes(k)) continue; const val = k === 'adsense' ? String(v.value || '').trim() : String(v.value ?? ''); if (k === 'adsense' && val && !/^ca-pub-\d{8,20}$/.test(val)) throw new HttpError(422, 'AdSense publisher ID must look like ca-pub-1234567890123456'); await db.query('INSERT INTO ad_network_settings (key,value,enabled,updated_at) VALUES ($1,$2,$3,$4) ON CONFLICT (key) DO UPDATE SET value = $2, enabled = $3, updated_at = $4', [k, val, !!v.enabled, now()]); } app.invalidate(); await auth.audit(ctx, 'update', 'ad_network'); return ads.network(); });
   // ---- analytics / system ----
   app.get('/api/analytics/summary', g('analytics'), ctx => analytics.summary(ctx.query));
-  app.get('/api/system/overview', g(true), async ctx => {
+  app.get('/api/system/overview', g('system'), async ctx => {
     const c = async s => Number((await db.query(s)).rows[0].c); const a = await analytics.summary({}); const m = await media.stats(); const lastB = (await db.query('SELECT created_at, status, verified_at FROM backup_history ORDER BY created_at DESC LIMIT 1')).rows[0];
     let dbBytes = null; if (db.dialect === 'postgres') dbBytes = Number((await db.query('SELECT pg_database_size(current_database()) AS s')).rows[0].s);
     const recent = (await db.query('SELECT l.id, l.status, l.created_at, c.name FROM leads l JOIN contacts c ON c.id = l.contact_id ORDER BY l.created_at DESC LIMIT 5')).rows; const ms = await migrationStatus(db);
