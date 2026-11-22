@@ -7,6 +7,25 @@ let cookie = '', csrf = '';
 const api = async (method, path, body, { raw, headers = {}, auth = true } = {}) => { const h = { ...headers }; if (auth && cookie) h.cookie = cookie; if (auth && csrf && method !== 'GET') h['x-csrf-token'] = csrf; if (body && !raw) h['content-type'] = 'application/json'; const r = await fetch(base + path, { method, headers: h, body: raw ? body : body ? JSON.stringify(body) : undefined, redirect: 'manual' }); const ct = r.headers.get('content-type') || ''; const j = ct.includes('json') ? await r.json() : await r.text(); return { s: r.status, j, r }; };
 test.after(() => { server.close(); });
 
+test('password-reset requests are throttled per normalized account, not only per IP', async () => {
+  const originalInfo = console.info;
+  console.info = () => {};
+  try {
+    const results = [];
+    for (let i = 0; i < 4; i++) {
+      results.push(await api('POST', '/api/auth/forgot', { email: 'UNREGISTERED-RESET@example.com' }, { auth: false }));
+    }
+    assert.deepEqual(results.map(result => result.s), [200, 200, 200, 429]);
+    const { sha256 } = await import('../server/lib/security.js');
+    const bucket = await db.query('SELECT SUM(hits) AS hits FROM request_rate_limits WHERE bucket_key = $1', ['forgot-email:' + sha256('unregistered-reset@example.com')]);
+    assert.equal(Number(bucket.rows[0].hits), 4);
+  } finally {
+    console.info = originalInfo;
+    await db.query("DELETE FROM request_rate_limits WHERE bucket_key LIKE 'forgot:%'");
+  }
+});
+
+
 test('password hashing roundtrip', async () => { const h = await sec.hashPassword('Abcdefgh1234'); assert.ok(await sec.verifyPassword('Abcdefgh1234', h)); assert.ok(!(await sec.verifyPassword('wrong', h))); });
 test('markdown escapes raw HTML and js: links', () => { const h = renderMarkdown('<script>alert(1)</script> [x](javascript:alert(1)) **b**'); assert.ok(!h.includes('<script>')); assert.ok(!h.includes('href="javascript')); assert.ok(h.includes('<strong>b</strong>')); });
 
