@@ -284,16 +284,18 @@ function webpAnimationWithFrames(width, height, count) {
   chunks.push(anim);
 
   for (let i = 0; i < count; i++) {
-    const frame = Buffer.alloc(26);
+    const frame = Buffer.alloc(34);
     frame.write('ANMF', 0);
     frame.writeUInt32LE(18, 4);
     frame.writeUIntLE(width - 1, 14, 3);
     frame.writeUIntLE(height - 1, 17, 3);
     frame.write('VP8 ', 24);
+    frame.writeUInt32LE(1, 28);
+    frame[32] = 0;
     // ANMF frame data is structurally represented; pixel budget is checked
     // from the declared frame rectangle before any decoder is invoked.
-    const chunk = Buffer.concat([frame, Buffer.from([0])]);
-    chunk.writeUInt32LE(19, 4);
+    const chunk = frame;
+    chunk.writeUInt32LE(26, 4);
     chunks.push(chunk);
   }
   const body = Buffer.concat([Buffer.from('WEBP'), ...chunks]);
