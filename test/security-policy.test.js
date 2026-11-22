@@ -103,3 +103,39 @@ test('backup import accepts only simple SQL identifier column names', () => {
   assert.equal(isSafeBackupColumn('column name'), false);
   assert.equal(isSafeBackupColumn(''), false);
 });
+
+
+test('public media delivery requires a registered media-library object key', async () => {
+  const { randomUUID } = await import('node:crypto');
+  const key = 'uploads/2026/11/security-test.png';
+  await (await import('../server/providers/storage.js')).localStorageProvider().put(key, Buffer.from('approved-image'));
+  const unknown = await fetch(base + '/api/media/file?key=' + encodeURIComponent('uploads/2026/11/not-in-library.png'));
+  assert.equal(unknown.status, 404);
+  await db.query('INSERT INTO media_files (id,storage_provider,storage_key,url,original_name,mime_type,size_bytes,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [randomUUID(), 'local', key, '/api/media/file?key=' + encodeURIComponent(key), 'security-test.png', 'image/png', 14, new Date().toISOString()]);
+  const allowed = await fetch(base + '/api/media/file?key=' + encodeURIComponent(key));
+  assert.equal(allowed.status, 200);
+  assert.equal(await allowed.text(), 'approved-image');
+});
+
+test('proxy identity is ignored unless explicitly enabled by deployment configuration', () => {
+  const req = { headers: { 'cf-connecting-ip': '192.0.2.99', 'x-forwarded-for': '198.51.100.77' }, socket: { remoteAddress: '10.0.0.8' } };
+  delete process.env.TRUST_PROXY;
+  assert.equal(clientIp(req), '10.0.0.8');
+  process.env.TRUST_PROXY = 'true';
+  assert.equal(clientIp(req), '192.0.2.99');
+  process.env.TRUST_PROXY = 'false';
+});
+
+test('web database restore remains disabled in production even if legacy override is set', async () => {
+  const { config } = await import('../server/config.js');
+  const oldProd = config.isProd, oldOverride = process.env.ALLOW_WEB_IMPORT;
+  config.isProd = true;
+  process.env.ALLOW_WEB_IMPORT = 'true';
+  try {
+    const response = await fetch(base + '/api/backups/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target_url: 'http://127.0.0.1:1', backup: {} }) });
+    assert.equal(response.status, 403);
+  } finally {
+    config.isProd = oldProd;
+    if (oldOverride === undefined) delete process.env.ALLOW_WEB_IMPORT; else process.env.ALLOW_WEB_IMPORT = oldOverride;
+  }
+});
