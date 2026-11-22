@@ -49,7 +49,7 @@ test('public and API responses do not disclose framework or server version heade
   assert.equal(api.headers.get('server'), null);
 });
 
-test('trusted proxy client IP uses the rightmost forwarded address and ignores spoofable identity headers', () => {
+test('trusted proxy client IP uses Cloudflare visitor identity and ignores spoofable forwarding chains', () => {
   process.env.TRUST_PROXY = 'true';
   const req = {
     headers: {
@@ -59,8 +59,11 @@ test('trusted proxy client IP uses the rightmost forwarded address and ignores s
     },
     socket: { remoteAddress: '10.0.0.8' }
   };
-  assert.equal(clientIp(req), '203.0.113.24');
+  assert.equal(clientIp(req), '192.0.2.99');
+  delete req.headers['cf-connecting-ip'];
+  assert.equal(clientIp(req), '10.0.0.8');
   process.env.TRUST_PROXY = 'false';
+  req.headers['cf-connecting-ip'] = '192.0.2.99';
   assert.equal(clientIp(req), '10.0.0.8');
 });
 
