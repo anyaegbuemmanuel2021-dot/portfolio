@@ -191,8 +191,53 @@ export function validateWebpAnimation(buf) {
   }
 }
 
+
+export function validateApngAnimation(buf) {
+  try {
+    if (!Buffer.isBuffer(buf) || buf.length < 33 || !buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return false;
+    let offset = 8, canvas = null, expectedFrames = null, frames = 0, totalPixels = 0, seenIdat = false, ended = false;
+    while (offset + 12 <= buf.length) {
+      const size = buf.readUInt32BE(offset), type = buf.subarray(offset + 4, offset + 8).toString();
+      const start = offset + 8, end = start + size, next = end + 4;
+      if (end > buf.length || next > buf.length) return false;
+      if (type === 'IHDR') {
+        if (canvas || offset !== 8 || size !== 13) return false;
+        canvas = { width: buf.readUInt32BE(start), height: buf.readUInt32BE(start + 4) };
+        validateImageDimensions(canvas);
+      } else if (type === 'acTL') {
+        if (expectedFrames !== null || seenIdat || size !== 8 || !canvas) return false;
+        expectedFrames = buf.readUInt32BE(start);
+        if (!expectedFrames) return false;
+        if (expectedFrames > MAX_GIF_FRAMES) throw new HttpError(413, 'APNG contains too many animation frames');
+      } else if (type === 'fcTL') {
+        if (expectedFrames === null || size !== 26) return false;
+        const width = buf.readUInt32BE(start + 4), height = buf.readUInt32BE(start + 8);
+        const left = buf.readUInt32BE(start + 12), top = buf.readUInt32BE(start + 16);
+        if (!width || !height || left + width > canvas.width || top + height > canvas.height) return false;
+        validateImageDimensions({ width, height });
+        frames++;
+        if (frames > MAX_GIF_FRAMES) throw new HttpError(413, 'APNG contains too many animation frames');
+        totalPixels += width * height;
+        if (totalPixels > MAX_IMAGE_PIXELS) throw new HttpError(413, 'APNG animation exceeds the 40 megapixel total frame limit');
+      } else if (type === 'IDAT') {
+        seenIdat = true;
+      } else if (type === 'IEND') {
+        if (size !== 0 || next !== buf.length) return false;
+        ended = true;
+        break;
+      }
+      offset = next;
+    }
+    if (!canvas || !ended || !seenIdat) return false;
+    return expectedFrames === null || (frames === expectedFrames && frames > 0);
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    return false;
+  }
+}
+
 export function sniff(b, name = '') { // validate by actual content (magic bytes), never by the client's claim
-  if (b.length > 12 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
+  if (b.length > 12 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return validateApngAnimation(b) ? 'png' : null;
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'; if (b.slice(0, 4).toString() === 'GIF8') return validateGifAnimation(b) ? 'gif' : null;
   if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return validateWebpAnimation(b) ? 'webp' : null; if (b.slice(0, 5).toString() === '%PDF-') return 'pdf';
   if (b[0] === 0x50 && b[1] === 0x4b && /\.docx$/i.test(name)) return isDocxPackage(b) ? 'docx' : null; return null;
