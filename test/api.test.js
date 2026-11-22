@@ -149,7 +149,7 @@ test('email: log provider never claims delivery; subscribe/unsubscribe; AI needs
   const campaignState = (await db.query('SELECT status, sent_count, failed_count, sent_at FROM email_campaigns WHERE id = $1', [campaign.j.data.id])).rows[0];
   assert.equal(campaignState.status, 'draft'); assert.equal(Number(campaignState.sent_count), 0); assert.equal(campaignState.sent_at, null);
   const ai = await api('POST', '/api/email/ai-assist', { subject: 'Quote', body: 'How much for a website? Urgent.' }); assert.equal(ai.j.data.category, 'quote'); assert.equal(ai.j.data.requiresApproval, true); assert.equal(ai.j.data.urgency, 'high');
-  assert.equal((await api('POST', '/api/email/inbound', { from: 'x@example.com', body: 'hi' }, { auth: false })).s, 401); assert.ok((await api('GET', '/api/email/logs')).j.data.length >= 1);
+  assert.equal((await api('POST', '/api/email/inbound', { from: 'x@example.com', body: 'hi' }, { auth: false })).s, 401); const inboundBuckets = await db.query("SELECT COUNT(*) AS c FROM request_rate_limits WHERE bucket_key LIKE 'email-inbound:%'"); assert.ok(Number(inboundBuckets.rows[0].c) > 0); assert.ok((await api('GET', '/api/email/logs')).j.data.length >= 1);
 });
 test('backup export → import into fresh DB verifies counts; media tables, FKs preserved', async () => {
   const x = await exportAll(db); const t = await connect('sqlite::memory:'); const r = await importAll(t, x.json); assert.deepEqual(r.errors, []); assert.ok(r.ok);
