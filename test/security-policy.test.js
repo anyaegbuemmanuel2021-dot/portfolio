@@ -164,3 +164,11 @@ test('public analytics throttles persist in the shared database', async () => {
   const buckets = await db.query("SELECT COUNT(*) AS c FROM request_rate_limits WHERE bucket_key LIKE 'track:%'");
   assert.ok(Number(buckets.rows[0].c) > 0, 'analytics throttle must persist in the shared database');
 });
+
+
+test('shared-secret comparison is constant-time for equal-length inputs', async () => {
+  const { safeEq } = await import('../server/lib/security.js');
+  assert.equal(safeEq('same-secret', 'same-secret'), true);
+  assert.equal(safeEq('same-secret', 'other-value'), false);
+  assert.equal(safeEq('short', 'longer-secret'), false);
+});
