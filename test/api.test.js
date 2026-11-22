@@ -257,7 +257,17 @@ test('contact form: validation, qualification, WhatsApp URL, no-budget lead kept
   await api('POST', '/api/contacts', { name: 'Spam', email: 's@example.com', message: 'Buy cheap backlinks and crypto http://a.com http://b.com http://c.com' }, { auth: false });
   const hp = await api('POST', '/api/contacts', { name: 'Bot', email: 'b@example.com', message: 'honeypot filled message', website: 'http://x' }, { auth: false }); assert.equal(hp.j.data.id, null);
   const leads = await api('GET', '/api/leads'); assert.equal(leads.j.meta.total, 3); const spam = await api('GET', '/api/leads?status=spam'); assert.equal(spam.j.data.length, 1);
-  const lead = await api('GET', `/api/leads/${q.j.data.id}`); assert.equal(lead.j.data.messages.length, 1); assert.equal((await api('PATCH', `/api/leads/${q.j.data.id}`, { status: 'converted' })).s, 200); assert.equal((await api('PATCH', `/api/leads/${q.j.data.id}`, { status: 'bogus' })).s, 422);
+  const lead = await api('GET', `/api/leads/${q.j.data.id}`); assert.equal(lead.j.data.messages.length, 1);
+  const beforeLeadAudit = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'lead' AND action = 'update'")).rows[0].c);
+  assert.equal((await api('PATCH', `/api/leads/${q.j.data.id}`, { status: 'converted' })).s, 200);
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'lead' AND action = 'update'")).rows[0].c), beforeLeadAudit + 1);
+  assert.equal((await api('PATCH', `/api/leads/${q.j.data.id}`, { status: 'bogus' })).s, 422);
+  const activityBefore = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'lead_activity' AND action = 'create'")).rows[0].c);
+  const activity = await api('POST', `/api/leads/${q.j.data.id}/activities`, { type: 'note', note: 'Audit trail check' }); assert.equal(activity.s, 201);
+  const followup = await api('POST', `/api/leads/${q.j.data.id}/follow-ups`, { due_at: new Date(Date.now() + 86400000).toISOString(), note: 'Follow up securely' }); assert.equal(followup.s, 201);
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity IN ('lead_activity','lead_follow_up') AND action = 'create'")).rows[0].c), activityBefore + 2);
+  const latestAudit = await db.query("SELECT admin_id, action, entity FROM audit_logs WHERE entity IN ('lead_activity','lead_follow_up') ORDER BY created_at DESC LIMIT 2");
+  assert.equal(latestAudit.rows.length, 2); assert.ok(latestAudit.rows.every(row => row.admin_id && row.action === 'create'));
 });
 test('rate limit on contact form', async () => { let last; for (let i = 0; i < 10; i++) last = await api('POST', '/api/contacts', { name: 'R' + i, email: `r${i}@example.com`, message: 'Rate limit test message ' + i }, { auth: false }); assert.equal(last.s, 429); });
 test('ads: serve, impression, click redirect, javascript: destination rejected, adsense id validation', async () => {
