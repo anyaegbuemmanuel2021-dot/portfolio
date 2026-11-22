@@ -13,11 +13,11 @@ test('password-reset requests are throttled per normalized account, not only per
   try {
     const results = [];
     for (let i = 0; i < 4; i++) {
-      results.push(await api('POST', '/api/auth/forgot', { email: 'OWNER@example.com' }, { auth: false }));
+      results.push(await api('POST', '/api/auth/forgot', { email: 'UNREGISTERED-RESET@example.com' }, { auth: false }));
     }
     assert.deepEqual(results.map(result => result.s), [200, 200, 200, 429]);
     const { sha256 } = await import('../server/lib/security.js');
-    const bucket = await db.query('SELECT SUM(hits) AS hits FROM request_rate_limits WHERE bucket_key = $1', ['forgot-email:' + sha256('owner@example.com')]);
+    const bucket = await db.query('SELECT SUM(hits) AS hits FROM request_rate_limits WHERE bucket_key = $1', ['forgot-email:' + sha256('unregistered-reset@example.com')]);
     assert.equal(Number(bucket.rows[0].hits), 3);
   } finally {
     console.info = originalInfo;
