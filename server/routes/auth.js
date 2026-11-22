@@ -1,6 +1,7 @@
 import { cookie, rateLimit } from '../lib/http.js';
 import { config } from '../config.js';
 import { HttpError, validate } from '../lib/validate.js';
+import { sha256 } from '../lib/security.js';
 
 function passwordField(value, field) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 200) {
@@ -31,6 +32,7 @@ export function authRoutes(app, { auth, db }) {
   app.post('/api/auth/forgot', async ctx => {
     await rateLimit('forgot:' + ctx.ipHash, 5, 3600e3, db);
     const { email } = validate({ email: { type: 'email', required: true, max: 254 } }, ctx.body);
+    await rateLimit('forgot-email:' + sha256(email), 3, 3600e3, db);
     await auth.requestReset(email, ctx.ipHash);
     return { message: 'If that account exists, a reset link has been sent.' };
   });
