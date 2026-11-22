@@ -42,11 +42,11 @@ setInterval(() => { const now = Date.now(); for (const [k, v] of buckets) if (!v
 
 export const clientIp = req => {
   if (process.env.TRUST_PROXY !== 'false') {
-    // Render appends the connecting client address to X-Forwarded-For. Use the
-    // rightmost valid address; leftmost values and vendor-specific headers can
-    // be supplied by an untrusted client when the origin is directly reachable.
-    const forwarded = String(req.headers['x-forwarded-for'] || '').split(',').map(v => v.trim()).filter(v => isIP(v));
-    if (forwarded.length) return forwarded[forwarded.length - 1];
+    // Render routes public traffic through Cloudflare, which supplies the
+    // verified visitor address in CF-Connecting-IP. Never use X-Forwarded-For:
+    // callers can prepend spoofed values to that chain.
+    const forwarded = String(req.headers['cf-connecting-ip'] || '').trim();
+    if (isIP(forwarded)) return forwarded;
   }
   return req.socket.remoteAddress || '0.0.0.0';
 };
