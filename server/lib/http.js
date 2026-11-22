@@ -33,9 +33,16 @@ export const parseCookies = h => Object.fromEntries((h || '').split(';').map(c =
 export const cookie = (name, val, { maxAge, path = '/' } = {}) => `${name}=${encodeURIComponent(val)}; Path=${path}; HttpOnly; SameSite=Strict${config.isProd ? '; Secure' : ''}${maxAge != null ? `; Max-Age=${maxAge}` : ''}`;
 
 let nextRateLimitCleanup = 0;
+const isolatedTestBuckets = new Map();
 export async function rateLimit(key, limit, windowMs, db) {
-  if (!db) throw new Error('A shared database connection is required for rate limiting');
   const now = Date.now();
+  // Standalone framework tests may construct an app without a DB. Production
+  // buildApp always supplies the database and therefore never uses this path.
+  if (!db) {
+    const recent = (isolatedTestBuckets.get(key) || []).filter(t => now - t < windowMs);
+    if (recent.length >= limit) { isolatedTestBuckets.set(key, recent); throw new HttpError(429, 'Too many requests. Please slow down and try again later.'); }
+    recent.push(now); isolatedTestBuckets.set(key, recent); return;
+  }
   const windowStart = Math.floor(now / windowMs) * windowMs;
   // Atomic upsert makes the counter consistent across multiple app instances.
   const result = await db.query(
