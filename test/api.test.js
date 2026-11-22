@@ -279,3 +279,15 @@ test('system overview is restricted to admins with the system permission', async
     }
   }
 });
+
+
+test('biography changes are recorded in the admin audit log', async () => {
+  const before = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'biography' AND action = 'update'")).rows[0].c);
+  const response = await api('PUT', '/api/admin/biography', { headline: 'Security audit test headline', body: 'Audit trail verification.' });
+  assert.equal(response.s, 200);
+  const after = await db.query("SELECT admin_id, action, entity, details FROM audit_logs WHERE entity = 'biography' AND action = 'update' ORDER BY created_at DESC LIMIT 1");
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'biography' AND action = 'update'")).rows[0].c), before + 1);
+  assert.equal(after.rows[0].action, 'update');
+  assert.equal(after.rows[0].entity, 'biography');
+  assert.ok(after.rows[0].admin_id);
+});
