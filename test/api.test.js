@@ -52,6 +52,9 @@ test('login ignores any extra authentication-code field and requires only email 
 test('content CRUD, validation, revisions, public visibility', async () => {
   const bad = await api('POST', '/api/admin/services', { title: '' }); assert.equal(bad.s, 422);
   const c = await api('POST', '/api/admin/services', { title: 'Brand Design', summary: 'Logos', seo_title: 'Brand identity services', seo_description: 'A carefully planned brand identity service description for potential clients and search visitors.', canonical_url: 'https://portfolio.example/brand-design', is_published: true }); assert.equal(c.s, 201); const id = c.j.data.id; assert.equal(c.j.data.slug, 'brand-design'); assert.equal(c.j.data.seo_title, 'Brand identity services'); assert.equal(c.j.data.canonical_url, 'https://portfolio.example/brand-design');
+  const reorderBefore = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'services' AND action = 'reorder'")).rows[0].c);
+  assert.equal((await api('POST', '/api/admin/services/reorder', { ids: [id] })).s, 200);
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'services' AND action = 'reorder'")).rows[0].c), reorderBefore + 1);
   const u = await api('PUT', `/api/admin/services/${id}`, { title: 'Brand Design v2' }); assert.equal(u.j.data.title, 'Brand Design v2'); const revs = await api('GET', `/api/admin/services/${id}/revisions`); assert.equal(revs.j.data.length, 1);
   await api('POST', `/api/admin/services/${id}/restore/${revs.j.data[0].id}`); assert.equal((await api('GET', `/api/admin/services/${id}`)).j.data.title, 'Brand Design');
   await api('PUT', `/api/admin/services/${id}`, { is_published: false }); app.invalidate(); const pub = await api('GET', '/api/services', null, { auth: false }); assert.ok(!pub.j.data.find(s => s.id === id)); assert.ok(pub.j.data.length >= 6);
@@ -409,6 +412,13 @@ test('system overview is restricted to admins with the system permission', async
   }
 });
 
+
+test('system data purge is recorded in the admin audit log', async () => {
+  const before = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'system' AND action = 'purge'")).rows[0].c);
+  const response = await api('POST', '/api/system/purge', {});
+  assert.equal(response.s, 200);
+  assert.equal(Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'system' AND action = 'purge'")).rows[0].c), before + 1);
+});
 
 test('biography changes are recorded in the admin audit log', async () => {
   const before = Number((await db.query("SELECT COUNT(*) AS c FROM audit_logs WHERE entity = 'biography' AND action = 'update'")).rows[0].c);
