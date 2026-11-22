@@ -172,6 +172,14 @@ test('media: reject ZIP files that merely claim to be DOCX and accept a valid OO
   assert.equal(valid.j.data.mime_type, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   await api('DELETE', `/api/media/${valid.j.data.id}`);
 
+  const commentedFake = storedZip({
+    '[Content_Types].xml': '<!-- <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types> -->',
+    'word/document.xml': '<!-- <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document> -->'
+  });
+  assert.equal((await api('POST', '/api/media/upload', commentedFake, {
+    raw: true, headers: { 'x-filename': 'commented-fake.docx', 'content-type': 'application/octet-stream' }
+  })).s, 415);
+
   const corrupt = Buffer.from(docx);
   const xmlOffset = corrupt.indexOf(Buffer.from('<w:body/>'));
   corrupt[xmlOffset] = 0x58;
