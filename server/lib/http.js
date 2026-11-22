@@ -32,16 +32,35 @@ export const parseCookies = h => Object.fromEntries((h || '').split(';').map(c =
 }));
 export const cookie = (name, val, { maxAge, path = '/' } = {}) => `${name}=${encodeURIComponent(val)}; Path=${path}; HttpOnly; SameSite=Strict${config.isProd ? '; Secure' : ''}${maxAge != null ? `; Max-Age=${maxAge}` : ''}`;
 
-const buckets = new Map();
-export function rateLimit(key, limit, windowMs) {
-  const now = Date.now(); const b = (buckets.get(key) || []).filter(t => now - t < windowMs);
-  if (b.length >= limit) { buckets.set(key, b); throw new HttpError(429, 'Too many requests. Please slow down and try again later.'); }
-  b.push(now); buckets.set(key, b); if (buckets.size > 20000) for (const [k, v] of buckets) if (!v.length || now - v[v.length - 1] > windowMs) buckets.delete(k);
+let nextRateLimitCleanup = 0;
+const isolatedTestBuckets = new Map();
+export async function rateLimit(key, limit, windowMs, db) {
+  const now = Date.now();
+  // Standalone framework tests may construct an app without a DB. Production
+  // buildApp always supplies the database and therefore never uses this path.
+  if (!db) {
+    const recent = (isolatedTestBuckets.get(key) || []).filter(t => now - t < windowMs);
+    if (recent.length >= limit) { isolatedTestBuckets.set(key, recent); throw new HttpError(429, 'Too many requests. Please slow down and try again later.'); }
+    recent.push(now); isolatedTestBuckets.set(key, recent); return;
+  }
+  const windowStart = Math.floor(now / windowMs) * windowMs;
+  // Atomic upsert makes the counter consistent across multiple app instances.
+  const result = await db.query(
+    'INSERT INTO request_rate_limits (bucket_key, window_start_ms, hits) VALUES ($1,$2,1) ON CONFLICT (bucket_key, window_start_ms) DO UPDATE SET hits = request_rate_limits.hits + 1 RETURNING hits',
+    [key, windowStart]
+  );
+  if (Number(result.rows[0]?.hits || 0) > limit) throw new HttpError(429, 'Too many requests. Please slow down and try again later.');
+  // Opportunistic cleanup is process-throttled; correctness does not depend on it.
+  if (now >= nextRateLimitCleanup) {
+    nextRateLimitCleanup = now + 10 * 60e3;
+    db.query('DELETE FROM request_rate_limits WHERE window_start_ms < $1', [now - 24 * 3600e3]).catch(() => {});
+  }
 }
-setInterval(() => { const now = Date.now(); for (const [k, v] of buckets) if (!v.length || now - v[v.length - 1] > 3600e3) buckets.delete(k); }, 600e3).unref();
 
 export const clientIp = req => {
-  if (process.env.TRUST_PROXY !== 'false') {
+  // Forwarded headers are caller-controlled unless the deployment explicitly
+  // guarantees a trusted proxy overwrites them. Default to the socket peer. 
+  if (process.env.TRUST_PROXY === 'true') {
     // Render routes public traffic through Cloudflare, which supplies the
     // verified visitor address in CF-Connecting-IP. Never use X-Forwarded-For:
     // callers can prepend spoofed values to that chain.
@@ -65,7 +84,7 @@ export function readBody(req, limit) {
   });
 }
 
-export function createApp({ log }) {
+export function createApp({ log, db }) {
   const routes = [];
   const app = {
     add(method, path, opts, handler) { if (!handler) { handler = opts; opts = {}; } const keys = []; const re = new RegExp('^' + path.replace(/:([a-z_]+)/gi, (_, k) => (keys.push(k), '([^/]+)')) + '/?$'); routes.push({ method, re, keys, opts, handler }); },
@@ -87,10 +106,10 @@ export function createApp({ log }) {
           const origin = req.headers.origin;
           if (origin && config.allowedOrigins.includes(origin)) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Access-Control-Allow-Credentials', 'true'); res.setHeader('Vary', 'Origin'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token, X-Filename'); res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS'); }
           if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
-          rateLimit('g:' + ctx.ipHash, 300, 60e3);
-          if (url.pathname === '/api/auth/login') rateLimit('edge-login:' + ctx.ipHash, 8, 10 * 60e3);
-          if (url.pathname === '/api/contacts') rateLimit('edge-contact:' + ctx.ipHash, 6, 60 * 60e3);
-          if (url.pathname === '/api/email/subscribe') rateLimit('edge-subscribe:' + ctx.ipHash, 4, 60 * 60e3);
+          await rateLimit('g:' + ctx.ipHash, 300, 60e3, db);
+          if (url.pathname === '/api/auth/login') await rateLimit('edge-login:' + ctx.ipHash, 8, 10 * 60e3, db);
+          if (url.pathname === '/api/contacts') await rateLimit('edge-contact:' + ctx.ipHash, 6, 60 * 60e3, db);
+          if (url.pathname === '/api/email/subscribe') await rateLimit('edge-subscribe:' + ctx.ipHash, 4, 60 * 60e3, db);
           const r = routes.find(r => r.method === req.method && r.re.test(url.pathname));
           if (!r) throw new HttpError(404, 'Not found');
           const m = url.pathname.match(r.re); r.keys.forEach((k, i) => (ctx.params[k] = decodeURIComponent(m[i + 1])));

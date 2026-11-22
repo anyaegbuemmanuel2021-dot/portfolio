@@ -5,7 +5,7 @@ process.env.AUTH_SECRET = 'security-policy-test-secret-which-is-long-enough-1234
 process.env.SITE_URL = 'http://localhost';
 process.env.TRUST_PROXY = 'false';
 const { buildApp } = await import('../server/index.js');
-const { clientIp, parseCookies, isPathInsideRoot } = await import('../server/lib/http.js');
+const { clientIp, parseCookies, isPathInsideRoot, rateLimit } = await import('../server/lib/http.js');
 const { isSafeBackupColumn } = await import('../server/services/backup.js');
 const { authService } = await import('../server/services/auth.js');
 const { app, db } = await buildApp();
@@ -102,4 +102,48 @@ test('backup import accepts only simple SQL identifier column names', () => {
   assert.equal(isSafeBackupColumn('id) VALUES (1); DROP TABLE admins; --'), false);
   assert.equal(isSafeBackupColumn('column name'), false);
   assert.equal(isSafeBackupColumn(''), false);
+});
+
+
+test('public media delivery requires a registered media-library object key', async () => {
+  const { randomUUID } = await import('node:crypto');
+  const key = 'uploads/2026/11/security-test.png';
+  await (await import('../server/providers/storage.js')).localStorageProvider().put(key, Buffer.from('approved-image'));
+  const unknown = await fetch(base + '/api/media/file?key=' + encodeURIComponent('uploads/2026/11/not-in-library.png'));
+  assert.equal(unknown.status, 404);
+  await db.query('INSERT INTO media_files (id,storage_provider,storage_key,url,original_name,mime_type,size_bytes,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [randomUUID(), 'local', key, '/api/media/file?key=' + encodeURIComponent(key), 'security-test.png', 'image/png', 14, new Date().toISOString()]);
+  const allowed = await fetch(base + '/api/media/file?key=' + encodeURIComponent(key));
+  assert.equal(allowed.status, 200);
+  assert.equal(await allowed.text(), 'approved-image');
+});
+
+test('proxy identity is ignored unless explicitly enabled by deployment configuration', () => {
+  const req = { headers: { 'cf-connecting-ip': '192.0.2.99', 'x-forwarded-for': '198.51.100.77' }, socket: { remoteAddress: '10.0.0.8' } };
+  delete process.env.TRUST_PROXY;
+  assert.equal(clientIp(req), '10.0.0.8');
+  process.env.TRUST_PROXY = 'true';
+  assert.equal(clientIp(req), '192.0.2.99');
+  process.env.TRUST_PROXY = 'false';
+});
+
+test('web database restore remains disabled in production even if legacy override is set', async () => {
+  const { config } = await import('../server/config.js');
+  const oldProd = config.isProd, oldOverride = process.env.ALLOW_WEB_IMPORT;
+  config.isProd = true;
+  process.env.ALLOW_WEB_IMPORT = 'true';
+  try {
+    const response = await call('POST', '/api/backups/import', { target_url: 'http://127.0.0.1:1', backup: {} });
+    assert.equal(response.status, 403);
+  } finally {
+    config.isProd = oldProd;
+    if (oldOverride === undefined) delete process.env.ALLOW_WEB_IMPORT; else process.env.ALLOW_WEB_IMPORT = oldOverride;
+  }
+});
+
+
+test('request rate limits are shared through atomic database counters', async () => {
+  const key = 'security-test-shared-bucket';
+  await rateLimit(key, 2, 60e3, db);
+  await rateLimit(key, 2, 60e3, db);
+  await assert.rejects(() => rateLimit(key, 2, 60e3, db), error => error.status === 429);
 });

@@ -27,13 +27,20 @@ export async function buildApp({ db, storage, mailer } = {}) {
   if (process.env.AUTO_MIGRATE !== 'false') await migrate(db, m => log.info('migration ' + m)); await seed(db);
   const auth = authService(db, mailer); const media = mediaService(db, storage); await media.repairPublicUrls(); const ads = adService(db);
   const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const social = socialService(db);
-  const app = createApp({ log });
+  const app = createApp({ log, db });
   // Public, same-origin media delivery. Object-storage credentials remain server-side.
   app.get('/api/media/file', async ctx => {
     const key = String(ctx.query.key || '');
     if (!/^[a-zA-Z0-9/_.-]{1,500}$/.test(key) || key.includes('..')) throw new HttpError(400, 'Invalid media key');
-    const body = await storage.get(key);
-    return { __raw: true, status: 200, headers: { 'Content-Type': mimeFor(key), 'Content-Length': body.length, 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' }, body };
+    // Only deliver objects registered in the media library. A syntactically
+    // valid key alone must never become an object-storage read capability.
+    const record = (await db.query('SELECT storage_provider, mime_type FROM media_files WHERE storage_key = $1 LIMIT 1', [key])).rows[0];
+    if (!record || record.storage_provider !== storage.name) throw new HttpError(404, 'Media not found');
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
+    if (!allowedTypes.has(record.mime_type)) throw new HttpError(404, 'Media not found');
+    let body;
+    try { body = await storage.get(key); } catch { throw new HttpError(404, 'Media not found'); }
+    return { __raw: true, status: 200, headers: { 'Content-Type': record.mime_type, 'Content-Length': body.length, 'Content-Disposition': 'inline', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' }, body };
   });
   app.middleware = async (ctx, opts) => {
     const m = ctx.req.method;
@@ -47,7 +54,7 @@ export async function buildApp({ db, storage, mailer } = {}) {
         if (!trustedOrigins.has(origin)) throw new HttpError(403, 'Cross-origin request blocked');
       }
     }
-    if (!opts.auth) return; rateLimit('adm:' + ctx.ipHash, 300, 60e3);
+    if (!opts.auth) return; await rateLimit('adm:' + ctx.ipHash, 300, 60e3, db);
     const r = await auth.resolve(ctx.cookies.sid); if (!r) throw new HttpError(401, 'Authentication required');
     if (m !== 'GET' && !safeEq(ctx.req.headers['x-csrf-token'] || '', r.csrf)) throw new HttpError(403, 'Invalid CSRF token');
     if (typeof opts.auth === 'string' && !r.admin.permissions.includes(opts.auth)) throw new HttpError(403, 'You do not have permission for this action');
