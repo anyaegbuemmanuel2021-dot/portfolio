@@ -58,12 +58,25 @@ export function isDocxPackage(buf) {
       if (data.length !== entry.uncompressed || zipCrc32(data) !== entry.crc) throw new Error('Invalid ZIP entry checksum');
       return new TextDecoder('utf-8', { fatal: true }).decode(data);
     };
-    const typesXml = readXml(required.get('[Content_Types].xml'));
-    const documentXml = readXml(required.get('word/document.xml'));
-    return /<(?:[A-Za-z0-9_]+:)?Types\b/.test(typesXml)
-      && typesXml.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml')
-      && /<(?:[A-Za-z0-9_]+:)?document\b/.test(documentXml)
-      && documentXml.includes('wordprocessingml/2006/main');
+    const cleanXml = xml => xml.replace(/^\uFEFF/, '').replace(/<\?xml[^?]*\?>/i, '').replace(/<!--[\s\S]*?-->/g, '').trim();
+    const typesXml = cleanXml(readXml(required.get('[Content_Types].xml')));
+    const documentXml = cleanXml(readXml(required.get('word/document.xml')));
+    if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(typesXml + documentXml)) return false;
+    const typeRoot = typesXml.match(/^<((?:[A-Za-z_][\w.-]*:)?)Types\b([^>]*)>/);
+    const documentRoot = documentXml.match(/^<((?:[A-Za-z_][\w.-]*:)?)document\b([^>]*)>/);
+    if (!typeRoot || !documentRoot) return false;
+    const attrValue = (attrs, wanted) => {
+      const re = /([A-Za-z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+      let match; while ((match = re.exec(attrs))) if (match[1] === wanted) return match[2] ?? match[3];
+      return '';
+    };
+    const typeNsName = typeRoot[1] ? 'xmlns:' + typeRoot[1].slice(0, -1) : 'xmlns';
+    const documentNsName = documentRoot[1] ? 'xmlns:' + documentRoot[1].slice(0, -1) : 'xmlns';
+    const overrides = [...typesXml.matchAll(/<(?:[A-Za-z_][\w.-]*:)?Override\b([^>]*)\/?\s*>/g)];
+    const hasMainDocument = overrides.some(([, attrs]) => attrValue(attrs, 'PartName') === '/word/document.xml' && attrValue(attrs, 'ContentType') === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml');
+    return attrValue(typeRoot[2], typeNsName) === 'http://schemas.openxmlformats.org/package/2006/content-types'
+      && attrValue(documentRoot[2], documentNsName) === 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+      && hasMainDocument;
   } catch { return false; }
 }
 
