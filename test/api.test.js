@@ -179,3 +179,16 @@ test('upload validation: content sniffing, size and filename handling', async ()
   assert.equal((await up(Buffer.alloc(0), 'empty.pdf')).s, 400);
   const ok = await up(Buffer.from('%PDF-1.4\n%%EOF'), '../../../etc/x.pdf'); assert.equal(ok.s, 201); assert.ok(!ok.j.data.storage_key.includes('..')); assert.ok(!ok.j.data.original_name.includes('/'));
 });
+
+test('password-management endpoints reject malformed input before reaching auth service', async () => {
+  const badForgot = await api('POST', '/api/auth/forgot', { email: 'not-an-email' }, { auth: false });
+  assert.equal(badForgot.s, 422);
+  const missingForgot = await api('POST', '/api/auth/forgot', {}, { auth: false });
+  assert.equal(missingForgot.s, 422);
+  const badReset = await api('POST', '/api/auth/reset', { token: '', password: 'Strong-Password-123' }, { auth: false });
+  assert.equal(badReset.s, 422);
+  const missingReset = await api('POST', '/api/auth/reset', {}, { auth: false });
+  assert.equal(missingReset.s, 422);
+  const badPasswordChange = await api('POST', '/api/auth/password', { current: 123, next: 'Strong-Password-123' });
+  assert.equal(badPasswordChange.s, 422);
+});
