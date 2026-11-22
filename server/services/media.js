@@ -137,10 +137,64 @@ export function validateGifAnimation(buf) {
   }
 }
 
+
+const readUInt24LE = (buf, offset) => buf.readUIntLE(offset, 3);
+export function validateWebpAnimation(buf) {
+  try {
+    if (!Buffer.isBuffer(buf) || buf.length < 12 || buf.subarray(0, 4).toString() !== 'RIFF' || buf.subarray(8, 12).toString() !== 'WEBP') return false;
+    if (buf.readUInt32LE(4) + 8 !== buf.length) return false;
+    let offset = 12, canvas = null, hasAnimFlag = false, hasAnimControl = false, frames = 0, totalPixels = 0;
+    while (offset < buf.length) {
+      if (offset + 8 > buf.length) return false;
+      const type = buf.subarray(offset, offset + 4).toString();
+      const size = buf.readUInt32LE(offset + 4);
+      const start = offset + 8, end = start + size, paddedEnd = end + (size & 1);
+      if (end > buf.length || paddedEnd > buf.length) return false;
+      if (type === 'VP8X') {
+        if (size !== 10 || canvas) return false;
+        hasAnimFlag = Boolean(buf[start] & 0x02);
+        canvas = { width: 1 + readUInt24LE(buf, start + 4), height: 1 + readUInt24LE(buf, start + 7) };
+        validateImageDimensions(canvas);
+      } else if (type === 'ANIM') {
+        if (size !== 6 || hasAnimControl) return false;
+        hasAnimControl = true;
+      } else if (type === 'ANMF') {
+        if (!canvas || !hasAnimFlag || !hasAnimControl || size < 26) return false;
+        const left = readUInt24LE(buf, start) * 2, top = readUInt24LE(buf, start + 3) * 2;
+        const width = 1 + readUInt24LE(buf, start + 6), height = 1 + readUInt24LE(buf, start + 9);
+        if (left + width > canvas.width || top + height > canvas.height) return false;
+        validateImageDimensions({ width, height });
+        frames++;
+        if (frames > MAX_GIF_FRAMES) throw new HttpError(413, 'WebP contains too many animation frames');
+        totalPixels += width * height;
+        if (totalPixels > MAX_IMAGE_PIXELS) throw new HttpError(413, 'WebP animation exceeds the 40 megapixel total frame limit');
+        let inner = start + 16, hasImageData = false;
+        while (inner < end) {
+          if (inner + 8 > end) return false;
+          const innerType = buf.subarray(inner, inner + 4).toString();
+          const innerSize = buf.readUInt32LE(inner + 4);
+          const innerEnd = inner + 8 + innerSize, innerPaddedEnd = innerEnd + (innerSize & 1);
+          if (innerEnd > end || innerPaddedEnd > end) return false;
+          if (innerType === 'VP8 ' || innerType === 'VP8L') hasImageData = true;
+          else if (innerType !== 'ALPH') return false;
+          inner = innerPaddedEnd;
+        }
+        if (!hasImageData || inner !== end) return false;
+      }
+      offset = paddedEnd;
+    }
+    if (offset !== buf.length) return false;
+    return hasAnimFlag ? hasAnimControl && frames > 0 : !hasAnimControl && frames === 0;
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    return false;
+  }
+}
+
 export function sniff(b, name = '') { // validate by actual content (magic bytes), never by the client's claim
   if (b.length > 12 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'; if (b.slice(0, 4).toString() === 'GIF8') return validateGifAnimation(b) ? 'gif' : null;
-  if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return 'webp'; if (b.slice(0, 5).toString() === '%PDF-') return 'pdf';
+  if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return validateWebpAnimation(b) ? 'webp' : null; if (b.slice(0, 5).toString() === '%PDF-') return 'pdf';
   if (b[0] === 0x50 && b[1] === 0x4b && /\.docx$/i.test(name)) return isDocxPackage(b) ? 'docx' : null; return null;
 }
 export function validateImageDimensions(size) {

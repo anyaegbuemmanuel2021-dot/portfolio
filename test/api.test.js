@@ -268,6 +268,48 @@ test('media: bound cumulative GIF frame pixels and animation frame count', async
   });
   assert.equal(frameBomb.s, 413);
 });
+function webpAnimationWithFrames(width, height, count) {
+  const chunks = [];
+  const vp8x = Buffer.alloc(18);
+  vp8x.write('VP8X', 0);
+  vp8x.writeUInt32LE(10, 4);
+  vp8x[8] = 0x02; // animation flag
+  vp8x.writeUIntLE(width - 1, 12, 3);
+  vp8x.writeUIntLE(height - 1, 15, 3);
+  chunks.push(vp8x);
+
+  const anim = Buffer.alloc(14);
+  anim.write('ANIM', 0);
+  anim.writeUInt32LE(6, 4);
+  chunks.push(anim);
+
+  for (let i = 0; i < count; i++) {
+    const frame = Buffer.alloc(34);
+    frame.write('ANMF', 0);
+    frame.writeUInt32LE(18, 4);
+    frame.writeUIntLE(width - 1, 14, 3);
+    frame.writeUIntLE(height - 1, 17, 3);
+    frame.write('VP8 ', 24);
+    frame.writeUInt32LE(1, 28);
+    frame[32] = 0;
+    // ANMF frame data is structurally represented; pixel budget is checked
+    // from the declared frame rectangle before any decoder is invoked.
+    const chunk = frame;
+    chunk.writeUInt32LE(26, 4);
+    chunks.push(chunk);
+  }
+  const body = Buffer.concat([Buffer.from('WEBP'), ...chunks]);
+  const riff = Buffer.alloc(8);
+  riff.write('RIFF', 0);
+  riff.writeUInt32LE(body.length, 4);
+  return Buffer.concat([riff, body]);
+}
+test('media: bound cumulative animated WebP frame pixels before decoding', async () => {
+  const pixelBomb = await api('POST', '/api/media/upload', webpAnimationWithFrames(1000, 1000, 41), {
+    raw: true, headers: { 'x-filename': 'animated-pixel-bomb.webp', 'content-type': 'image/webp' }
+  });
+  assert.equal(pixelBomb.s, 413);
+});
 test('media: reject images when dimensions cannot be safely verified', async () => {
   const { validateImageDimensions } = await import('../server/services/media.js');
   assert.throws(() => validateImageDimensions({}), error => error.status === 422);
