@@ -1,9 +1,9 @@
 import { cookie, rateLimit } from '../lib/http.js';
 import { config } from '../config.js';
 import { HttpError, validate } from '../lib/validate.js';
-export function authRoutes(app, { auth }) {
+export function authRoutes(app, { auth, db }) {
   app.post('/api/auth/login', async ctx => {
-    rateLimit('login:' + ctx.ipHash, 12, 15 * 60e3); const b = validate({ email: { type: 'string', required: true, max: 254 }, password: { type: 'string', required: true, max: 200 } }, ctx.body);
+    await rateLimit('login:' + ctx.ipHash, 12, 15 * 60e3, db); const b = validate({ email: { type: 'string', required: true, max: 254 }, password: { type: 'string', required: true, max: 200 } }, ctx.body);
     const r = await auth.login(b, { ipHash: ctx.ipHash, userAgent: ctx.req.headers['user-agent'] }); ctx.setCookies.push(cookie('sid', r.raw, { maxAge: config.sessionHours * 3600, path: '/' })); return { admin: r.admin, csrf: r.csrf };
   });
   app.post('/api/auth/logout', { auth: true }, async ctx => { await auth.logout(ctx.rawToken); ctx.setCookies.push(cookie('sid', '', { maxAge: 0 })); return { loggedOut: true }; });
