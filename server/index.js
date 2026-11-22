@@ -60,7 +60,7 @@ export async function buildApp({ db, storage, mailer } = {}) {
     if (typeof opts.auth === 'string' && !r.admin.permissions.includes(opts.auth)) throw new HttpError(403, 'You do not have permission for this action');
     Object.assign(ctx, { admin: r.admin, session: r.session, csrf: r.csrf, rawToken: ctx.cookies.sid });
   };
-  authRoutes(app, { auth }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, syncUsage: media.syncUsage };
+  authRoutes(app, { auth, db }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, syncUsage: media.syncUsage };
   publicRoutes(app, deps); adminRoutes(app, deps); entityRoutes(app, deps); // specific admin routes first, generic /api/admin/:entity last
   return { app, db, deps };
 }
