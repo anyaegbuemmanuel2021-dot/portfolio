@@ -5,6 +5,7 @@ import { exportAll, importAll, recordBackup } from '../services/backup.js';
 import { migrationStatus } from '../migrate.js';
 import { createHash } from 'node:crypto';
 import { config } from '../config.js';
+import { safeEq } from '../lib/security.js';
 const now = () => new Date().toISOString();
 export function adminRoutes(app, { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social }) {
   const settings = kv(db, 'site_settings'); const sys = kv(db, 'system_settings');
@@ -69,7 +70,7 @@ export function adminRoutes(app, { db, auth, articles, media, leads, email, ads,
   app.get('/api/email/search', g('email'), ctx => email.searchMessages(String(ctx.query.q || '')));
   app.get('/api/email/subscribers', g('email'), async () => (await db.query('SELECT id,email,name,status,subscribed_at FROM email_subscribers ORDER BY subscribed_at DESC LIMIT 500')).rows);
   app.post('/api/email/campaigns/:id/send', g('email'), async ctx => { const r = await email.sendCampaign(ctx.params.id); await auth.audit(ctx, 'send', 'campaign', ctx.params.id, r); return r; });
-  app.post('/api/email/inbound', async ctx => { const s = config.email.inboundSecret; if (!s || ctx.req.headers['x-inbound-secret'] !== s) throw new HttpError(401, 'Unauthorized'); const d = validate({ from: { type: 'email', required: true }, subject: { max: 200 }, body: { required: true, max: 20000 }, name: { max: 100 } }, ctx.body); return { status: 201, data: await email.receive(d) }; });
+  app.post('/api/email/inbound', async ctx => { await rateLimit('email-inbound:' + ctx.ipHash, 20, 60e3, db); const s = config.email.inboundSecret; if (!s || !safeEq(ctx.req.headers['x-inbound-secret'] || '', s)) throw new HttpError(401, 'Unauthorized'); const d = validate({ from: { type: 'email', required: true }, subject: { max: 200 }, body: { required: true, max: 20000 }, name: { max: 100 } }, ctx.body); return { status: 201, data: await email.receive(d) }; });
   app.post('/api/email/ai-assist', g('email'), async ctx => { const { aiAssist } = await import('../providers/ai.js'); const d = validate({ subject: { max: 200 }, body: { required: true, max: 8000 }, senderName: { max: 100 } }, ctx.body); return aiAssist(d); });
   // ---- ads ----
   app.get('/api/advertisements/performance', g('ads'), ctx => ads.performance(ctx.query));
