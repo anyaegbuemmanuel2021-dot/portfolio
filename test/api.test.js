@@ -1,6 +1,7 @@
 import test from 'node:test'; import assert from 'node:assert/strict';
 process.env.DATABASE_URL = 'sqlite::memory:'; process.env.AUTH_SECRET = 'test-secret-test-secret-test-secret-123'; process.env.LOCAL_MEDIA_DIR = './data/test-media'; process.env.SITE_URL = 'http://localhost'; process.env.TRUST_PROXY = 'false';
 const { buildApp } = await import('../server/index.js'); const { authService } = await import('../server/services/auth.js'); const sec = await import('../server/lib/security.js'); const { connect } = await import('../server/db.js'); const { exportAll, importAll } = await import('../server/services/backup.js'); const { renderMarkdown } = await import('../server/lib/markdown.js');
+const { deflateSync } = await import('node:zlib');
 const { app, db, deps } = await buildApp(); const server = app.server().listen(0); const base = `http://127.0.0.1:${server.address().port}`;
 await authService(db, { real: false }).bootstrap({ email: 'owner@example.com', password: 'Str0ng-Password-1', name: 'Owner' });
 let cookie = '', csrf = '';
@@ -309,6 +310,53 @@ test('media: bound cumulative animated WebP frame pixels before decoding', async
     raw: true, headers: { 'x-filename': 'animated-pixel-bomb.webp', 'content-type': 'image/webp' }
   });
   assert.equal(pixelBomb.s, 413);
+});
+function pngChunk(type, data) {
+  const name = Buffer.from(type);
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  name.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(Buffer.concat([name, data])), 8 + data.length);
+  return chunk;
+}
+function apngWithFrames(width, height, count) {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; ihdr[9] = 6; // 8-bit RGBA
+  const actl = Buffer.alloc(8);
+  actl.writeUInt32BE(count, 0);
+  const raw = Buffer.alloc(height * (1 + width * 4));
+  const compressed = deflateSync(raw);
+  const chunks = [pngChunk('IHDR', ihdr), pngChunk('acTL', actl)];
+  let sequence = 0;
+  const frameControl = () => {
+    const data = Buffer.alloc(26);
+    data.writeUInt32BE(sequence++, 0);
+    data.writeUInt32BE(width, 4);
+    data.writeUInt32BE(height, 8);
+    data.writeUInt16BE(1, 20);
+    data.writeUInt16BE(10, 22);
+    return pngChunk('fcTL', data);
+  };
+  chunks.push(frameControl(), pngChunk('IDAT', compressed));
+  for (let i = 1; i < count; i++) {
+    chunks.push(frameControl());
+    const data = Buffer.alloc(4 + compressed.length);
+    data.writeUInt32BE(sequence++, 0);
+    compressed.copy(data, 4);
+    chunks.push(pngChunk('fdAT', data));
+  }
+  chunks.push(pngChunk('IEND', Buffer.alloc(0)));
+  return Buffer.concat([signature, ...chunks]);
+}
+test('media: bound cumulative APNG frame pixels before image decoding', async () => {
+  const response = await api('POST', '/api/media/upload', apngWithFrames(1000, 1000, 41), {
+    raw: true, headers: { 'x-filename': 'animated-pixel-bomb.png', 'content-type': 'image/png' }
+  });
+  assert.equal(response.s, 413);
 });
 test('media: reject images when dimensions cannot be safely verified', async () => {
   const { validateImageDimensions } = await import('../server/services/media.js');
