@@ -132,7 +132,7 @@ test('web database restore remains disabled in production even if legacy overrid
   config.isProd = true;
   process.env.ALLOW_WEB_IMPORT = 'true';
   try {
-    const response = await fetch(base + '/api/backups/import', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ target_url: 'http://127.0.0.1:1', backup: {} }) });
+    const response = await call('POST', '/api/backups/import', { target_url: 'http://127.0.0.1:1', backup: {} });
     assert.equal(response.status, 403);
   } finally {
     config.isProd = oldProd;
