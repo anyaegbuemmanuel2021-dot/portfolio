@@ -1,7 +1,9 @@
 // Tiny HTTP framework: routing, JSON envelope, cookies, security headers, rate limiting, static files.
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { join, extname, normalize, sep } from 'node:path';
+import { join, extname, normalize, sep, relative, resolve, isAbsolute } from 'node:path';
+import { realpath } from 'node:fs/promises';
+import { isIP } from 'node:net';
 import { config } from '../config.js';
 import { HttpError } from './validate.js';
 import { hmac } from './security.js';
@@ -10,6 +12,9 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=u
 export const mimeFor = p => MIME[extname(p).toLowerCase()] || 'application/octet-stream';
 
 export function securityHeaders(res, { admin = false, api = false } = {}) {
+  // Remove application-controlled framework/runtime fingerprints on every response.
+  res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
   const csp = api ? "default-src 'none'; frame-ancestors 'none'"
     : admin ? "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'"
     : "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https: https://challenges.cloudflare.com; frame-src https://googleads.g.doubleclick.net https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'";
@@ -20,7 +25,11 @@ export function securityHeaders(res, { admin = false, api = false } = {}) {
   if (admin || api) res.setHeader('X-Robots-Tag', 'noindex');
   if (admin || api) res.setHeader('Cache-Control', 'no-store');
 }
-export const parseCookies = h => Object.fromEntries((h || '').split(';').map(c => c.trim().split(/=(.*)/s)).filter(p => p[0]).map(([k, v]) => [k, decodeURIComponent(v || '')]));
+export const parseCookies = h => Object.fromEntries((h || '').split(';').map(c => c.trim().split(/=(.*)/s)).filter(p => p[0]).map(([k, v]) => {
+  let value = v || '';
+  try { value = decodeURIComponent(value); } catch { value = ''; }
+  return [k, value];
+}));
 export const cookie = (name, val, { maxAge, path = '/' } = {}) => `${name}=${encodeURIComponent(val)}; Path=${path}; HttpOnly; SameSite=Strict${config.isProd ? '; Secure' : ''}${maxAge != null ? `; Max-Age=${maxAge}` : ''}`;
 
 const buckets = new Map();
@@ -31,7 +40,20 @@ export function rateLimit(key, limit, windowMs) {
 }
 setInterval(() => { const now = Date.now(); for (const [k, v] of buckets) if (!v.length || now - v[v.length - 1] > 3600e3) buckets.delete(k); }, 600e3).unref();
 
-export const clientIp = req => (process.env.TRUST_PROXY === 'false' ? null : (req.headers['cf-connecting-ip'] || req.headers['true-client-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim())) || req.socket.remoteAddress || '0.0.0.0';
+export const clientIp = req => {
+  if (process.env.TRUST_PROXY !== 'false') {
+    // Render routes public traffic through Cloudflare, which supplies the
+    // verified visitor address in CF-Connecting-IP. Never use X-Forwarded-For:
+    // callers can prepend spoofed values to that chain.
+    const forwarded = String(req.headers['cf-connecting-ip'] || '').trim();
+    if (isIP(forwarded)) return forwarded;
+  }
+  return req.socket.remoteAddress || '0.0.0.0';
+};
+export function isPathInsideRoot(root, candidate) {
+  const rel = relative(resolve(root), resolve(candidate));
+  return rel === '' || (rel !== '..' && !rel.startsWith('..' + sep) && !isAbsolute(rel));
+}
 export const ipHash = ip => hmac('ip:' + ip).slice(0, 24);
 
 export function readBody(req, limit) {
@@ -51,6 +73,7 @@ export function createApp({ log }) {
     middleware: null, // (ctx, route) => void, set by index.js to enforce auth
     async handle(req, res) {
       const url = new URL(req.url, 'http://x'); const started = Date.now();
+      securityHeaders(res);
       const ip = clientIp(req); const ctx = { req, res, url, query: Object.fromEntries(url.searchParams), ip, ipHash: ipHash(ip), cookies: parseCookies(req.headers.cookie), params: {}, body: null, setCookies: [] };
       const send = (status, payload, headers = {}) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers, ...(ctx.setCookies.length ? { 'Set-Cookie': ctx.setCookies } : {}) }); res.end(JSON.stringify(payload)); };
       ctx.send = send;
@@ -94,7 +117,14 @@ export function createApp({ log }) {
   return app;
 }
 
-async function tryFile(p) { try { const s = await stat(p); return s.isFile() ? p : null; } catch { return null; } }
+async function tryFileWithinRoot(root, candidate) {
+  try {
+    const [rootReal, fileReal] = await Promise.all([realpath(root), realpath(candidate)]);
+    if (!isPathInsideRoot(rootReal, fileReal)) return null;
+    const s = await stat(fileReal);
+    return s.isFile() ? fileReal : null;
+  } catch { return null; }
+}
 async function serveStatic(ctx) {
   const { req, res, url } = ctx; if (!['GET', 'HEAD'].includes(req.method)) throw new HttpError(405, 'Method not allowed');
   let p = decodeURIComponent(url.pathname); if (p.includes('\0')) throw new HttpError(400, 'Bad path');
@@ -124,9 +154,10 @@ async function serveStatic(ctx) {
       return res.end(req.method === 'HEAD' ? undefined : body);
     }
   }
-  const base = normalize(root); let file = normalize(join(base, rel)); if (!file.startsWith(base)) throw new HttpError(403, 'Forbidden');
+  const base = normalize(root); let file = normalize(join(base, rel));
+  if (!isPathInsideRoot(base, file)) throw new HttpError(403, 'Forbidden');
   if (rel.endsWith('/')) file = join(file, 'index.html');
-  let found = await tryFile(file) || await tryFile(file + '.html') || await tryFile(join(file, 'index.html'));
+  let found = await tryFileWithinRoot(base, file) || await tryFileWithinRoot(base, file + '.html') || await tryFileWithinRoot(base, join(file, 'index.html'));
   if (!found) throw new HttpError(404, 'Not found');
   const ext = extname(found).toLowerCase(); securityHeaders(res, { admin: isAdmin });
   let data = await readFile(found);
