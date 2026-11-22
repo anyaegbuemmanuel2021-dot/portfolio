@@ -80,9 +80,66 @@ export function isDocxPackage(buf) {
   } catch { return false; }
 }
 
+
+const MAX_GIF_FRAMES = 500;
+function skipGifSubBlocks(buf, offset) {
+  while (offset < buf.length) {
+    const size = buf[offset++];
+    if (size === 0) return offset;
+    if (offset + size > buf.length) return -1;
+    offset += size;
+  }
+  return -1;
+}
+export function validateGifAnimation(buf) {
+  try {
+    if (!Buffer.isBuffer(buf) || buf.length < 20 || !['GIF87a', 'GIF89a'].includes(buf.subarray(0, 6).toString())) return false;
+    const screenWidth = buf.readUInt16LE(6), screenHeight = buf.readUInt16LE(8), screenFlags = buf[10];
+    validateImageDimensions({ width: screenWidth, height: screenHeight });
+    const hasGlobalTable = Boolean(screenFlags & 0x80);
+    let offset = 13;
+    if (hasGlobalTable) offset += 3 * (2 ** ((screenFlags & 0x07) + 1));
+    if (offset > buf.length) return false;
+    let frames = 0, totalPixels = 0;
+    while (offset < buf.length) {
+      const marker = buf[offset++];
+      if (marker === 0x3b) return frames > 0 && offset === buf.length;
+      if (marker === 0x21) {
+        if (offset >= buf.length) return false;
+        offset = skipGifSubBlocks(buf, offset + 1);
+        if (offset < 0) return false;
+        continue;
+      }
+      if (marker !== 0x2c || offset + 9 > buf.length) return false;
+      const left = buf.readUInt16LE(offset), top = buf.readUInt16LE(offset + 2);
+      const width = buf.readUInt16LE(offset + 4), height = buf.readUInt16LE(offset + 6);
+      const flags = buf[offset + 8];
+      offset += 9;
+      if (!width || !height || left + width > screenWidth || top + height > screenHeight) return false;
+      validateImageDimensions({ width, height });
+      frames++;
+      if (frames > MAX_GIF_FRAMES) throw new HttpError(413, 'GIF contains too many animation frames');
+      totalPixels += width * height;
+      if (totalPixels > MAX_IMAGE_PIXELS) throw new HttpError(413, 'GIF animation exceeds the 40 megapixel total frame limit');
+      const hasLocalTable = Boolean(flags & 0x80);
+      if (hasLocalTable) offset += 3 * (2 ** ((flags & 0x07) + 1));
+      else if (!hasGlobalTable) return false;
+      if (offset >= buf.length) return false;
+      const lzwMinimumCodeSize = buf[offset++];
+      if (lzwMinimumCodeSize < 2 || lzwMinimumCodeSize > 8) return false;
+      offset = skipGifSubBlocks(buf, offset);
+      if (offset < 0) return false;
+    }
+    return false;
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    return false;
+  }
+}
+
 export function sniff(b, name = '') { // validate by actual content (magic bytes), never by the client's claim
   if (b.length > 12 && b.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'png';
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'; if (b.slice(0, 4).toString() === 'GIF8') return 'gif';
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpeg'; if (b.slice(0, 4).toString() === 'GIF8') return validateGifAnimation(b) ? 'gif' : null;
   if (b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP') return 'webp'; if (b.slice(0, 5).toString() === '%PDF-') return 'pdf';
   if (b[0] === 0x50 && b[1] === 0x4b && /\.docx$/i.test(name)) return isDocxPackage(b) ? 'docx' : null; return null;
 }

@@ -234,6 +234,40 @@ test('media: reject ZIP files that merely claim to be DOCX and accept a valid OO
   })).s, 415);
 });
 
+function gifWithFrames(width, height, count) {
+  const header = Buffer.from('GIF89a');
+  const screen = Buffer.alloc(7);
+  screen.writeUInt16LE(width, 0);
+  screen.writeUInt16LE(height, 2);
+  screen[4] = 0x80; // two-entry global colour table
+  const palette = Buffer.from([0, 0, 0, 255, 255, 255]);
+  const frames = [];
+  for (let i = 0; i < count; i++) {
+    const descriptor = Buffer.alloc(10);
+    descriptor[0] = 0x2c;
+    descriptor.writeUInt16LE(width, 5);
+    descriptor.writeUInt16LE(height, 7);
+    frames.push(descriptor, Buffer.from([2, 2, 0x44, 0x01, 0]));
+  }
+  return Buffer.concat([header, screen, palette, ...frames, Buffer.from([0x3b])]);
+}
+test('media: bound cumulative GIF frame pixels and animation frame count', async () => {
+  const valid = await api('POST', '/api/media/upload', gifWithFrames(1, 1, 1), {
+    raw: true, headers: { 'x-filename': 'tiny.gif', 'content-type': 'image/gif' }
+  });
+  assert.equal(valid.s, 201);
+  await api('DELETE', `/api/media/${valid.j.data.id}`);
+
+  const pixelBomb = await api('POST', '/api/media/upload', gifWithFrames(1000, 1000, 41), {
+    raw: true, headers: { 'x-filename': 'animated-pixel-bomb.gif', 'content-type': 'image/gif' }
+  });
+  assert.equal(pixelBomb.s, 413);
+
+  const frameBomb = await api('POST', '/api/media/upload', gifWithFrames(1, 1, 501), {
+    raw: true, headers: { 'x-filename': 'too-many-frames.gif', 'content-type': 'image/gif' }
+  });
+  assert.equal(frameBomb.s, 413);
+});
 test('media: reject images when dimensions cannot be safely verified', async () => {
   const { validateImageDimensions } = await import('../server/services/media.js');
   assert.throws(() => validateImageDimensions({}), error => error.status === 422);
