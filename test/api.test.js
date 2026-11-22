@@ -162,7 +162,7 @@ test('media: reject ZIP files that merely claim to be DOCX and accept a valid OO
   });
   assert.equal(fake.s, 415);
   const docx = storedZip({
-    '[Content_Types].xml': '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>',
+    '[Content_Types].xml': '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
     'word/document.xml': '<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>'
   });
   const valid = await api('POST', '/api/media/upload', docx, {
