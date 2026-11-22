@@ -198,6 +198,14 @@ test('media: reject ZIP files that merely claim to be DOCX and accept a valid OO
   })).s, 415);
 });
 
+test('media: reject images when dimensions cannot be safely verified', async () => {
+  const { validateImageDimensions } = await import('../server/services/media.js');
+  assert.throws(() => validateImageDimensions({}), error => error.status === 422);
+  assert.throws(() => validateImageDimensions({ width: 0, height: 20 }), error => error.status === 422);
+  assert.throws(() => validateImageDimensions({ width: 10000, height: 10000 }), error => error.status === 413);
+  assert.doesNotThrow(() => validateImageDimensions({ width: 1200, height: 800 }));
+});
+
 test('media: reject images whose decoded pixel count exceeds the safe processing budget', async () => {
   const oversized = pngWithDimensions(10000, 10000);
   const response = await api('POST', '/api/media/upload', oversized, {
