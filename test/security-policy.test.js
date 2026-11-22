@@ -5,6 +5,7 @@ process.env.AUTH_SECRET = 'security-policy-test-secret-which-is-long-enough-1234
 process.env.SITE_URL = 'http://localhost';
 process.env.TRUST_PROXY = 'false';
 const { buildApp } = await import('../server/index.js');
+const { clientIp } = await import('../server/lib/http.js');
 const { authService } = await import('../server/services/auth.js');
 const { app, db } = await buildApp();
 const server = app.server().listen(0);
@@ -36,4 +37,29 @@ test('admin signs in with email and password only; no 2FA gate or enrollment end
 test('legacy 2FA policy flag no longer exists in config', async () => {
   const { config } = await import('../server/config.js');
   assert.equal('requireAdmin2fa' in config, false);
+});
+
+
+test('public and API responses do not disclose framework or server version headers', async () => {
+  const response = await fetch(base + '/');
+  assert.equal(response.headers.get('x-powered-by'), null);
+  assert.equal(response.headers.get('server'), null);
+  const api = await fetch(base + '/api/health');
+  assert.equal(api.headers.get('x-powered-by'), null);
+  assert.equal(api.headers.get('server'), null);
+});
+
+test('trusted proxy client IP uses the rightmost forwarded address and ignores spoofable identity headers', () => {
+  process.env.TRUST_PROXY = 'true';
+  const req = {
+    headers: {
+      'x-forwarded-for': '198.51.100.77, 203.0.113.24',
+      'cf-connecting-ip': '192.0.2.99',
+      'true-client-ip': '192.0.2.98'
+    },
+    socket: { remoteAddress: '10.0.0.8' }
+  };
+  assert.equal(clientIp(req), '203.0.113.24');
+  process.env.TRUST_PROXY = 'false';
+  assert.equal(clientIp(req), '10.0.0.8');
 });
