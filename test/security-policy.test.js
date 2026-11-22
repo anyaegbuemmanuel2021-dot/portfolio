@@ -156,3 +156,11 @@ test('password-reset route throttle persists in the shared database', async () =
   const buckets = await db.query("SELECT COUNT(*) AS c FROM request_rate_limits WHERE bucket_key LIKE 'forgot:%'");
   assert.ok(Number(buckets.rows[0].c) > 0, 'password-reset throttle must persist in the shared database');
 });
+
+
+test('public analytics throttles persist in the shared database', async () => {
+  const response = await call('POST', '/api/analytics/track', { path: '/security-throttle-check', type: 'page' });
+  assert.equal(response.status, 202);
+  const buckets = await db.query("SELECT COUNT(*) AS c FROM request_rate_limits WHERE bucket_key LIKE 'track:%'");
+  assert.ok(Number(buckets.rows[0].c) > 0, 'analytics throttle must persist in the shared database');
+});

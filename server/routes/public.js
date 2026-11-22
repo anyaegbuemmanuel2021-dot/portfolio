@@ -15,7 +15,7 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
   }
   app.invalidate = () => { cache.t = 0; };
   app.get('/api/links/:token', async ctx => {
-    rateLimit('outbound-link:' + ctx.ipHash, 30, 60e3);
+    await rateLimit('outbound-link:' + ctx.ipHash, 30, 60e3, db);
     const destination = openOutboundLink(ctx.params.token);
     if (!destination) throw new HttpError(404, 'This contact link is invalid or has expired');
     return { __raw: true, status: 302, headers: { Location: destination, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }, body: '' };
@@ -44,17 +44,17 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
   app.get('/api/articles/:slug', async ctx => ({ data: await articles.getPublic(ctx.params.slug), headers: { 'Cache-Control': 'public, max-age=30' } }));
   const CONTACT = { name: { required: true, max: 100 }, email: { type: 'email' }, phone: { max: 30, pattern: /^[+\d][\d\s().-]{5,29}$/ }, service: { max: 120 }, budget: { max: 60 }, message: { required: true, max: 4000 } };
   app.post('/api/contacts', async ctx => {
-    rateLimit('contact:' + ctx.ipHash, 8, 3600e3); if (ctx.body.website) return { status: 201, data: { id: null, status: 'new', whatsapp_url: null, received: true } }; // honeypot
+    await rateLimit('contact:' + ctx.ipHash, 8, 3600e3, db); if (ctx.body.website) return { status: 201, data: { id: null, status: 'new', whatsapp_url: null, received: true } }; // honeypot
     await verifyTurnstile(ctx.body.turnstileToken, ctx.ip, { secret: config.turnstile.secretKey, expectedHostname: new URL(config.siteUrl).hostname, expectedAction: 'contact' });
     const d = validate(CONTACT, ctx.body); if (!d.email && !d.phone) throw new HttpError(422, 'Validation failed', { email: 'Provide an email or a phone/WhatsApp number' }); if (d.message.length < 10) throw new HttpError(422, 'Validation failed', { message: 'Please write a little more detail' });
     const r = await leads.submit(d, { ipHash: ctx.ipHash }); return { status: 201, data: { ...r, received: true } };
   });
-  app.post('/api/analytics/track', async ctx => { rateLimit('track:' + ctx.ipHash, 120, 60e3); const b = ctx.body || {}; const o = { ip: ctx.ip, ua: ctx.req.headers['user-agent'], dnt: ctx.req.headers.dnt === '1' || ctx.req.headers['sec-gpc'] === '1' };
+  app.post('/api/analytics/track', async ctx => { await rateLimit('track:' + ctx.ipHash, 120, 60e3, db); const b = ctx.body || {}; const o = { ip: ctx.ip, ua: ctx.req.headers['user-agent'], dnt: ctx.req.headers.dnt === '1' || ctx.req.headers['sec-gpc'] === '1' };
     await analytics.track({ path: b.path, referrer: b.referrer, type: b.type, slug: b.slug, attribution: b.attribution }, o); if (b.type === 'article' && b.slug) await articles.countView(String(b.slug), new Date().toISOString().slice(0, 10)); return { status: 202, data: { ok: true } }; });
-  app.post('/api/analytics/activity', async ctx => { rateLimit('activity:' + ctx.ipHash, 120, 60e3); const b = ctx.body || {}; const o = { ip: ctx.ip, ua: ctx.req.headers['user-agent'], dnt: ctx.req.headers.dnt === '1' || ctx.req.headers['sec-gpc'] === '1' }; await analytics.activity({ path: b.path, event: b.event, category: b.category, label: b.label, ref_id: b.ref_id, attribution: b.attribution }, o); return { status: 202, data: { ok: true } }; });
+  app.post('/api/analytics/activity', async ctx => { await rateLimit('activity:' + ctx.ipHash, 120, 60e3, db); const b = ctx.body || {}; const o = { ip: ctx.ip, ua: ctx.req.headers['user-agent'], dnt: ctx.req.headers.dnt === '1' || ctx.req.headers['sec-gpc'] === '1' }; await analytics.activity({ path: b.path, event: b.event, category: b.category, label: b.label, ref_id: b.ref_id, attribution: b.attribution }, o); return { status: 202, data: { ok: true } }; });
   app.get('/api/advertisements/serve', async ctx => { const ad = await ads.serve(String(ctx.query.placement || ''), { ua: ctx.req.headers['user-agent'] }); return { data: ad, headers: { 'Cache-Control': 'no-store' } }; });
   app.get('/api/advertisements/:id/click', async ctx => { const url = await ads.click(ctx.params.id, { ua: ctx.req.headers['user-agent'] }); if (!url) throw new HttpError(404, 'Not found'); return { __raw: true, status: 302, headers: { Location: url, 'Cache-Control': 'no-store' }, body: '' }; });
-  app.post('/api/email/subscribe', async ctx => { rateLimit('sub:' + ctx.ipHash, 5, 3600e3); await verifyTurnstile(ctx.body.turnstileToken, ctx.ip, { secret: config.turnstile.secretKey, expectedHostname: new URL(config.siteUrl).hostname, expectedAction: 'newsletter' }); const d = validate({ email: { type: 'email', required: true }, name: { max: 100 } }, ctx.body); await email.subscribe(d.email, d.name); return { status: 201, data: { subscribed: true } }; });
+  app.post('/api/email/subscribe', async ctx => { await rateLimit('sub:' + ctx.ipHash, 5, 3600e3, db); await verifyTurnstile(ctx.body.turnstileToken, ctx.ip, { secret: config.turnstile.secretKey, expectedHostname: new URL(config.siteUrl).hostname, expectedAction: 'newsletter' }); const d = validate({ email: { type: 'email', required: true }, name: { max: 100 } }, ctx.body); await email.subscribe(d.email, d.name); return { status: 201, data: { subscribed: true } }; });
   app.get('/api/email/unsubscribe/:token', async ctx => { const ok = await email.unsubscribe(ctx.params.token); return { __raw: true, status: ok ? 200 : 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: ok ? 'You have been unsubscribed.' : 'Link not valid.' }; });
   app.get('/api/health', async () => { await db.query('SELECT 1'); return { status: 'ok', time: new Date().toISOString() }; });
 }
