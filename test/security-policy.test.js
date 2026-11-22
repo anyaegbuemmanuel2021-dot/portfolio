@@ -27,6 +27,8 @@ test('admin signs in with email and password only; no 2FA gate or enrollment end
   await authService(db, { real: false }).bootstrap({ email: 'secure-owner@example.com', password: 'Strong-Password-123', name: 'Secure Owner' });
   const login = await call('POST', '/api/auth/login', { email: 'secure-owner@example.com', password: 'Strong-Password-123' });
   assert.equal(login.status, 200);
+  const loginBuckets = await db.query("SELECT COUNT(*) AS c FROM request_rate_limits WHERE bucket_key LIKE 'login:%'");
+  assert.ok(Number(loginBuckets.rows[0].c) > 0, 'route-specific login throttle must persist in the shared database');
   csrf = login.json.data.csrf;
   assert.equal(login.json.data.admin.requires_2fa_setup, undefined);
   assert.equal(login.json.data.admin.totp_enabled, undefined);
@@ -146,4 +148,11 @@ test('request rate limits are shared through atomic database counters', async ()
   await rateLimit(key, 2, 60e3, db);
   await rateLimit(key, 2, 60e3, db);
   await assert.rejects(() => rateLimit(key, 2, 60e3, db), error => error.status === 429);
+});
+
+
+test('password-reset route throttle persists in the shared database', async () => {
+  await call('POST', '/api/auth/forgot', { email: 'secure-owner@example.com' });
+  const buckets = await db.query("SELECT COUNT(*) AS c FROM request_rate_limits WHERE bucket_key LIKE 'forgot:%'");
+  assert.ok(Number(buckets.rows[0].c) > 0, 'password-reset throttle must persist in the shared database');
 });
