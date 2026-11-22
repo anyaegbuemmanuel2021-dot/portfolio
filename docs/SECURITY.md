@@ -6,12 +6,12 @@ This project has application-level controls, but no website can be described as 
 
 - **Admin authentication:** scrypt password hashing, minimum password policy, random 256-bit session tokens (only hashes stored), configurable expiry (`SESSION_HOURS`), session revocation and hashed one-hour password reset tokens.
 - **No two-factor authentication:** admin sign-in is email + password by design. Compensating controls are the scrypt password policy, per-IP and per-account lockout, CSRF tokens, short-lived sessions and password-reset tokens that are stored hashed.
-- **Login abuse controls:** per-IP request throttles plus database-backed failed-login lockout and non-enumerating password-reset responses. In-memory request limits are per process and reset on restart; Cloudflare edge limits are an additional layer, not a replacement.
-- **CSRF and sessions:** SameSite=Strict, HttpOnly, Secure cookies in production, CSRF header on state-changing authenticated requests, and Origin validation.
+- **Login abuse controls:** per-IP request throttles plus database-backed failed-login lockout and non-enumerating password-reset responses. Render's appended rightmost valid `X-Forwarded-For` address is used when `TRUST_PROXY` is enabled; spoofable leftmost entries and unverified `CF-Connecting-IP`/`True-Client-IP` headers are ignored. In-memory request limits are per process and reset on restart; Cloudflare edge limits are an additional layer, not a replacement.
+- **CSRF and sessions:** SameSite=Strict, HttpOnly, Secure cookies in production, CSRF header on state-changing authenticated requests, and exact-origin validation for supplied Origin headers. Missing Origin is not treated as proof of trust; authenticated writes still require a valid CSRF token.
 - **Authorization:** permissions checked server-side on admin routes; no public admin registration.
-- **Input and database safety:** schema validation, parameterized SQL, allowlisted dynamic table/column names, bounded JSON request bodies and generic production error responses.
+- **Input and database safety:** schema validation, parameterized SQL, allowlisted dynamic table/column names, bounded JSON request bodies, generic production error responses, safe malformed-cookie handling, and real-path containment checks (including symlinks) before serving static files.
 - **Uploads:** magic-byte inspection, allowed MIME types only, SVG refused, size cap, random object keys and no execution of uploaded content.
-- **Browser protections:** CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS in production, no-store for admin/API responses, and admin `noindex`.
+- **Browser protections:** CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS in production, no-store for admin/API responses, and admin `noindex`. The Node application removes application-controlled `X-Powered-By` and `Server` headers; an upstream hosting proxy may still add its own `Server` header outside application control.
 - **Contact abuse:** honeypot, validation, per-IP throttling and optional Cloudflare Turnstile with server-side Siteverify. When Turnstile secret is configured, requests without a valid token are rejected. Tokens are checked for expected hostname and action.
 - **Supply chain:** GitHub Actions runs tests, syntax checks and `npm audit --omit=dev --audit-level=high`; Dependabot checks npm dependencies and GitHub Actions monthly.
 - **Host restriction (optional):** `ENFORCE_SITE_HOST=true` restricts requests to `SITE_URL` and `SITE_HOST_ALLOWLIST`; `/api/health` remains available for platform health checks. Enable only after the custom domain is attached and the platform health-check behavior has been verified.
@@ -82,7 +82,7 @@ Then verify manually in a staging deployment:
 - Public HTML remains usable and search engine pages are not accidentally blocked by bot controls.
 - Restore a database backup into a separate test database before trusting the backup schedule.
 
-A green automated test suite is not a penetration test. Before handling sensitive customer data at scale, commission an independent security review and keep dependencies patched.
+The application cannot hide headers emitted by Render's edge proxy, enforce distributed rate limits across multiple processes, or prevent direct access to a Render origin through application code alone. Those controls require hosting/edge configuration. Admin sign-in currently has no MFA; protect the owner email and use a unique high-entropy password. A green automated test suite is not a penetration test. Before handling sensitive customer data at scale, commission an independent security review and keep dependencies patched.
 
 ## 5. Incident response
 
