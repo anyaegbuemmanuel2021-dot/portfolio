@@ -1,0 +1,29 @@
+name: Deploy portfolio after quality checks
+
+on:
+  workflow_run:
+    workflows: ["Portfolio quality checks"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger Render deployment after successful CI
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${RENDER_DEPLOY_HOOK:-}" ]]; then
+            echo "::warning::RENDER_DEPLOY_HOOK is not configured. The quality checks passed, but no gated Render deployment was triggered."
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST --output /dev/null "$RENDER_DEPLOY_HOOK"
+          echo "Render accepted the deployment request after successful quality checks."
