@@ -13,15 +13,17 @@
   <link rel="stylesheet" href="/assets/css/home.css" />
   <link rel="stylesheet" href="/assets/css/about.css" />
   <link rel="stylesheet" href="/assets/css/platform.css?v=articles-wide-3" />
-  <link rel="stylesheet" href="/assets/css/rss.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/rss.css?v=2" />
   <script>(function(){var t=localStorage.getItem('theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
   <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
   <link rel="shortcut icon" href="/favicon.svg?v=2" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/assets/icons/app-icon.svg?v=2" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta property="og:type" content="website" />
+  <meta property="og:title" content="Articles — Anyaegbu Emmanuel" />
   <meta property="og:description" content="Read practical articles on frontend and backend development, full-stack web applications, responsive design, website performance and digital products." />
   <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Articles — Anyaegbu Emmanuel" />
   <meta name="twitter:description" content="Read practical articles on frontend and backend development, full-stack web applications, responsive design, website performance and digital products." />
 </head>
 <body data-page="articles" class="articles-page">
@@ -68,8 +70,9 @@
       </div>
       <div id="articleList" class="article-grid" aria-live="polite"></div>
       <div id="pager" class="pager"></div>
+      <section class="articles-rss-cta" aria-label="Subscribe to portfolio articles"><div><span class="section-label">Follow my writing</span><p>Get new public articles in your RSS reader as soon as they are published.</p></div><a class="articles-rss-cta__link" href="/feed.xml" type="application/rss+xml" aria-label="Subscribe to Anyaegbu Emmanuel’s published articles via RSS"><i class="fa-solid fa-rss" aria-hidden="true"></i> Subscribe to RSS</a></section>
       <section class="external-feed" aria-labelledby="external-feed-title">
-        <div class="external-feed__heading"><div><span class="section-label">Across the web</span><h2 id="external-feed-title">More from the tech community</h2><p>Selected articles from trusted external publications.</p></div><a class="external-feed__subscribe" href="/feed.xml" target="_blank" rel="noopener">Subscribe to my RSS <i class="fa-solid fa-rss" aria-hidden="true"></i></a></div>
+        <div class="external-feed__heading"><div><span class="section-label">Across the web</span><h2 id="external-feed-title">More from the tech community</h2><p>Selected articles from independent technology publications. This section is separate from my own writing.</p></div></div>
         <div id="externalFeedList" class="external-feed__grid" aria-live="polite"><p class="article-card__excerpt">Loading external articles…</p></div>
       </section>
     </div>
@@ -96,7 +99,7 @@
   <script src="/assets/js/config.js"></script>
   <script src="/assets/js/main.js"></script>
   <script src="/assets/js/site.js"></script>
-<script src="/assets/js/articles.js"></script>
+<script src="/assets/js/articles.js?v=2"></script>
   <script src="/assets/js/emoji-icons.js" defer></script>
 </body>
 </html>
