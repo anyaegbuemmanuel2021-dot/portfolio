@@ -28,5 +28,8 @@ jobs:
       - name: Run test suite
         run: npm test
 
+      - name: Validate backup and restore shell scripts
+        run: bash -n scripts/backup-postgres.sh scripts/prune-backups.sh scripts/restore-postgres.sh
+
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
