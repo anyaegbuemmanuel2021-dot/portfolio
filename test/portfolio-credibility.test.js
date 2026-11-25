@@ -10,6 +10,7 @@ test('public identity uses accurate frontend and digital-content positioning', (
   const home = read('public/index.html');
   const about = read('public/about.html');
   const resume = read('public/resume.html');
+  const seed = read('server/seed.js');
   for (const [page, html] of [['homepage', home], ['about page', about], ['resume', resume]]) {
     assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development|Backend Developer/i, page + ' must not overstate current professional positioning');
   }
@@ -18,6 +19,8 @@ test('public identity uses accurate frontend and digital-content positioning', (
   assert.match(about, /HTML5/);
   assert.match(about, /CSS3/);
   assert.match(resume, /JavaScript fundamentals/);
+  assert.match(seed, /site_title: 'Anyaegbu Emmanuel Ikenna — Frontend Developer/);
+  assert.doesNotMatch(seed, /site_title:.*Full-Stack Developer/);
   assert.doesNotMatch(home, /Happy Clients|Years Coding|data-count=/);
 });
 
