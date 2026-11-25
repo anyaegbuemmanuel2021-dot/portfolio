@@ -28,7 +28,8 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
   app.get('/api/projects/:slug', async ctx => { const p = (await content()).projects.find(x => x.slug === ctx.params.slug); if (!p) throw new HttpError(404, 'Project not found'); return p; });
   app.get('/api/articles', async ctx => { const r = await articles.listPublic(ctx.query); return { data: r.rows, meta: { total: r.total, page: r.page, limit: r.limit }, headers: { 'Cache-Control': 'no-store' } }; });
   // Public RSS feed: external publishing tools can poll this feed for newly published articles.
-  app.get('/feed.xml', async () => {
+  app.get('/feed.xml', async ctx => {
+    await rateLimit('public-rss:' + ctx.ipHash, 120, 60e3, db);
     const r = await articles.listPublic({ page: 1, limit: 50 });
     const xml = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
     const base = config.siteUrl;
@@ -38,10 +39,10 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
       return '<item><title>' + xml(a.title) + '</title><link>' + xml(url) + '</link><guid isPermaLink="true">' + xml(url) + '</guid><description>' + xml(a.excerpt || '') + '</description><pubDate>' + xml(date) + '</pubDate></item>';
     }).join('');
     const body = '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<rss version="2.0"><channel><title>' + xml('Articles | Portfolio') + '</title><link>' + xml(base) + '</link><description>' + xml('Latest published articles') + '</description><lastBuildDate>' + xml(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
+      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>' + xml('Articles | Portfolio') + '</title><link>' + xml(base) + '</link><atom:link href="' + xml(base + '/feed.xml') + '" rel="self" type="application/rss+xml" /><description>' + xml('Latest published articles') + '</description><lastBuildDate>' + xml(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
     return { __raw: true, status: 200, headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' }, body };
   });
-  app.get('/api/feeds', async () => ({ data: await externalFeeds.list(), headers: { 'Cache-Control': 'public, max-age=300' } }));
+  app.get('/api/feeds', async ctx => { await rateLimit('external-feeds:' + ctx.ipHash, 30, 60e3, db); return { data: await externalFeeds.list(), headers: { 'Cache-Control': 'public, max-age=300' } }; });
   app.get('/api/articles/categories', async () => ({ data: (await db.query('SELECT name, slug FROM article_categories ORDER BY name')).rows, headers: { 'Cache-Control': 'public, max-age=300' } }));
   app.get('/api/articles/:slug', async ctx => ({ data: await articles.getPublic(ctx.params.slug), headers: { 'Cache-Control': 'public, max-age=30' } }));
   const CONTACT = { name: { required: true, max: 100 }, email: { type: 'email' }, phone: { max: 30, pattern: /^[+\d][\d\s().-]{5,29}$/ }, service: { max: 120 }, budget: { max: 60 }, message: { required: true, max: 4000 } };
