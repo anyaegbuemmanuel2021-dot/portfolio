@@ -29,9 +29,9 @@ test('supports Atom entries and caches successful feed responses', async () => {
   } });
   const first = await aggregator.list();
   const second = await aggregator.list();
-  assert.equal(calls, 8, 'the first refresh requests each of the eight configured sources');
+  assert.equal(calls, 7, 'the first refresh requests each of the seven independent publications');
   assert.equal(first.items[0].title, 'Atom story');
-  assert.equal(second.items.length, 8, 'the cached response contains one item from each configured source');
+  assert.equal(second.items.length, 7, 'the cached response contains one item from each configured source');
   assert.equal(calls, 8, 'the second read is served from cache without additional requests');
   assert.equal(first.sources[0].status, 'ok');
 });
@@ -62,4 +62,35 @@ test('does not buffer an oversized streamed feed response', async () => {
   assert.equal(result.sources[0].status, 'unavailable');
   assert.equal(result.sources[0].error, 'This source is temporarily unavailable.');
   assert.equal(cancelled, true);
+});
+
+
+test('prefers the Atom alternate article URL over the self URL and reads media thumbnails', () => {
+  const xml = '<feed><entry><title>Atom article</title><link rel="self" href="https://publisher.example/feed.xml" /><link rel="alternate" type="text/html" href="https://publisher.example/story" /><media:thumbnail xmlns:media="http://search.yahoo.com/mrss/" url="https://publisher.example/thumb.jpg" /><summary>Readable summary</summary></entry></feed>';
+  const [item] = parseFeed(xml, source);
+  assert.equal(item.link, 'https://publisher.example/story');
+  assert.equal(item.image, 'https://publisher.example/thumb.jpg');
+});
+
+test('keeps the last successful external feed snapshot when every source is temporarily unavailable', async () => {
+  const originalNow = Date.now;
+  let now = 1_800_000_000_000;
+  let fail = false;
+  Date.now = () => now;
+  try {
+    const aggregator = rssAggregator({ fetchImpl: async () => {
+      if (fail) throw new Error('upstream unavailable');
+      return { ok: true, text: async () => '<rss><channel><item><title>Previously available</title><link>https://publisher.example/story</link></item></channel></rss>' };
+    } });
+    const first = await aggregator.list();
+    assert.equal(first.items.length, 7);
+    now += 5 * 60 * 1000 + 1;
+    fail = true;
+    const stale = await aggregator.list();
+    assert.equal(stale.items.length, 7);
+    assert.equal(stale.stale, true);
+    assert.match(stale.warning, /last available articles/i);
+  } finally {
+    Date.now = originalNow;
+  }
 });
