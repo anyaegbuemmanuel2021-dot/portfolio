@@ -94,7 +94,7 @@ jobs:
 
           echo "Checking database-backed health endpoint..."
           health="$(curl --fail --silent --show-error --location --max-time 30 "$SITE/api/health")"
-          jq -e '.status == "ok"' <<< "$health" >/dev/null
+          jq -e '.data.status == "ok"' <<< "$health" >/dev/null
 
           echo "Checking the portfolio's own RSS feed..."
           personal_feed="$(curl --fail --silent --show-error --location --max-time 30 "$SITE/feed.xml")"
