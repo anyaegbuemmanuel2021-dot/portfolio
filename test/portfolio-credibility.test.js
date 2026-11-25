@@ -6,24 +6,30 @@ import { join } from 'node:path';
 const root = process.cwd();
 const read = (path) => readFileSync(join(root, path), 'utf8');
 
-test('homepage uses clear full-stack positioning and avoids invented metrics', () => {
-  const html = read('public/index.html');
-  assert.match(html, /Full-Stack Developer/);
-  assert.match(html, /Frontend & Backend Development/);
-  assert.doesNotMatch(html, /Happy Clients|Years Coding|data-count=/);
-  assert.match(html, /AI Creative Technologist/);
-  assert.match(html, /AI-assisted promotional videos/);
+test('public identity uses accurate frontend and digital-content positioning', () => {
+  const home = read('public/index.html');
+  const about = read('public/about.html');
+  const resume = read('public/resume.html');
+  for (const [page, html] of [['homepage', home], ['about page', about], ['resume', resume]]) {
+    assert.doesNotMatch(html, /Full-Stack Developer|Full-Stack Development|Backend Developer/i, page + ' must not overstate current professional positioning');
+  }
+  assert.match(home, /Frontend Developer/);
+  assert.match(home, /AI-assisted promotional videos/);
+  assert.match(about, /HTML5/);
+  assert.match(about, /CSS3/);
+  assert.match(resume, /JavaScript fundamentals/);
+  assert.doesNotMatch(home, /Happy Clients|Years Coding|data-count=/);
 });
 
-test('public profile pages consistently describe frontend and backend development', () => {
-  for (const page of ['public/index.html', 'public/about.html', 'public/services.html', 'public/projects.html', 'public/resume.html', 'public/contact.html', 'public/articles.html', 'public/article.html']) {
-    const html = read(page);
-    assert.match(html, /Full-Stack|full-stack/i, page + ' should identify full-stack development');
-  }
+test('profile and service copy distinguishes current frontend delivery from backend project exposure', () => {
+  const about = read('public/about.html');
   const services = read('public/services.html');
+  const resume = read('public/resume.html');
   assert.match(services, /frontend/i);
-  assert.match(services, /backend/i);
-  assert.doesNotMatch(services, /current delivery focus is frontend websites/i);
+  assert.match(services, /current delivery focus is frontend websites/i);
+  assert.doesNotMatch(services, /backend development services|full-stack development services/i);
+  assert.match(about, /backend technologies.*currently learning/i);
+  assert.match(resume, /backend.*project exposure/i);
 });
 
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
