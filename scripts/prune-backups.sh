@@ -13,7 +13,7 @@ KEEP="${BACKUP_KEEP_MIN:-4}"
 [[ "$KEEP" =~ ^[0-9]+$ && "$KEEP" -ge 1 ]] || { echo "BACKUP_KEEP_MIN must be an integer >= 1" >&2; exit 2; }
 aws configure set default.s3.addressing_style path
 CUTOFF="$(date -u -d "-${DAYS} days" +%Y-%m-%dT%H:%M:%S)"
-LIST="$(aws --endpoint-url "$ENDPOINT" --region "$REGION" s3api list-objects-v2 --bucket "$DBRIJ_BACKUP_BUCKET" --prefix backups/ --query 'Contents[?ends_with(Key, `.dump.enc`)].[Key,LastModified]' --output text | sort -t$'\t' -k2,2 -r || true)"
+LIST="$(aws --endpoint-url "$ENDPOINT" --region "$REGION" s3api list-objects-v2 --bucket "$DBRIJ_BACKUP_BUCKET" --prefix backups/ --query 'Contents[?ends_with(Key, `.dump.gpg`)].[Key,LastModified]' --output text | sort -t$'\t' -k2,2 -r || true)"
 [ -n "$LIST" ] && [ "$LIST" != "None" ] || { echo "No backups found; nothing to prune."; exit 0; }
 N=0; DELETED=0
 while IFS=$'\t' read -r KEY MODIFIED; do
