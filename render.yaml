@@ -24,7 +24,7 @@ services:
     # plan: starter
     # numInstances: 2
     healthCheckPath: /api/health
-    autoDeploy: true # Matches the live service: deploy each main-branch commit after CI checks run.
+    autoDeploy: true # Live service deploys on main pushes immediately; GitHub Actions checks do not gate this deploy.
     envVars:
       - key: NODE_ENV
         value: production
