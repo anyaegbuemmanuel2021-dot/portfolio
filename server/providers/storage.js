@@ -108,7 +108,7 @@ export function cloudinaryStorageProvider(options = config.storage.cloudinary) {
   if (!/^[a-z0-9-]+$/i.test(cloudName)) throw new Error('Invalid CLOUDINARY_CLOUD_NAME');
   const base = `https://api.cloudinary.com/v1_1/${cloudName}`;
   const resourceType = key => /\.(pdf|docx)$/i.test(key) ? 'raw' : 'image';
-  const publicId = key => safeKey(key).replace(/\.[^.\/]+$/, '');
+  const publicId = key => { const value = safeKey(key); return resourceType(value) === 'raw' ? value : value.replace(/\.[^.\/]+$/, ''); };
   const sign = params => {
     const canonical = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
     return createHash('sha1').update(canonical + apiSecret).digest('hex');
