@@ -75,3 +75,32 @@ Cloudflare R2 configuration was removed after account activation required a paym
 - Replaced the R2 backup workflow with a Dbrij workflow. PostgreSQL dumps are encrypted before upload, with SHA-256 and HMAC verification files, and old dumps are pruned while keeping at least four.
 - Added mocked Dbrij SigV4 path-style tests. Current suite: 31 tests passed, 0 failed.
 - No live Dbrij account/key, live object upload, Render deploy, Neon production database, GitHub Actions backup run or encrypted restore was available for testing. These remain mandatory before the site handles real uploads or customer information.
+
+
+## Completion pass (2026-11-25): RSS distribution, profile accuracy and production checks
+
+**Implemented and merged**
+- Added curated external RSS/Atom aggregation for Withubb, OpenAI, Google AI, Google DeepMind, Hugging Face, TechCrunch AI, freeCodeCamp and GitHub Blog. External feed fetching uses a fixed source allowlist, bounded responses, HTTPS-only article links, timeouts and cached/stale fallback responses.
+- Completed RSS autodiscovery metadata, the Atom self-link and RSS namespace declarations. The owner's feed now exposes featured images through Media RSS and standard enclosures.
+- Kept the owner's own published articles separate from the external reading list: `/feed.xml` is the personal publication feed and `/api/feeds` supplies external cards for `/articles.html`.
+- Corrected the remaining contact/project SEO descriptions and static footer fallbacks that still advertised full-stack/backend services. The public offer now reflects frontend-first work and digital content.
+- Added a CMS legacy-copy sanitizer so older saved biography/tagline content cannot reintroduce the outdated positioning.
+- Fixed a flaky outbound-link security test so its tampered token always differs from the original token.
+- Added a Chromium browser workflow for public pages and authenticated admin routes. It uses an isolated SQLite test owner and does not require production credentials.
+
+**Verified**
+- Latest production application startup logged `db: postgres`; the database-backed health endpoint passed.
+- Live checks passed for the homepage, `/robots.txt`, `/sitemap.xml`, `/api/health`, `/feed.xml`, `/api/feeds` and `/articles.html`.
+- The external feed endpoint returned at least eight configured sources and included Withubb. The live check did not emit the warning used when Withubb is unavailable.
+- Main-branch automated suite: 104 tests passed, 0 failed.
+- Production dependency audit: 0 vulnerabilities.
+- Backup/restore shell syntax checks passed.
+- Browser sweep: 377 viewport checks across 13 viewport widths, with no horizontal overflow and no browser console/CSP errors.
+
+**Production operations still requiring owner-side verification**
+- The Render service currently reports Auto-Deploy enabled and an empty health-check path, while `render.yaml` specifies Auto-Deploy off and `/api/health`. The live service has not yet been synchronized to those Blueprint settings.
+- GitHub Actions reported that `RENDER_DEPLOY_HOOK` is not configured. The quality-gated deploy workflow therefore does not trigger a deployment itself. The current Render service's Auto-Deploy setting still causes direct deployments on pushes, so CI is not yet the exclusive release gate.
+- A real Dbrij media upload/download/delete round trip and a real encrypted PostgreSQL backup restore have not been verified in this pass. No successful backup/restore run was confirmed.
+- Live transactional email delivery and sender-domain verification have not been confirmed. The repository's default email mode is `log`; a provider and verified sender must be configured before relying on email notifications.
+- Turnstile and AdSense are optional integrations and have not been verified as active.
+- Production admin sign-in and authenticated CMS editing have not been exercised with the owner's actual account in this pass; the browser workflow uses a temporary local test account only.
