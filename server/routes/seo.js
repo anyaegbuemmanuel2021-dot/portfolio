@@ -189,14 +189,20 @@ export async function dynamicText(path) {
   }
   if (path === '/feed.xml') {
     const settings = Object.fromEntries((await _db.query("SELECT key, value FROM site_settings WHERE key IN ('site_title','site_tagline')")).rows.map(r => [r.key, r.value]));
-    const arts = (await _db.query("SELECT title, slug, excerpt, content_html, published_at FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT 100")).rows;
+    const arts = (await _db.query("SELECT title, slug, excerpt, content_html, featured_image_url, published_at FROM articles WHERE status = 'published' ORDER BY published_at DESC LIMIT 100")).rows;
     const items = arts.map(a => {
       const url = canonicalUrl(base, '/articles/' + encodeURIComponent(a.slug));
       const date = a.published_at ? new Date(a.published_at).toUTCString() : new Date().toUTCString();
-      return '<item><title>' + esc(a.title) + '</title><link>' + esc(url) + '</link><guid isPermaLink="true">' + esc(url) + '</guid><pubDate>' + esc(date) + '</pubDate><description>' + esc(a.excerpt || a.title) + '</description><content:encoded>' + esc(a.content_html || a.excerpt || '') + '</content:encoded></item>';
+      const image = imageUrl(a.featured_image_url, base);
+      const extension = image ? (new URL(image).pathname.toLowerCase().match(/\.(png|gif|webp|jpe?g)$/) || [])[1] : null;
+      const imageType = extension === 'png' ? 'image/png' : extension === 'gif' ? 'image/gif' : extension === 'webp' ? 'image/webp' : 'image/jpeg';
+      const media = image
+        ? '<media:content url="' + esc(image) + '" medium="image" /><media:thumbnail url="' + esc(image) + '" /><enclosure url="' + esc(image) + '" type="' + imageType + '" length="0" />'
+        : '';
+      return '<item><title>' + esc(a.title) + '</title><link>' + esc(url) + '</link><guid isPermaLink="true">' + esc(url) + '</guid><pubDate>' + esc(date) + '</pubDate><description>' + esc(a.excerpt || a.title) + '</description>' + media + '<content:encoded>' + esc(a.content_html || a.excerpt || '') + '</content:encoded></item>';
     }).join('');
     return '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">' +
+      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/">' +
       '<channel><title>' + esc(settings.site_title || 'Portfolio') + '</title><link>' + esc(base) + '</link>' +
       '<atom:link href="' + esc(base + '/feed.xml') + '" rel="self" type="application/rss+xml" />' +
       '<description>' + esc(settings.site_tagline || 'Latest published articles') + '</description>' +

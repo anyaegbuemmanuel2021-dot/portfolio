@@ -160,3 +160,10 @@ test('robots.txt points crawlers to the dynamic sitemap and keeps private routes
   assert.match(robots, /Disallow: \/api\//);
   assert.match(robots, /Sitemap: https:\/\/portfolio\.example\/sitemap\.xml/);
 });
+
+test('RSS feed exposes a safe public featured image for social publishing integrations', async () => {
+  const xml = await dynamicText('/feed.xml');
+  assert.match(xml, /xmlns:media="http:\/\/search\.yahoo\.com\/mrss\//);
+  assert.match(xml, /<media:content url="https:\/\/cdn\.example\.com\/article-cover\.webp" medium="image" \/>/);
+  assert.match(xml, /<enclosure url="https:\/\/cdn\.example\.com\/article-cover\.webp" type="image\/webp" length="0" \/>/);
+});
