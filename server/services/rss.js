@@ -28,7 +28,7 @@ function cleanText(value, max = 500) {
     .replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
-function parseFeed(xml, source) {
+export function parseFeed(xml, source) {
   if (typeof xml !== 'string' || !/<(?:rss|feed)\b/i.test(xml)) throw new Error('The source did not return a valid RSS or Atom feed.');
   const channel = (xml.match(/<channel\b[^>]*>([\s\S]*?)<\/channel>/i) || [null, xml])[1];
   const blocks = [...channel.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(m => m[1]);
