@@ -31,7 +31,8 @@ test('supports Atom entries and caches successful feed responses', async () => {
   const second = await aggregator.list();
   assert.equal(calls, 8, 'the first refresh requests each of the eight configured sources');
   assert.equal(first.items[0].title, 'Atom story');
-  assert.equal(second.items.length, 1);
+  assert.equal(second.items.length, 8, 'the cached response contains one item from each configured source');
+  assert.equal(calls, 8, 'the second read is served from cache without additional requests');
   assert.equal(first.sources[0].status, 'ok');
 });
 
