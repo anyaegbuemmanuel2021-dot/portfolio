@@ -95,3 +95,17 @@ If an admin account may be compromised: disable the account at database level, r
 - Cloudflare Free plan WAF and rate-limit feature matrix: https://developers.cloudflare.com/waf/
 - Cloudflare Bot Fight Mode: https://developers.cloudflare.com/bots/
 - Cloudflare Turnstile server-side validation: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+
+
+## 6. Public RSS feeds
+
+The portfolio exposes two read-only feed features:
+
+- `/feed.xml` publishes up to 50 **published** portfolio articles. It does not query admin drafts or expose credentials, settings, or database data. The Articles page advertises this feed with an RSS subscribe link.
+- `/api/feeds` returns a curated selection of external technology publications for the Articles page. It does not fetch arbitrary URLs supplied by visitors.
+
+RSS is public by design. Assume that anything in `/feed.xml` can be copied, indexed, cached, or republished by third-party feed readers. Do not put private drafts, client information, unpublished work, or confidential material in a published article.
+
+The implementation applies XML escaping to portfolio article fields, emits a standard RSS self-discovery link, and rate-limits both public feed endpoints. External feed fetching uses a fixed HTTPS source list, rejects redirects, has an eight-second timeout and a one-megabyte streamed response limit, rejects DTD/entity declarations, and returns generic errors instead of exposing upstream details. External titles and descriptions are rendered as text in the browser; they are not inserted as HTML.
+
+When adding a feed source, keep its URL hard-coded in the trusted source list after reviewing the publisher. Never accept arbitrary feed URLs from query parameters or admin content without a separate SSRF-safe design. Continue to keep the feed cache and response limits in place. A public RSS endpoint cannot prevent ordinary scraping or copying; rate limits are abuse controls, not access control.
