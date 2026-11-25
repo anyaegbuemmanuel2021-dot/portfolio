@@ -28,8 +28,8 @@ test('profile and service copy distinguishes current frontend delivery from back
   assert.match(services, /frontend/i);
   assert.match(services, /current delivery focus is frontend websites/i);
   assert.doesNotMatch(services, /backend development services|full-stack development services/i);
-  assert.match(about, /backend technologies.*currently learning/i);
-  assert.match(resume, /backend.*project exposure/i);
+  assert.match(about, /backend and database development are learning areas/i);
+  assert.match(resume, /backend and database development are not presented as independent services/i);
 });
 
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
