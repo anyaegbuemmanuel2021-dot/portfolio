@@ -86,7 +86,7 @@ test('keeps the last successful external feed snapshot when every source is temp
     } });
     const first = await aggregator.list();
     assert.equal(first.items.length, 8);
-    now += 5 * 60 * 1000 + 1;
+    now += 30 * 60 * 1000 + 1;
     fail = true;
     const stale = await aggregator.list();
     assert.equal(stale.items.length, 8);
