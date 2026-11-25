@@ -14,8 +14,8 @@ const CACHE_MS = 5 * 60 * 1000;
 
 function decodeXml(value) {
   return String(value || '')
-    .replace(/<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>/g, '$1')
-    .replace(/&#(x[0-9a-f]+|\\d+);/gi, (_, code) => {
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&#(x[0-9a-f]+|\d+);/gi, (_, code) => {
       const n = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : parseInt(code, 10);
       if (!Number.isInteger(n) || n < 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff)) return '';
       try { return String.fromCodePoint(n); } catch { return ''; }
@@ -30,10 +30,10 @@ function tag(xml, name) {
 }
 
 function cleanText(value, max = 500) {
-  return String(value || '').replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, ' ')
-    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, ' ')
-    .replace(/<[^>]*>/g, ' ').replace(/[\\u0000-\\u001f\\u007f]/g, ' ')
-    .replace(/\\s+/g, ' ').trim().slice(0, max);
+  return String(value || '').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ').replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
 function safeHttpsUrl(value, base) {
@@ -47,22 +47,22 @@ function safeHttpsUrl(value, base) {
 export function parseFeed(xml, source = {}) {
   if (typeof xml !== 'string') throw new Error('The source did not return a valid RSS or Atom feed.');
   if (Buffer.byteLength(xml, 'utf8') > MAX_FEED_BYTES) throw new Error('Feed is larger than the 1 MB limit.');
-  if (/<!\\s*(?:DOCTYPE|ENTITY)\\b/i.test(xml)) throw new Error('DTD and entity declarations are not supported.');
-  if (!/<(?:rss|feed)\\b/i.test(xml)) throw new Error('The source did not return a valid RSS or Atom feed.');
+  if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(xml)) throw new Error('DTD and entity declarations are not supported.');
+  if (!/<(?:rss|feed)\b/i.test(xml)) throw new Error('The source did not return a valid RSS or Atom feed.');
 
-  const channel = (xml.match(/<channel\\b[^>]*>([\\s\\S]*?)<\\/channel>/i) || [null, xml])[1];
-  const blocks = [...channel.matchAll(/<item\\b[^>]*>([\\s\\S]*?)<\\/item>/gi)].map(m => m[1]);
-  const entries = blocks.length ? blocks : [...xml.matchAll(/<entry\\b[^>]*>([\\s\\S]*?)<\\/entry>/gi)].map(m => m[1]);
+  const channel = (xml.match(/<channel\b[^>]*>([\s\S]*?)<\/channel>/i) || [null, xml])[1];
+  const blocks = [...channel.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].map(m => m[1]);
+  const entries = blocks.length ? blocks : [...xml.matchAll(/<entry\b[^>]*>([\s\S]*?)<\/entry>/gi)].map(m => m[1]);
 
   return entries.map((item, index) => {
     const title = cleanText(tag(item, 'title'), 180);
-    const atomHref = (item.match(/<link\\b[^>]*href=["']([^"']+)["']/i) || [])[1] || '';
+    const atomHref = (item.match(/<link\b[^>]*href=["']([^"']+)["']/i) || [])[1] || '';
     const link = safeHttpsUrl(tag(item, 'link') || decodeXml(atomHref), source.siteUrl);
     const description = cleanText(tag(item, 'description') || tag(item, 'summary') || tag(item, 'content'), 420);
     const rawDate = tag(item, 'pubDate') || tag(item, 'published') || tag(item, 'updated');
     const timestamp = rawDate ? Date.parse(rawDate) : NaN;
     const category = cleanText(tag(item, 'category'), 60) || cleanText(source.category, 60);
-    const enclosure = (item.match(/<enclosure\\b[^>]*url=["']([^"']+)["']/i) || [])[1] || '';
+    const enclosure = (item.match(/<enclosure\b[^>]*url=["']([^"']+)["']/i) || [])[1] || '';
     const image = safeHttpsUrl(decodeXml(enclosure), source.siteUrl);
     const identity = link || title;
     return {
