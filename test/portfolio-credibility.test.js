@@ -27,7 +27,7 @@ test('public identity uses accurate frontend and digital-content positioning', (
 test('CMS sanitizes older saved biography text before showing it on the public profile', () => {
   const cms = read('public/assets/js/cms.js');
   assert.match(cms, /frontend and backend web development/);
-  assert.match(cms, /full[\\s-]?stack\\s+projects?/);
+  assert.match(cms, /full[\s-]?stack\s+projects?/);
 });
 
 test('profile and service copy distinguishes current frontend delivery from backend project exposure', () => {
