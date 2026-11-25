@@ -22,6 +22,14 @@ test('scheduled backup creates, encrypts and verifies the remote PostgreSQL arch
   assert.match(restore, /gpg.*--decrypt/);
 });
 
+test('live monitor covers health and both RSS publishing surfaces', () => {
+  const workflow = read('.github/workflows/render-keep-awake.yml');
+  assert.match(workflow, /\/api\/health/);
+  assert.match(workflow, /\/feed\.xml/);
+  assert.match(workflow, /\/api\/feeds/);
+  assert.match(workflow, /id == "withubb"/);
+});
+
 test('Render deploy hook is gated on successful main-branch quality checks', () => {
   const workflow = read('.github/workflows/deploy-after-ci.yml');
   const blueprint = read('render.yaml');
