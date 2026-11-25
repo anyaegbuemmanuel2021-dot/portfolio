@@ -99,7 +99,52 @@ export function dbrijStorageProvider(options = config.storage.dbrij) {
   };
 }
 
-export function createStorage(name = config.storage.provider) {
+
+
+/** Cloudinary permanent media storage. Uploads are signed server-side; secrets never reach browsers. */
+export function cloudinaryStorageProvider(options = config.storage.cloudinary) {
+  const { cloudName, apiKey, apiSecret } = options || {};
+  if (!cloudName || !apiKey || !apiSecret) throw new Error('Cloudinary storage requires CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET');
+  if (!/^[a-z0-9-]+$/i.test(cloudName)) throw new Error('Invalid CLOUDINARY_CLOUD_NAME');
+  const base = `https://api.cloudinary.com/v1_1/${cloudName}`;
+  const resourceType = key => /\.(pdf|docx)$/i.test(key) ? 'raw' : 'image';
+  const publicId = key => safeKey(key).replace(/\.[^.\/]+$/, '');
+  const sign = params => {
+    const canonical = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
+    return createHash('sha1').update(canonical + apiSecret).digest('hex');
+  };
+  const urlFor = key => `https://res.cloudinary.com/${cloudName}/${resourceType(key)}/upload/${publicId(key)}`;
+  return {
+    name: 'cloudinary',
+    publicUrl: key => urlFor(key),
+    async put(key, buffer, mimeType = 'application/octet-stream') {
+      const type = resourceType(key), timestamp = Math.floor(Date.now() / 1000), id = publicId(key);
+      const params = { public_id: id, timestamp };
+      const form = new FormData();
+      form.set('file', new Blob([buffer], { type: mimeType }), key.split('/').pop());
+      form.set('api_key', apiKey); form.set('timestamp', String(timestamp)); form.set('public_id', id); form.set('signature', sign(params));
+      const response = await fetch(`${base}/${type}/upload`, { method: 'POST', body: form, signal: AbortSignal.timeout(30000) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.secure_url) throw new Error(`Cloudinary upload failed (${response.status}): ${String(result.error?.message || 'Unknown provider error').slice(0, 240)}`);
+      return result;
+    },
+    async get(key) {
+      const response = await fetch(urlFor(key), { signal: AbortSignal.timeout(20000) });
+      if (!response.ok) throw new Error(`Cloudinary media retrieval failed (${response.status})`);
+      return Buffer.from(await response.arrayBuffer());
+    },
+    async remove(key) {
+      const type = resourceType(key), timestamp = Math.floor(Date.now() / 1000), id = publicId(key);
+      const params = { public_id: id, timestamp };
+      const form = new FormData(); form.set('public_id', id); form.set('timestamp', String(timestamp)); form.set('api_key', apiKey); form.set('signature', sign(params));
+      const response = await fetch(`${base}/${type}/destroy`, { method: 'POST', body: form, signal: AbortSignal.timeout(20000) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !['ok', 'not found'].includes(result.result)) throw new Error(`Cloudinary delete failed (${response.status})`);
+    },
+  };
+}
+\nexport function createStorage(name = config.storage.provider) {
+  if (name === 'cloudinary') return cloudinaryStorageProvider();
   if (name === 'dbrij') return dbrijStorageProvider();
   if (name === 'local') return localStorageProvider();
   throw new Error(`Unsupported storage provider: ${name}`);
