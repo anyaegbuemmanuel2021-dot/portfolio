@@ -1,11 +1,12 @@
 const FEEDS = [
-  {
-    id: 'withubb',
-    name: 'Withubb',
-    url: 'https://www.withubb.com/feed.xml',
-    siteUrl: 'https://www.withubb.com/',
-    description: 'Web development, IT, programming and business articles from Withubb.'
-  }
+  { id: 'withubb', name: 'Withubb', category: 'Web development', url: 'https://www.withubb.com/feed.xml', siteUrl: 'https://www.withubb.com/', description: 'Web development, IT, programming and business articles from Withubb.' },
+  { id: 'openai', name: 'OpenAI', category: 'AI', url: 'https://openai.com/news/rss.xml', siteUrl: 'https://openai.com/', description: 'Official OpenAI product, research and company updates.' },
+  { id: 'google-ai', name: 'Google AI', category: 'AI research', url: 'https://blog.google/technology/ai/rss/', siteUrl: 'https://blog.google/technology/ai/', description: 'Google AI product and research updates.' },
+  { id: 'deepmind', name: 'Google DeepMind', category: 'AI research', url: 'https://deepmind.google/blog/rss.xml', siteUrl: 'https://deepmind.google/', description: 'Research and announcements from Google DeepMind.' },
+  { id: 'hugging-face', name: 'Hugging Face', category: 'Open-source AI', url: 'https://huggingface.co/blog/feed.xml', siteUrl: 'https://huggingface.co/blog', description: 'Open-source AI models, datasets and developer tooling.' },
+  { id: 'techcrunch-ai', name: 'TechCrunch AI', category: 'Technology news', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', siteUrl: 'https://techcrunch.com/', description: 'Independent reporting on AI companies, products and the technology industry.' },
+  { id: 'freecodecamp', name: 'freeCodeCamp', category: 'Programming tutorials', url: 'https://www.freecodecamp.org/news/rss/', siteUrl: 'https://www.freecodecamp.org/news/', description: 'Programming, web development and software engineering tutorials.' },
+  { id: 'github-blog', name: 'GitHub Blog', category: 'Developer ecosystem', url: 'https://github.blog/feed/', siteUrl: 'https://github.blog/', description: 'Developer tools, software engineering and open-source ecosystem updates.' }
 ];
 
 const decodeXml = value => String(value || '')
@@ -41,7 +42,7 @@ export function parseFeed(xml, source) {
     const description = cleanText(tag(item, 'description') || tag(item, 'summary') || tag(item, 'content'), 420);
     const rawDate = tag(item, 'pubDate') || tag(item, 'published') || tag(item, 'updated');
     const timestamp = rawDate ? Date.parse(rawDate) : NaN;
-    const category = cleanText(tag(item, 'category'), 60);
+    const category = cleanText(tag(item, 'category'), 60) || source.category || '';
     const enclosure = (item.match(/<enclosure\b[^>]*url=["']([^"']+)["']/i) || [])[1] || '';
     let image = '';
     try { const u = new URL(enclosure, source.siteUrl); if (u.protocol === 'https:') image = u.href; } catch {}
