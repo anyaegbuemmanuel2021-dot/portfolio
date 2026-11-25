@@ -1,0 +1,84 @@
+name: Encrypted PostgreSQL backups
+
+on:
+  schedule:
+    - cron: "17 4 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: encrypted-postgres-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Dump, encrypt and verify Neon backup in Dbrij
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.NEON_BACKUP_DATABASE_URL }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      DBRIJ_BACKUP_BUCKET: ${{ secrets.DBRIJ_BACKUP_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.DBRIJ_BACKUP_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DBRIJ_BACKUP_KEY_SECRET }}
+      DBRIJ_S3_ENDPOINT: https://s3.dbrij.com
+      DBRIJ_S3_REGION: auto
+      BACKUP_RETENTION_DAYS: "56"
+      BACKUP_KEEP_MIN: "4"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install PostgreSQL version-detection dependency
+        run: npm install --omit=dev --no-audit --no-fund
+
+      - name: Detect Neon PostgreSQL major version
+        id: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+          import pg from 'pg';
+          const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+          try {
+            await client.connect();
+            const result = await client.query('SHOW server_version_num');
+            const major = Math.floor(Number(result.rows[0].server_version_num) / 10000);
+            if (!Number.isInteger(major) || major < 14 || major > 18) {
+              throw new Error('Unsupported PostgreSQL server major version: ' + major);
+            }
+            console.log('major=' + major);
+          } finally {
+            await client.end().catch(() => {});
+          }
+          NODE
+
+      - name: Install matching PostgreSQL client
+        shell: bash
+        env:
+          PG_MAJOR: ${{ steps.postgres.outputs.major }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates gnupg
+          sudo install -d -m 0755 /usr/share/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor --yes -o /usr/share/keyrings/postgresql.gpg
+          CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y "postgresql-client-${PG_MAJOR}"
+          pg_dump --version
+          pg_restore --version
+          command -v gpg
+          command -v aws
+          command -v openssl
+
+      - name: Create, encrypt, upload and verify backup
+        run: bash scripts/backup-postgres.sh
