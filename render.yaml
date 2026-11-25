@@ -24,7 +24,7 @@ services:
     # plan: starter
     # numInstances: 2
     healthCheckPath: /api/health
-    autoDeploy: true # Live service deploys on main pushes immediately; GitHub Actions checks do not gate this deploy.
+    autoDeploy: false # GitHub Actions triggers the Render Deploy Hook only after quality checks pass.
     envVars:
       - key: NODE_ENV
         value: production
