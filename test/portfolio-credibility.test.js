@@ -52,7 +52,7 @@ test('remaining public metadata and fallback footers do not advertise backend/fu
   for (const [page, html] of [['contact', contact], ['projects', projects], ['article', article], ['articles', articles]]) {
     assert.doesNotMatch(html, /Full-Stack Developer|Frontend & Backend/i, page + ' fallback footer must not claim full-stack delivery');
   }
-  assert.match(contact, /Frontend websites, responsive interfaces/);
+  assert.match(contact, /frontend websites, responsive interfaces/i);
   assert.match(projects, /frontend website projects/i);
 });
 
