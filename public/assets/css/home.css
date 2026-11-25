@@ -497,3 +497,21 @@
   .featured-projects__grid { grid-template-columns: minmax(0, 1fr); }
   .featured-projects__grid .project-card__thumb { height: 180px; }
 }
+
+
+/* Live project previews: screenshot sits inside the existing clickable thumbnail. */
+.project-card__thumb { display: block; }
+.project-card__thumb .project-card__preview {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.5s var(--ease-out-expo);
+}
+.project-card:hover .project-card__preview { transform: scale(1.035); }
+.project-card__thumb .project-card__thumb-inner { position: relative; z-index: 0; }
+.project-card__thumb .project-card__link-icon { z-index: 2; }
