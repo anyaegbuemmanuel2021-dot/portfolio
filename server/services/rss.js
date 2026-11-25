@@ -1,11 +1,7 @@
 const FEEDS = [
-  {
-    id: 'withubb',
-    name: 'Withubb',
-    url: 'https://www.withubb.com/feed.xml',
-    siteUrl: 'https://www.withubb.com/',
-    description: 'Web development, IT, programming and business articles from Withubb.'
-  }
+  { id: 'smashing-magazine', name: 'Smashing Magazine', url: 'https://www.smashingmagazine.com/feed/', siteUrl: 'https://www.smashingmagazine.com/', description: 'Web design, UX, front-end development and technology.' },
+  { id: 'css-tricks', name: 'CSS-Tricks', url: 'https://css-tricks.com/feed/', siteUrl: 'https://css-tricks.com/', description: 'CSS, HTML, JavaScript and front-end development.' },
+  { id: 'mozilla-hacks', name: 'Mozilla Hacks', url: 'https://hacks.mozilla.org/feed/', siteUrl: 'https://hacks.mozilla.org/', description: 'Web platform engineering, JavaScript, browser technology and open web.' }
 ];
 
 const decodeXml = value => String(value || '')
