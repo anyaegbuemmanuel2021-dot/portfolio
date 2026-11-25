@@ -1,0 +1,83 @@
+name: Browser responsive and admin smoke tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "admin/**"
+      - "server/**"
+      - "test/e2e-responsive.mjs"
+      - ".github/workflows/browser-e2e.yml"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: Chromium responsive and authenticated admin sweep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_ENV: development
+      PORT: "8799"
+      SITE_URL: http://127.0.0.1:8799
+      DATABASE_URL: sqlite:./data/e2e.sqlite
+      LOCAL_MEDIA_DIR: ./data/e2e-media
+      AUTH_SECRET: e2e-only-secret-not-used-in-production-00000000000000000000
+      OWNER_EMAIL: e2e-owner@example.com
+      ADMIN_EMAIL: e2e-owner@example.com
+      ADMIN_PASSWORD: E2E-Only-Strong-Password-2026!
+      WHATSAPP_NUMBER: "2347046947391"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package.json
+
+      - name: Install application and browser-test dependencies
+        run: |
+          npm install
+          npm install --no-save --no-package-lock playwright
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Create isolated test owner
+        run: node scripts/bootstrap-admin.js
+
+      - name: Start the application
+        run: |
+          npm start > /tmp/portfolio-e2e.log 2>&1 &
+          echo $! > /tmp/portfolio-e2e.pid
+          for attempt in $(seq 1 40); do
+            if curl --silent --fail "$SITE_URL/api/health" >/dev/null; then
+              echo "Application is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/portfolio-e2e.log
+          echo "::error::Application did not become ready."
+          exit 1
+
+      - name: Sweep public pages and authenticated admin routes
+        run: node test/e2e-responsive.mjs
+
+      - name: Show application log on failure
+        if: failure()
+        run: cat /tmp/portfolio-e2e.log || true
+
+      - name: Stop the application
+        if: always()
+        run: |
+          if [[ -f /tmp/portfolio-e2e.pid ]]; then
+            kill "$(cat /tmp/portfolio-e2e.pid)" || true
+          fi
