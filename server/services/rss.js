@@ -1,5 +1,4 @@
 const FEEDS = [
-  { id: 'withubb', name: 'Withubb', category: 'Web development', url: 'https://www.withubb.com/feed.xml', siteUrl: 'https://www.withubb.com/', description: 'Web development, IT, programming and business articles from Withubb.' },
   { id: 'openai', name: 'OpenAI', category: 'AI', url: 'https://openai.com/news/rss.xml', siteUrl: 'https://openai.com/', description: 'Official OpenAI product, research and company updates.' },
   { id: 'google-ai', name: 'Google AI', category: 'AI research', url: 'https://blog.google/technology/ai/rss/', siteUrl: 'https://blog.google/technology/ai/', description: 'Google AI product and research updates.' },
   { id: 'deepmind', name: 'Google DeepMind', category: 'AI research', url: 'https://deepmind.google/blog/rss.xml', siteUrl: 'https://deepmind.google/', description: 'Research and announcements from Google DeepMind.' },
@@ -11,6 +10,7 @@ const FEEDS = [
 
 const MAX_FEED_BYTES = 1_000_000;
 const CACHE_MS = 5 * 60 * 1000;
+const STALE_RETRY_MS = 60 * 1000;
 
 function decodeXml(value) {
   return String(value || '')
@@ -27,6 +27,21 @@ function decodeXml(value) {
 function tag(xml, name) {
   const match = xml.match(new RegExp('<' + name + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + name + '\\s*>', 'i'));
   return match ? decodeXml(match[1]).trim() : '';
+}
+
+function attribute(markup, name) {
+  const match = markup.match(new RegExp('(?:^|\\s)' + name + '\\s*=\\s*["\\']([^"\\']*)["\\']', 'i'));
+  return match ? decodeXml(match[1]) : '';
+}
+
+function atomAlternateLink(item) {
+  const links = [...item.matchAll(/<link\b[^>]*\/?>/gi)].map(match => match[0]);
+  for (const link of links) {
+    const rel = (attribute(link, 'rel') || 'alternate').toLowerCase();
+    const href = attribute(link, 'href');
+    if (href && rel === 'alternate') return href;
+  }
+  return '';
 }
 
 function cleanText(value, max = 500) {
@@ -56,17 +71,18 @@ export function parseFeed(xml, source = {}) {
 
   return entries.map((item, index) => {
     const title = cleanText(tag(item, 'title'), 180);
-    const atomHref = (item.match(/<link\b[^>]*href=["']([^"']+)["']/i) || [])[1] || '';
-    const link = safeHttpsUrl(tag(item, 'link') || decodeXml(atomHref), source.siteUrl);
+    const link = safeHttpsUrl(tag(item, 'link') || atomAlternateLink(item), source.siteUrl);
     const description = cleanText(tag(item, 'description') || tag(item, 'summary') || tag(item, 'content'), 420);
     const rawDate = tag(item, 'pubDate') || tag(item, 'published') || tag(item, 'updated');
     const timestamp = rawDate ? Date.parse(rawDate) : NaN;
     const category = cleanText(tag(item, 'category'), 60) || cleanText(source.category, 60);
+    const imageMarkup = item.match(/<(?:media:thumbnail|media:content)\b[^>]*url=["']([^"']+)["'][^>]*\/?>/i);
     const enclosure = (item.match(/<enclosure\b[^>]*url=["']([^"']+)["']/i) || [])[1] || '';
-    const image = safeHttpsUrl(decodeXml(enclosure), source.siteUrl);
+    const image = safeHttpsUrl(decodeXml(enclosure || (imageMarkup && imageMarkup[1]) || ''), source.siteUrl);
     const identity = link || title;
     return {
       id: String(source.id || 'feed') + '-' + index + '-' + Buffer.from(identity).toString('base64url').slice(0, 18),
+      source_id: String(source.id || 'feed'),
       title, link, description,
       published_at: Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null,
       category, image, source: cleanText(source.name, 80), source_url: safeHttpsUrl(source.siteUrl)
@@ -112,31 +128,61 @@ async function readLimitedBody(response) {
 
 export function rssAggregator({ fetchImpl = fetch } = {}) {
   let cache = { expires: 0, data: null };
+  let pending = null;
+
+  async function refresh() {
+    const results = await Promise.all(FEEDS.map(async source => {
+      try {
+        const response = await fetchImpl(source.url, {
+          headers: { Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml' },
+          signal: AbortSignal.timeout(8000),
+          redirect: 'error'
+        });
+        if (!response.ok) throw new Error('Feed returned HTTP ' + response.status);
+        const xml = await readLimitedBody(response);
+        return { id: source.id, name: source.name, url: source.url, status: 'ok', items: parseFeed(xml, source) };
+      } catch {
+        const previousItems = cache.data?.items?.filter(item => item.source_id === source.id) || [];
+        return {
+          id: source.id, name: source.name, url: source.url,
+          status: previousItems.length ? 'stale' : 'unavailable',
+          error: 'This source is temporarily unavailable.',
+          items: previousItems
+        };
+      }
+    }));
+
+    const stale = results.some(source => source.status === 'stale');
+    const data = {
+      sources: results.map(({ items, ...source }) => source),
+      items: results.flatMap(source => source.items)
+        .sort((a, b) => Date.parse(b.published_at || 0) - Date.parse(a.published_at || 0)).slice(0, 30),
+      updated_at: new Date().toISOString(),
+      stale,
+      ...(stale ? { warning: 'Some publications are temporarily unavailable. Showing the last available articles where possible.' } : {})
+    };
+
+    if (data.items.length || !cache.data) {
+      cache = { data, expires: Date.now() + (stale ? STALE_RETRY_MS : CACHE_MS) };
+    } else {
+      const fallback = {
+        ...cache.data,
+        stale: true,
+        warning: 'External publications are temporarily unavailable. Showing the last available articles.'
+      };
+      cache = { data: fallback, expires: Date.now() + STALE_RETRY_MS };
+      return fallback;
+    }
+    return data;
+  }
+
   return {
     async list() {
       if (cache.data && cache.expires > Date.now()) return cache.data;
-      const results = await Promise.all(FEEDS.map(async source => {
-        try {
-          const response = await fetchImpl(source.url, {
-            headers: { Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml' },
-            signal: AbortSignal.timeout(8000),
-            redirect: 'error'
-          });
-          if (!response.ok) throw new Error('Feed returned HTTP ' + response.status);
-          const xml = await readLimitedBody(response);
-          return { id: source.id, name: source.name, url: source.url, status: 'ok', items: parseFeed(xml, source) };
-        } catch {
-          return { id: source.id, name: source.name, url: source.url, status: 'unavailable', error: 'This source is temporarily unavailable.', items: [] };
-        }
-      }));
-      const data = {
-        sources: results.map(({ items, ...source }) => source),
-        items: results.flatMap(source => source.items)
-          .sort((a, b) => Date.parse(b.published_at || 0) - Date.parse(a.published_at || 0)).slice(0, 30),
-        updated_at: new Date().toISOString()
-      };
-      cache = { data, expires: Date.now() + CACHE_MS };
-      return data;
+      if (pending) return pending;
+      pending = refresh();
+      try { return await pending; }
+      finally { pending = null; }
     }
   };
 }
