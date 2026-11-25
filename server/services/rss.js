@@ -30,8 +30,10 @@ function tag(xml, name) {
 }
 
 function attribute(markup, name) {
-  const match = markup.match(new RegExp('\\\\b' + name + '=["\\']([^"\\']+)["\\']', 'i'));
-  return match ? decodeXml(match[1]) : '';
+  for (const match of markup.matchAll(/([a-zA-Z_:][-a-zA-Z0-9_:.]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)')/g)) {
+    if (match[1].toLowerCase() === name.toLowerCase()) return decodeXml(match[2] ?? match[3]);
+  }
+  return '';
 }
 
 function atomAlternateLink(item) {
