@@ -29,7 +29,7 @@ test('supports Atom entries and caches successful feed responses', async () => {
   } });
   const first = await aggregator.list();
   const second = await aggregator.list();
-  assert.equal(calls, 1);
+  assert.equal(calls, 8, 'the first refresh requests each of the eight configured sources');
   assert.equal(first.items[0].title, 'Atom story');
   assert.equal(second.items.length, 1);
   assert.equal(first.sources[0].status, 'ok');
