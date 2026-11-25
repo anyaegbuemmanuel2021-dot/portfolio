@@ -96,6 +96,19 @@ Important operational limits:
 - External provider credentials, live uploads, email delivery and advertising approval must be tested in their respective accounts.
 - Local SQLite tests do not establish that a production PostgreSQL service is configured correctly.
 
+
+## RSS feeds
+
+The portfolio supports both publishing and reading RSS content:
+
+- **Your published articles:** `/feed.xml` exposes published portfolio articles as an RSS 2.0 feed for RSS readers and syndication tools.
+- **External technology articles:** `/api/feeds` returns curated RSS/Atom items for the Articles page. The page renders these in its “More from the tech community” section.
+- **Feed implementation:** `server/routes/public.js` registers the public endpoints; `server/services/rss.js` fetches, parses and caches external feeds; `public/assets/js/articles.js` renders the items; `public/assets/css/rss.css` styles the section.
+- **Feed sources:** edit the `FEEDS` array at the top of `server/services/rss.js`. Each source needs a unique `id`, display `name`, HTTPS feed `url`, HTTPS `siteUrl` and short `description`. Keep the source list curated and only add publishers whose feeds you are allowed to display.
+- **Refresh:** successful and unavailable source results are cached for five minutes to avoid repeatedly contacting publishers on every page view. A failing publisher does not prevent the other sources or your own feed from loading.
+
+The external feed reader links visitors to the original publisher; it does not republish full third-party articles on this site.
+
 ## Deployment
 
 The repository includes a Render Blueprint, Dockerfile and GitHub Actions workflows. The current deployment design serves the website, admin dashboard and API from one Render web service, with PostgreSQL hosted separately and media stored in an S3-compatible object store.
