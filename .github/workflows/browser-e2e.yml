@@ -1,6 +1,8 @@
 name: Browser responsive and admin smoke tests
 
 on:
+  push:
+    branches: [ci/add-browser-responsive-sweep]
   pull_request:
     branches: [main]
     paths:
@@ -39,8 +41,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: package.json
 
       - name: Install application and browser-test dependencies
         run: |
