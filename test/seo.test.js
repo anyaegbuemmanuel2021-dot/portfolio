@@ -140,3 +140,21 @@ test('unpublished article slugs return a real 404 instead of an indexable articl
   const missing = await dynamicHtml('/articles/draft');
   assert.deepEqual(missing, { status: 404, body: 'Not found' });
 });
+
+
+test('RSS feed is validly namespaced, self-discoverable and includes published article links', async () => {
+  const xml = await dynamicText('/feed.xml');
+  assert.match(xml, /xmlns:content="http:\/\/purl\.org\/rss\/1\.0\/modules\/content\//);
+  assert.match(xml, /xmlns:atom="http:\/\/www\.w3\.org\/2005\/Atom"/);
+  assert.match(xml, /<atom:link href="https:\/\/portfolio\.example\/feed\.xml" rel="self" type="application\/rss\+xml"\s*\/>/);
+  assert.match(xml, /https:\/\/portfolio\.example\/articles\/search-ready-article/);
+  assert.match(xml, /<content:encoded>/);
+});
+
+test('robots.txt points crawlers to the dynamic sitemap and keeps private routes disallowed', async () => {
+  const robots = await dynamicText('/robots.txt');
+  assert.match(robots, /User-agent: \*/);
+  assert.match(robots, /Disallow: \/admin/);
+  assert.match(robots, /Disallow: \/api\//);
+  assert.match(robots, /Sitemap: https:\/\/portfolio\.example\/sitemap\.xml/);
+});
