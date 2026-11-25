@@ -29,8 +29,9 @@ test('supports Atom entries and caches successful feed responses', async () => {
   } });
   const first = await aggregator.list();
   const second = await aggregator.list();
-  assert.equal(calls, 1);
+  assert.equal(calls, 3);
   assert.equal(first.items[0].title, 'Atom story');
-  assert.equal(second.items.length, 1);
-  assert.equal(first.sources[0].status, 'ok');
+  assert.equal(second.items.length, 3);
+  assert.equal(first.sources.length, 3);
+  assert.ok(first.sources.every(source => source.status === 'ok'));
 });
