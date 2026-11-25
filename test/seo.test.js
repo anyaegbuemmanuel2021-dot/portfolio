@@ -26,7 +26,7 @@ const db = {
     if (sql.includes("key = 'canonical_base'")) return { rows: [{ value: 'https://portfolio.example/' }] };
     if (sql.includes('FROM article_images')) return { rows: [{ article_id: 'article-1', url: 'https://cdn.example.com/inline.webp', alt: 'Article illustration' }] };
     if (sql.includes('FROM articles') && sql.includes('lower(a.slug)')) return { rows: params[0] === 'draft' ? [] : [article] };
-    if (sql.includes('FROM articles') && sql.includes('excerpt FROM articles')) return { rows: [article] };
+    if (sql.includes('FROM articles') && (sql.includes('excerpt FROM articles') || sql.includes('content_html'))) return { rows: [article] };
     if (sql.includes('FROM articles') && sql.includes('canonical_url')) { assert.match(sql, /SELECT id, title, slug/); return { rows: [article] }; }
     if (sql.includes('FROM projects')) return { rows: sql.includes('is_published = TRUE') && !project.is_published ? [] : [project] };
     if (sql.includes('FROM services')) return { rows: sql.includes('is_published = TRUE') && !service.is_published ? [] : [service] };
@@ -119,6 +119,8 @@ test('article and static HTML pages receive clean canonical and social metadata'
 
   const staticPage = await decorateHtml(html, '/about.html');
   assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
+  assert.match(staticPage, /<link rel="alternate" type="application\/rss\+xml" title="Anyaegbu Emmanuel — Articles" href="https:\/\/portfolio\.example\/feed\.xml">/);
+  assert.equal((staticPage.match(/type="application\/rss\+xml"/g) || []).length, 1);
 });
 
 
@@ -139,4 +141,22 @@ test('article, project and service listings expose crawlable links to their deta
 test('unpublished article slugs return a real 404 instead of an indexable article shell', async () => {
   const missing = await dynamicHtml('/articles/draft');
   assert.deepEqual(missing, { status: 404, body: 'Not found' });
+});
+
+
+test('RSS feed is validly namespaced, self-discoverable and includes published article links', async () => {
+  const xml = await dynamicText('/feed.xml');
+  assert.match(xml, /xmlns:content="http:\/\/purl\.org\/rss\/1\.0\/modules\/content\//);
+  assert.match(xml, /xmlns:atom="http:\/\/www\.w3\.org\/2005\/Atom"/);
+  assert.match(xml, /<atom:link href="https:\/\/portfolio\.example\/feed\.xml" rel="self" type="application\/rss\+xml"\s*\/>/);
+  assert.match(xml, /https:\/\/portfolio\.example\/articles\/search-ready-article/);
+  assert.match(xml, /<content:encoded>/);
+});
+
+test('robots.txt points crawlers to the dynamic sitemap and keeps private routes disallowed', async () => {
+  const robots = await dynamicText('/robots.txt');
+  assert.match(robots, /User-agent: \*/);
+  assert.match(robots, /Disallow: \/admin/);
+  assert.match(robots, /Disallow: \/api\//);
+  assert.match(robots, /Sitemap: https:\/\/portfolio\.example\/sitemap\.xml/);
 });
