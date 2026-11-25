@@ -143,7 +143,8 @@ export function cloudinaryStorageProvider(options = config.storage.cloudinary) {
     },
   };
 }
-\nexport function createStorage(name = config.storage.provider) {
+
+export function createStorage(name = config.storage.provider) {
   if (name === 'cloudinary') return cloudinaryStorageProvider();
   if (name === 'dbrij') return dbrijStorageProvider();
   if (name === 'local') return localStorageProvider();
