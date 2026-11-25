@@ -265,7 +265,7 @@ export function mediaService(db, storage) {
   const svc = {
     // Migrate existing references to stable same-origin URLs without moving or deleting stored objects.
     async repairPublicUrls() {
-      const rows = (await db.query('SELECT id, url, storage_key, variants FROM media_files WHERE storage_key IS NOT NULL')).rows;
+      const rows = (await db.query('SELECT id, url, storage_key, variants FROM media_files WHERE storage_key IS NOT NULL AND storage_provider = $1', [storage.name])).rows;
       let repaired = 0;
       for (const row of rows) {
         const nextUrl = storage.publicUrl(row.storage_key);
