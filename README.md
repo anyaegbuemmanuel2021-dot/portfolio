@@ -96,7 +96,7 @@ The personal feed and external publication list have different purposes. Share `
 Copy `.env.example` to `.env` and configure only the providers required by the deployment. Keep all credentials in environment variables or the hosting provider's secret manager.
 
 - **Database:** PostgreSQL for production; SQLite for local development and tests.
-- **Media storage:** local storage for development; S3-compatible object storage for production.
+- **Media storage:** local storage for development; Cloudinary signed uploads or S3-compatible object storage for production. Cloudinary credentials stay server-side; uploaded assets are delivered from Cloudinary's persistent CDN.
 - **Email:** log mode for development; a verified email provider for delivery.
 - **Ads:** ad placements require valid publisher configuration and approval from the relevant advertising network.
 
