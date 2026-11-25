@@ -36,10 +36,16 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
     const items = r.rows.map(a => {
       const url = base + '/articles/' + encodeURIComponent(a.slug);
       const date = a.published_at ? new Date(a.published_at).toUTCString() : new Date().toUTCString();
-      return '<item><title>' + xml(a.title) + '</title><link>' + xml(url) + '</link><guid isPermaLink="true">' + xml(url) + '</guid><description>' + xml(a.excerpt || '') + '</description><pubDate>' + xml(date) + '</pubDate></item>';
+      let imageUrl = '';
+      try {
+        const image = new URL(a.featured_image_url || '', base);
+        if (image.protocol === 'https:' && !image.username && !image.password) imageUrl = image.href;
+      } catch {}
+      const image = imageUrl ? '<media:thumbnail url="' + xml(imageUrl) + '" />' : '';
+      return '<item><title>' + xml(a.title) + '</title><link>' + xml(url) + '</link><guid isPermaLink="true">' + xml(url) + '</guid><description>' + xml(a.excerpt || '') + '</description>' + image + '<pubDate>' + xml(date) + '</pubDate></item>';
     }).join('');
     const body = '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>' + xml('Articles | Portfolio') + '</title><link>' + xml(base) + '</link><atom:link href="' + xml(base + '/feed.xml') + '" rel="self" type="application/rss+xml" /><description>' + xml('Latest published articles') + '</description><lastBuildDate>' + xml(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
+      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/"><channel><title>' + xml('Articles | Portfolio') + '</title><link>' + xml(base) + '</link><atom:link href="' + xml(base + '/feed.xml') + '" rel="self" type="application/rss+xml" /><description>' + xml('Latest published articles') + '</description><lastBuildDate>' + xml(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
     return { __raw: true, status: 200, headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' }, body };
   });
   app.get('/api/feeds', async ctx => { await rateLimit('external-feeds:' + ctx.ipHash, 30, 60e3, db); return { data: await externalFeeds.list(), headers: { 'Cache-Control': 'public, max-age=300' } }; });
