@@ -37,10 +37,12 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
       const url = base + '/articles/' + encodeURIComponent(a.slug);
       const date = a.published_at ? new Date(a.published_at).toUTCString() : new Date().toUTCString();
       let imageUrl = '';
-      try {
-        const image = new URL(a.featured_image_url || '', base);
-        if (image.protocol === 'https:' && !image.username && !image.password) imageUrl = image.href;
-      } catch {}
+      if (typeof a.featured_image_url === 'string' && a.featured_image_url.trim()) {
+        try {
+          const image = new URL(a.featured_image_url, base);
+          if (image.protocol === 'https:' && !image.username && !image.password) imageUrl = image.href;
+        } catch {}
+      }
       const image = imageUrl ? '<media:thumbnail url="' + xml(imageUrl) + '" />' : '';
       return '<item><title>' + xml(a.title) + '</title><link>' + xml(url) + '</link><guid isPermaLink="true">' + xml(url) + '</guid><description>' + xml(a.excerpt || '') + '</description>' + image + '<pubDate>' + xml(date) + '</pubDate></item>';
     }).join('');
