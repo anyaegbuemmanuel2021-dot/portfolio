@@ -85,3 +85,31 @@ jobs:
             fi
             rm -f "$headers" "$body"
           done
+
+      - name: Verify health, personal RSS and external publication feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE="https://anyaegbu-emmanuel.onrender.com"
+
+          echo "Checking database-backed health endpoint..."
+          health="$(curl --fail --silent --show-error --location --max-time 30 "$SITE/api/health")"
+          jq -e '.status == "ok"' <<< "$health" >/dev/null
+
+          echo "Checking the portfolio's own RSS feed..."
+          personal_feed="$(curl --fail --silent --show-error --location --max-time 30 "$SITE/feed.xml")"
+          grep -Eiq '<rss[[:space:]][^>]*version="2.0"' <<< "$personal_feed"
+
+          echo "Checking external publication aggregation..."
+          external_feeds="$(curl --fail --silent --show-error --location --max-time 60 "$SITE/api/feeds")"
+          jq -e '.data.sources | length >= 8' <<< "$external_feeds" >/dev/null
+          jq -e '[.data.sources[] | select(.id == "withubb")] | length == 1' <<< "$external_feeds" >/dev/null
+          withubb_status="$(jq -r '.data.sources[] | select(.id == "withubb") | .status' <<< "$external_feeds")"
+          if [[ "$withubb_status" != "ok" ]]; then
+            echo "::warning::Withubb is configured, but its upstream feed currently reports status: $withubb_status"
+          fi
+
+          echo "Checking the Articles page..."
+          code="$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "$SITE/articles.html")"
+          [[ "$code" =~ ^2[0-9][0-9]$ ]] || { echo "::error::Articles page returned HTTP $code"; exit 1; }
+          echo "Health, RSS, external feed aggregation and Articles page checks passed."
