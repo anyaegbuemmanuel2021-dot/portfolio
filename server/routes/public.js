@@ -42,7 +42,7 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
       '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>' + xml('Articles | Portfolio') + '</title><link>' + xml(base) + '</link><atom:link href="' + xml(base + '/feed.xml') + '" rel="self" type="application/rss+xml" /><description>' + xml('Latest published articles') + '</description><lastBuildDate>' + xml(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
     return { __raw: true, status: 200, headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' }, body };
   });
-  app.get('/api/feeds', async ctx => { await rateLimit('external-feeds:' + ctx.ipHash, 30, 60e3, db); return { data: await externalFeeds.list(), headers: { 'Cache-Control': 'public, max-age=1800' } }; });
+  app.get('/api/feeds', async ctx => { await rateLimit('external-feeds:' + ctx.ipHash, 30, 60e3, db); return { data: await externalFeeds.list(), headers: { 'Cache-Control': 'public, max-age=300' } }; });
   app.get('/api/articles/categories', async () => ({ data: (await db.query('SELECT name, slug FROM article_categories ORDER BY name')).rows, headers: { 'Cache-Control': 'public, max-age=300' } }));
   app.get('/api/articles/:slug', async ctx => ({ data: await articles.getPublic(ctx.params.slug), headers: { 'Cache-Control': 'public, max-age=30' } }));
   const CONTACT = { name: { required: true, max: 100 }, email: { type: 'email' }, phone: { max: 30, pattern: /^[+\d][\d\s().-]{5,29}$/ }, service: { max: 120 }, budget: { max: 60 }, message: { required: true, max: 4000 } };
