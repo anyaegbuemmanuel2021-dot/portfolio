@@ -127,6 +127,12 @@ Before deploying:
 
 The Render free service may sleep when idle and uses an ephemeral filesystem. Persistent user uploads must use configured object storage, not the service's local filesystem. Review current provider limits before relying on a free-tier deployment for production workloads.
 
+## Browser and responsive verification
+
+Pull requests that change public pages, the admin dashboard, server code or the browser test run the Chromium sweep in `.github/workflows/browser-e2e.yml`. It uses an isolated SQLite database and temporary CI owner account, and checks the public pages plus authenticated admin routes at 13 viewport widths. It does not use production credentials or modify production data.
+
+For release readiness, use the live endpoint checks and production preflight described in `docs/GO_LIVE_CHECKLIST.md`; a passing local/CI SQLite test does not replace a real PostgreSQL, media-storage or backup-restore verification.
+
 ## Security
 
 - Never commit `.env`, API keys, passwords, private keys, database files or production backups.
