@@ -10,7 +10,7 @@ const FEEDS = [
 ];
 
 const MAX_FEED_BYTES = 1_000_000;
-const CACHE_MS = 5 * 60 * 1000;
+const CACHE_MS = 30 * 60 * 1000;
 const STALE_RETRY_MS = 60 * 1000;
 
 function decodeXml(value) {
