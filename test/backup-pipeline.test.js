@@ -25,6 +25,7 @@ test('scheduled backup creates, encrypts and verifies the remote PostgreSQL arch
 test('live monitor covers health and both RSS publishing surfaces', () => {
   const workflow = read('.github/workflows/render-keep-awake.yml');
   assert.match(workflow, /\/api\/health/);
+  assert.match(workflow, /\.data\.status == "ok"/);
   assert.match(workflow, /\/feed\.xml/);
   assert.match(workflow, /\/api\/feeds/);
   assert.match(workflow, /id == "withubb"/);
