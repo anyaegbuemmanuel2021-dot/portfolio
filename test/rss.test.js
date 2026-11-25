@@ -34,3 +34,31 @@ test('supports Atom entries and caches successful feed responses', async () => {
   assert.equal(second.items.length, 1);
   assert.equal(first.sources[0].status, 'ok');
 });
+
+
+test('rejects XML DTD and entity declarations before parsing', () => {
+  const xml = '<!DOCTYPE rss [<!ENTITY x "expanded">]><rss><channel><item><title>&x;</title><link>https://publisher.example/story</link></item></channel></rss>';
+  assert.throws(() => parseFeed(xml, source), /DTD and entity declarations are not supported/);
+});
+
+test('rejects feeds exceeding the byte limit before parsing', () => {
+  const oversized = '<rss><channel></channel></rss>' + ' '.repeat(1_000_001);
+  assert.throws(() => parseFeed(oversized, source), /1 MB limit/);
+});
+
+test('does not buffer an oversized streamed feed response', async () => {
+  let cancelled = false;
+  const bytes = new TextEncoder().encode('<rss>' + 'x'.repeat(1_000_010) + '</rss>');
+  const aggregator = rssAggregator({ fetchImpl: async () => ({
+    ok: true,
+    headers: { get: () => null },
+    body: new ReadableStream({
+      start(controller) { controller.enqueue(bytes); },
+      cancel() { cancelled = true; }
+    })
+  }) });
+  const result = await aggregator.list();
+  assert.equal(result.sources[0].status, 'unavailable');
+  assert.equal(result.sources[0].error, 'This source is temporarily unavailable.');
+  assert.equal(cancelled, true);
+});
