@@ -4,9 +4,10 @@ import { HttpError, validate } from '../lib/validate.js';
 import { rateLimit } from '../lib/http.js';
 import { openOutboundLink } from '../lib/security.js';
 import { tableRepo, kv, fixRow } from '../repositories/base.js';
+import { rssAggregator } from '../services/rss.js';
 const PUBLIC_SETTINGS = ['site_title', 'site_tagline', 'contact_email', 'whatsapp_number', 'footer_text', 'seo_default_title', 'seo_default_description', 'canonical_base', 'adsense_enabled', 'adsense_client', 'contact_phone', 'contact_location', 'education', 'portfolio_url', 'about_story_1', 'about_story_2', 'about_story_3', 'about_story_4', 'certifications_json', 'pricing_json', 'process_json', 'contact_intro', 'service_cta_title', 'service_cta_body', 'footer_tagline', 'page_home_visible', 'page_about_visible', 'page_projects_visible', 'page_services_visible', 'page_articles_visible', 'page_contact_visible'];
 export function publicRoutes(app, { db, leads, articles, analytics, ads, email, aiOn }) {
-  const settings = kv(db, 'site_settings'); let cache = { t: 0, v: null };
+  const settings = kv(db, 'site_settings'); const externalFeeds = rssAggregator(); let cache = { t: 0, v: null };
   const pub = async t => (await tableRepo(db, t, ['is_published']).list({ publishedOnly: true, limit: 500 })).rows;
   async function content() {
     if (cache.v && Date.now() - cache.t < 30e3) return cache.v; const s = await settings.all(); const settingsPub = Object.fromEntries(PUBLIC_SETTINGS.filter(k => k in s).map(k => [k, s[k]]));
@@ -40,6 +41,7 @@ export function publicRoutes(app, { db, leads, articles, analytics, ads, email, 
       '<rss version="2.0"><channel><title>' + xml('Articles | Portfolio') + '</title><link>' + xml(base) + '</link><description>' + xml('Latest published articles') + '</description><lastBuildDate>' + xml(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
     return { __raw: true, status: 200, headers: { 'Content-Type': 'application/rss+xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' }, body };
   });
+  app.get('/api/feeds', async () => ({ data: await externalFeeds.list(), headers: { 'Cache-Control': 'public, max-age=300' } }));
   app.get('/api/articles/categories', async () => ({ data: (await db.query('SELECT name, slug FROM article_categories ORDER BY name')).rows, headers: { 'Cache-Control': 'public, max-age=300' } }));
   app.get('/api/articles/:slug', async ctx => ({ data: await articles.getPublic(ctx.params.slug), headers: { 'Cache-Control': 'public, max-age=30' } }));
   const CONTACT = { name: { required: true, max: 100 }, email: { type: 'email' }, phone: { max: 30, pattern: /^[+\d][\d\s().-]{5,29}$/ }, service: { max: 120 }, budget: { max: 60 }, message: { required: true, max: 4000 } };
