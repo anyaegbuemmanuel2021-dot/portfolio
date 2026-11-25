@@ -80,6 +80,17 @@ The admin dashboard manages supported site content, including profile informatio
 
 Use the dashboard for routine content changes rather than editing generated or database-backed content directly. Before deleting media or records, confirm that they are no longer referenced elsewhere on the site.
 
+## Publishing and RSS feeds
+
+The articles area keeps the portfolio owner's writing separate from selected external publications:
+
+- `/feed.xml` is the portfolio's own RSS 2.0 feed. Only published portfolio articles are included.
+- `/api/feeds` supplies the external publication cards shown on `/articles.html`. The curated list includes Withubb, OpenAI, Google AI, Google DeepMind, Hugging Face, TechCrunch AI, freeCodeCamp and GitHub Blog.
+- External article cards link readers to the original publisher. The portfolio does not republish the full external article.
+- Feed responses are cached, source requests are bounded, and the aggregator retains previously retrieved items when an upstream publication is temporarily unavailable.
+
+The personal feed and external publication list have different purposes. Share `/feed.xml` when inviting readers to subscribe to your own writing; use the Articles page to browse the wider technology reading list.
+
 ## Configuration and external services
 
 Copy `.env.example` to `.env` and configure only the providers required by the deployment. Keep all credentials in environment variables or the hosting provider's secret manager.
