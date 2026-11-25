@@ -29,11 +29,13 @@ test('supports Atom entries and caches successful feed responses', async () => {
   } });
   const first = await aggregator.list();
   const second = await aggregator.list();
-  assert.equal(calls, 7, 'the first refresh requests each of the seven independent publications');
+  assert.equal(calls, 8, 'the first refresh requests each of the eight configured publications');
   assert.equal(first.items[0].title, 'Atom story');
-  assert.equal(second.items.length, 7, 'the cached response contains one item from each configured source');
-  assert.equal(calls, 7, 'the second read is served from cache without additional requests');
+  assert.equal(second.items.length, 8, 'the cached response contains one item from each configured source');
+  assert.equal(calls, 8, 'the second read is served from cache without additional requests');
   assert.equal(first.sources[0].status, 'ok');
+  assert.equal(first.sources[0].id, 'withubb');
+  assert.equal(first.sources[0].url, 'https://www.withubb.com/feed.xml');
 });
 
 
@@ -83,11 +85,11 @@ test('keeps the last successful external feed snapshot when every source is temp
       return { ok: true, text: async () => '<rss><channel><item><title>Previously available</title><link>https://publisher.example/story</link></item></channel></rss>' };
     } });
     const first = await aggregator.list();
-    assert.equal(first.items.length, 7);
+    assert.equal(first.items.length, 8);
     now += 5 * 60 * 1000 + 1;
     fail = true;
     const stale = await aggregator.list();
-    assert.equal(stale.items.length, 7);
+    assert.equal(stale.items.length, 8);
     assert.equal(stale.stale, true);
     assert.match(stale.warning, /last available articles/i);
   } finally {

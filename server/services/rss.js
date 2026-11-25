@@ -1,4 +1,5 @@
 const FEEDS = [
+  { id: 'withubb', name: 'Withubb', category: 'Web development', url: 'https://www.withubb.com/feed.xml', siteUrl: 'https://www.withubb.com/', description: 'Web development, IT, programming and business articles from Withubb.' },
   { id: 'openai', name: 'OpenAI', category: 'AI', url: 'https://openai.com/news/rss.xml', siteUrl: 'https://openai.com/', description: 'Official OpenAI product, research and company updates.' },
   { id: 'google-ai', name: 'Google AI', category: 'AI research', url: 'https://blog.google/technology/ai/rss/', siteUrl: 'https://blog.google/technology/ai/', description: 'Google AI product and research updates.' },
   { id: 'deepmind', name: 'Google DeepMind', category: 'AI research', url: 'https://deepmind.google/blog/rss.xml', siteUrl: 'https://deepmind.google/', description: 'Research and announcements from Google DeepMind.' },
