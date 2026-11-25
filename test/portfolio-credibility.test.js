@@ -41,6 +41,21 @@ test('profile and service copy distinguishes current frontend delivery from back
   assert.match(resume, /backend and database development are not presented as independent services/i);
 });
 
+test('remaining public metadata and fallback footers do not advertise backend/full-stack services', () => {
+  const contact = read('public/contact.html');
+  const projects = read('public/projects.html');
+  const article = read('public/article.html');
+  const articles = read('public/articles.html');
+  for (const [page, html] of [['contact', contact], ['projects', projects]]) {
+    assert.doesNotMatch(html, /full[ -]?stack developer|full[ -]?stack web development|backend functionality/i, page + ' metadata must reflect the current frontend-first offer');
+  }
+  for (const [page, html] of [['contact', contact], ['projects', projects], ['article', article], ['articles', articles]]) {
+    assert.doesNotMatch(html, /Full-Stack Developer|Frontend & Backend/i, page + ' fallback footer must not claim full-stack delivery');
+  }
+  assert.match(contact, /Frontend websites, responsive interfaces/);
+  assert.match(projects, /frontend website projects/i);
+});
+
 test('about page lists demonstrable skills without arbitrary proficiency percentages', () => {
   const html = read('public/about.html');
   assert.match(html, /SIWES Training — Web Development/);
