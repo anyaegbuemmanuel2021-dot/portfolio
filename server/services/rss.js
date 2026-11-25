@@ -30,7 +30,7 @@ function tag(xml, name) {
 }
 
 function attribute(markup, name) {
-  const match = markup.match(new RegExp("(?:^|\\\\s)" + name + "\\\\s*=\\\\s*[\"']([^\"']*)[\"']", "i"));
+  const match = markup.match(new RegExp('\\\\b' + name + '=["\\']([^"\\']+)["\\']', 'i'));
   return match ? decodeXml(match[1]) : '';
 }
 
@@ -52,6 +52,7 @@ function cleanText(value, max = 500) {
 }
 
 function safeHttpsUrl(value, base) {
+  if (typeof value !== 'string' || !value.trim()) return '';
   try {
     const parsed = new URL(value, base);
     if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return '';
