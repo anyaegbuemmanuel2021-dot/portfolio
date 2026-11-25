@@ -30,7 +30,7 @@ function tag(xml, name) {
 }
 
 function attribute(markup, name) {
-  const match = markup.match(new RegExp('(?:^|\\s)' + name + '\\s*=\\s*["\\']([^"\\']*)["\\']', 'i'));
+  const match = markup.match(new RegExp("(?:^|\\\\s)" + name + "\\\\s*=\\\\s*[\"']([^\"']*)[\"']", "i"));
   return match ? decodeXml(match[1]) : '';
 }
 
