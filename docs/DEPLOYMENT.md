@@ -125,9 +125,8 @@ In GitHub repository **Settings → Secrets and variables → Actions**, add:
 - `DBRIJ_BACKUP_KEY_ID` — second Dbrij access key ID.
 - `DBRIJ_BACKUP_KEY_SECRET` — second Dbrij access key secret.
 - `BACKUP_ENCRYPTION_PASSPHRASE` — a unique, strong passphrase generated locally and kept separately from the storage keys. Store a secure offline copy; without it, encrypted backups cannot be restored.
-- `RENDER_DEPLOY_HOOK` — added in the Render section below.
 
-The workflow targets `https://s3.dbrij.com` using path-style S3 addressing and region `auto`. It creates a PostgreSQL custom-format dump, verifies that it can be read by `pg_restore`, encrypts it locally before upload, writes integrity metadata, uploads to the private bucket, confirms the object exists and prunes old backup files while retaining at least four recent dumps. The workflow runs every Sunday at 04:17 UTC and can also be started manually from GitHub Actions.
+The workflow detects the Neon server's PostgreSQL major version, installs the matching `pg_dump` client, creates a custom-format dump, verifies its archive table of contents, encrypts it with GPG/AES-256 before upload, writes SHA-256 and HMAC sidecars, verifies the uploaded object sizes/metadata, and prunes old backups while retaining at least four recent dumps. It runs every Sunday at 04:17 UTC and can also be started manually from GitHub Actions.
 
 The Dbrij Free plan currently lists no versioning. The scheduled workflow's retention script is therefore responsible for pruning old dump files; it is not a substitute for testing recovery. Run a manual workflow once after deployment and verify that the encrypted files appear in the private bucket.
 
@@ -148,7 +147,8 @@ The application uses Render's `RENDER_EXTERNAL_URL` as its canonical base URL wh
 1. Open the Render service → Settings → Deploy Hook and create a hook.
 2. Copy the hook URL.
 3. In GitHub repository Settings → Secrets and variables → Actions, add `RENDER_DEPLOY_HOOK` with that URL.
-4. The Blueprint sets `autoDeploy: false`. GitHub Actions runs tests and syntax checks on pushes/PRs. A successful push to `main` triggers Render through the Deploy Hook. Never put the hook URL in code or logs.
+4. The Blueprint sets `autoDeploy: false`. GitHub Actions runs tests, production dependency audit and backup-script syntax checks. The `Deploy portfolio after quality checks` workflow triggers the hook only after the `Portfolio quality checks` workflow succeeds on `main`. Never put the hook URL in code or logs.
+5. **Existing live service:** because the current Render service was created before this Blueprint setting, verify Render Dashboard → service → Settings → Build & Deploy and switch Auto-Deploy off if it still shows enabled. The Render API connection used for this pass can inspect deployment status but cannot change that existing service toggle. Until it is switched off, the existing service may still deploy on a push independently of CI.
 
 ## H. Create the first owner account
 
@@ -190,31 +190,18 @@ Also test manually:
 
 The weekly GitHub workflow stores encrypted database dumps in the **private** `portfolio-backups` bucket. The encryption passphrase is mandatory. Never store it in the repository or in the Dbrij bucket. Verify the first successful GitHub Actions run and perform a restoration drill into a separate empty Neon database before relying on backups.
 
-Manual local backup:
+To run the same encrypted backup pipeline manually, set `DATABASE_URL` to the direct Neon connection string and provide the four Dbrij/passphrase environment variables listed in Section F, then run `bash scripts/backup-postgres.sh`. The script does not leave a plaintext dump in the repository; it uploads only the encrypted dump and integrity sidecars.
+
+To restore a cloud backup, download the `.dump.gpg`, `.dump.gpg.sha256` and `.dump.gpg.hmac` files from the private bucket using the backup key. Set `BACKUP_ENCRYPTION_PASSPHRASE` and point `DATABASE_URL` to a separate recovery database. The restore script verifies the SHA-256 checksum and HMAC, decrypts the GPG archive into a temporary file, and then restores it:
 
 ```bash
-export DATABASE_URL='YOUR_DIRECT_NEON_CONNECTION_STRING'
-bash scripts/backup-postgres.sh
-```
-
-This manual command creates an unencrypted local dump. Store it securely and do not commit it. For the encrypted cloud workflow, use the GitHub Actions backup described in Section F.
-
-To restore a cloud backup, download the `.dump.enc`, `.sha256` and `.hmac` files from the private bucket using the backup key. Verify the checksum and HMAC, then decrypt before restoring:
-
-```bash
-sha256sum -c portfolio-YYYYMMDDTHHMMSSZ.dump.enc.sha256
-EXPECTED="$(cat portfolio-YYYYMMDDTHHMMSSZ.dump.enc.hmac)"
-ACTUAL="$(openssl dgst -sha256 -hmac "$BACKUP_ENCRYPTION_PASSPHRASE" portfolio-YYYYMMDDTHHMMSSZ.dump.enc | awk '{print $2}')"
-test "$EXPECTED" = "$ACTUAL" || { echo 'Backup HMAC verification failed'; exit 1; }
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in portfolio-YYYYMMDDTHHMMSSZ.dump.enc -out portfolio-YYYYMMDDTHHMMSSZ.dump -pass env:BACKUP_ENCRYPTION_PASSPHRASE
-```
-
-Then set `DATABASE_URL` to a separate recovery database, verify the target and run:
-
-```bash
+export BACKUP_ENCRYPTION_PASSPHRASE='YOUR_BACKUP_PASSPHRASE'
+export DATABASE_URL='YOUR_SEPARATE_RECOVERY_DATABASE_URL'
 export CONFIRM_DATABASE_RESTORE=YES
-bash scripts/restore-postgres.sh portfolio-YYYYMMDDTHHMMSSZ.dump
+bash scripts/restore-postgres.sh portfolio-YYYYMMDDTHHMMSSZ.dump.gpg
 ```
+
+The restore script requires the matching `.sha256` and `.hmac` sidecars in the same directory. It removes its temporary plaintext dump when it exits. Restore is destructive to objects with matching names in the target database. Never experiment on the only production database.
 
 Restore is destructive to objects with matching names in the target database. Never experiment on the only production database. Verify the restored data and public media independently.
 
