@@ -58,8 +58,10 @@ const slugMatch = (path, type) => {
   return m ? decodeURIComponent(m[1]) : null;
 };
 const metaTags = ({ canonical, title, description, image, type = 'website', jsonLd }) => {
+  const feedUrl = new URL('/feed.xml', canonical).href;
   const tags = [
-    '<link rel="canonical" href="' + esc(canonical) + '">',
+    '<link rel="alternate" type="application/rss+xml" title="Anyaegbu Emmanuel — Articles" href="' + esc(feedUrl) + '">',
+    '<link rel="canonical" href="' + esc(canonical) + '">
     '<meta property="og:type" content="' + esc(type) + '">',
     '<meta property="og:url" content="' + esc(canonical) + '">',
     '<meta property="og:title" content="' + esc(title) + '">',
@@ -174,7 +176,7 @@ export async function decorateHtml(html, pathname) {
   out = out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
   if (/<meta\s+name=["']description["']/i.test(out)) out = out.replace(/<meta\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + esc(description) + '">');
   else out = out.replace(/<\/head>/i, '<meta name="description" content="' + esc(description) + '">\n</head>');
-  out = out.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/ig, '').replace(/<meta\s+property=["']og:[^"']+["'][^>]*>\s*/ig, '').replace(/<meta\s+name=["']twitter:[^"']+["'][^>]*>\s*/ig, '').replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/ig, '');
+  out = out.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/ig, '').replace(/<link\s+rel=["']alternate["'][^>]*type=["']application\/rss\+xml["'][^>]*>\s*/ig, '').replace(/<meta\s+property=["']og:[^"']+["'][^>]*>\s*/ig, '').replace(/<meta\s+name=["']twitter:[^"']+["'][^>]*>\s*/ig, '').replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/ig, '');
   return out.replace(/<\/head>/i, tags + '\n</head>');
 }
 export async function dynamicText(path) {
@@ -193,7 +195,12 @@ export async function dynamicText(path) {
       const date = a.published_at ? new Date(a.published_at).toUTCString() : new Date().toUTCString();
       return '<item><title>' + esc(a.title) + '</title><link>' + esc(url) + '</link><guid isPermaLink="true">' + esc(url) + '</guid><pubDate>' + esc(date) + '</pubDate><description>' + esc(a.excerpt || a.title) + '</description><content:encoded>' + esc(a.content_html || a.excerpt || '') + '</content:encoded></item>';
     }).join('');
-    return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>' + esc(settings.site_title || 'Portfolio') + '</title><link>' + esc(base) + '</link><description>' + esc(settings.site_tagline || 'Latest published articles') + '</description><lastBuildDate>' + esc(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
+    return '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">' +
+      '<channel><title>' + esc(settings.site_title || 'Portfolio') + '</title><link>' + esc(base) + '</link>' +
+      '<atom:link href="' + esc(base + '/feed.xml') + '" rel="self" type="application/rss+xml" />' +
+      '<description>' + esc(settings.site_tagline || 'Latest published articles') + '</description>' +
+      '<lastBuildDate>' + esc(new Date().toUTCString()) + '</lastBuildDate>' + items + '</channel></rss>';
   }
   if (path !== '/sitemap.xml') return null;
   const [arts, projects, services, articleImages] = await Promise.all([
