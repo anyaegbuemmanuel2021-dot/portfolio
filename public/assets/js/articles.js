@@ -47,6 +47,30 @@
     load();
   }
 
+
+  var externalList = $('#externalFeedList');
+  if (externalList) {
+    API.get('/api/feeds').then(function (response) {
+      var data = response && response.data ? response.data : {};
+      externalList.textContent = '';
+      (data.items || []).forEach(function (item) {
+        var card = el('article', 'external-feed__card');
+        if (item.image) { var image = el('img', 'external-feed__image'); image.src = item.image; image.alt = ''; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; card.appendChild(image); }
+        var body = el('div', 'external-feed__body');
+        body.appendChild(el('div', 'article-card__meta', [item.source, item.category, fmt(item.published_at)].filter(Boolean).join(' · ')));
+        var title = el('h3', 'external-feed__title', item.title);
+        var link = el('a', 'external-feed__link'); link.href = item.link; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.appendChild(title);
+        body.appendChild(link);
+        if (item.description) body.appendChild(el('p', 'article-card__excerpt', item.description));
+        var read = el('a', 'external-feed__read', 'Read at ' + item.source + ' ↗'); read.href = item.link; read.target = '_blank'; read.rel = 'noopener noreferrer'; body.appendChild(read);
+        card.appendChild(body); externalList.appendChild(card);
+      });
+      if (!externalList.children.length) externalList.appendChild(el('p', 'article-card__excerpt', 'External articles are temporarily unavailable. Please check back shortly.'));
+    }).catch(function () {
+      externalList.textContent = 'External articles are temporarily unavailable. Your own published articles and RSS feed remain available.';
+    });
+  }
+
   var box = $('#articleView');
   if (box) {
     var slug = decodeURIComponent(location.pathname.replace(/\/$/, '').split('/').pop());
