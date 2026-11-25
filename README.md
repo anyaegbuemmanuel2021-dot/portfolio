@@ -111,6 +111,8 @@ Important operational limits:
 
 The repository includes a Render Blueprint, Dockerfile and GitHub Actions workflows. The current deployment design serves the website, admin dashboard and API from one Render web service, with PostgreSQL hosted separately and media stored in an S3-compatible object store.
 
+Important deployment behavior: the current Render service has Auto-Deploy enabled. Render starts a deployment on each `main` push independently of GitHub Actions; the quality checks run in parallel and are not currently a release gate. For strict CI-gated releases, turn off Auto-Deploy in the Render service settings and configure a Render Deploy Hook to run only after the quality-check workflow succeeds.
+
 Before deploying:
 
 1. Provision the production PostgreSQL database.
