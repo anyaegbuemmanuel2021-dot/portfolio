@@ -61,7 +61,7 @@ const metaTags = ({ canonical, title, description, image, type = 'website', json
   const feedUrl = new URL('/feed.xml', canonical).href;
   const tags = [
     '<link rel="alternate" type="application/rss+xml" title="Anyaegbu Emmanuel — Articles" href="' + esc(feedUrl) + '">',
-    '<link rel="canonical" href="' + esc(canonical) + '">
+    '<link rel="canonical" href="' + esc(canonical) + '">',
     '<meta property="og:type" content="' + esc(type) + '">',
     '<meta property="og:url" content="' + esc(canonical) + '">',
     '<meta property="og:title" content="' + esc(title) + '">',
