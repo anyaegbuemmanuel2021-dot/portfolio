@@ -32,7 +32,7 @@ test('supports Atom entries and caches successful feed responses', async () => {
   assert.equal(calls, 7, 'the first refresh requests each of the seven independent publications');
   assert.equal(first.items[0].title, 'Atom story');
   assert.equal(second.items.length, 7, 'the cached response contains one item from each configured source');
-  assert.equal(calls, 8, 'the second read is served from cache without additional requests');
+  assert.equal(calls, 7, 'the second read is served from cache without additional requests');
   assert.equal(first.sources[0].status, 'ok');
 });
 
@@ -93,4 +93,10 @@ test('keeps the last successful external feed snapshot when every source is temp
   } finally {
     Date.now = originalNow;
   }
+});
+
+
+test('does not turn a missing article link into the publisher home page', () => {
+  const xml = '<rss><channel><item><title>Missing destination</title></item></channel></rss>';
+  assert.deepEqual(parseFeed(xml, source), []);
 });
