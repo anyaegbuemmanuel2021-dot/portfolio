@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 process.env.AUTH_SECRET = 'test-secret-test-secret-test-secret-123';
-const { buildLinkedInPost, encryptLinkedInToken, decryptLinkedInToken } = await import('../server/services/linkedin.js');
+const { buildLinkedInPost, encryptLinkedInToken, decryptLinkedInToken, linkedinService } = await import('../server/services/linkedin.js');
 
 test('LinkedIn post payload publishes as the authenticated personal member', () => {
   const payload = buildLinkedInPost('urn:li:person:abc123', 'New article\n\nRead more: https://example.com/article', { source: 'https://example.com/article', title: 'New article', description: 'An article summary' });
@@ -54,4 +54,35 @@ test('LinkedIn drafts are left untouched when automatic posting is paused', asyn
   assert.equal(result.skipped, true);
   assert.equal(row.status, 'draft');
   assert.equal(calls, 0);
+});
+
+test('LinkedIn OAuth state and credentials use the portfolio site_settings table', async () => {
+  const statements = [];
+  const values = new Map();
+  const db = { query: async (sql, params = []) => {
+    statements.push(sql);
+    if (sql.startsWith('SELECT value FROM site_settings')) return { rows: values.has(params[0]) ? [{ value: values.get(params[0]) }] : [] };
+    if (sql.startsWith('INSERT INTO site_settings')) { values.set(params[0], params[1]); return { rows: [], rowCount: 1 }; }
+    if (sql.startsWith('DELETE FROM site_settings')) { values.delete(params[0]); return { rows: [], rowCount: 1 }; }
+    throw new Error('Unexpected SQL: ' + sql);
+  } };
+  const previousId = process.env.LINKEDIN_CLIENT_ID, previousSecret = process.env.LINKEDIN_CLIENT_SECRET;
+  process.env.LINKEDIN_CLIENT_ID = 'test-client-id';
+  process.env.LINKEDIN_CLIENT_SECRET = 'test-client-secret';
+  try {
+    const service = linkedinService(db);
+    const authorizationUrl = new URL(await service.beginAuthorization());
+    assert.equal(authorizationUrl.origin, 'https://www.linkedin.com');
+    assert.equal(authorizationUrl.pathname, '/oauth/v2/authorization');
+    assert.equal(authorizationUrl.searchParams.get('client_id'), 'test-client-id');
+    assert.equal(authorizationUrl.searchParams.get('scope'), 'openid profile w_member_social');
+    assert.ok(values.has('linkedin_oauth_state'));
+    const status = await service.status();
+    assert.equal(status.configured, true);
+    assert.equal(status.connected, false);
+    assert.ok(statements.every(sql => sql.includes('site_settings')));
+  } finally {
+    if (previousId === undefined) delete process.env.LINKEDIN_CLIENT_ID; else process.env.LINKEDIN_CLIENT_ID = previousId;
+    if (previousSecret === undefined) delete process.env.LINKEDIN_CLIENT_SECRET; else process.env.LINKEDIN_CLIENT_SECRET = previousSecret;
+  }
 });
