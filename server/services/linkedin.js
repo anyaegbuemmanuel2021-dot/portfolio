@@ -95,6 +95,7 @@ export function linkedinService(db) {
       redirect_uri: redirectUri,
       state,
       scope: scopes.join(' '),
+      enable_extended_login: 'true',
     }).toString();
     return url.href;
   }
