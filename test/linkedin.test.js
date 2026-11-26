@@ -4,13 +4,14 @@ process.env.AUTH_SECRET = 'test-secret-test-secret-test-secret-123';
 const { buildLinkedInPost, encryptLinkedInToken, decryptLinkedInToken } = await import('../server/services/linkedin.js');
 
 test('LinkedIn post payload publishes as the authenticated personal member', () => {
-  const payload = buildLinkedInPost('urn:li:person:abc123', 'New article\n\nRead more: https://example.com/article');
+  const payload = buildLinkedInPost('urn:li:person:abc123', 'New article\n\nRead more: https://example.com/article', { source: 'https://example.com/article', title: 'New article', description: 'An article summary' });
   assert.equal(payload.author, 'urn:li:person:abc123');
   assert.equal(payload.commentary, 'New article\n\nRead more: https://example.com/article');
   assert.equal(payload.visibility, 'PUBLIC');
   assert.equal(payload.lifecycleState, 'PUBLISHED');
   assert.equal(payload.distribution.feedDistribution, 'MAIN_FEED');
   assert.deepEqual(payload.distribution.targetEntities, []);
+  assert.deepEqual(payload.content.article, { source: 'https://example.com/article', title: 'New article', description: 'An article summary' });
 });
 
 test('LinkedIn access tokens are encrypted and can be decrypted only with the same secret', () => {
