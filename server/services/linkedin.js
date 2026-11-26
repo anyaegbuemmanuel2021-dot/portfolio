@@ -31,9 +31,9 @@ export function decryptLinkedInToken(value, secret = config.authSecret) {
   }
 }
 
-export function buildLinkedInPost(author, commentary) {
+export function buildLinkedInPost(author, commentary, article) {
   if (!/^urn:li:person:[A-Za-z0-9_-]+$/.test(String(author || ''))) throw new Error('Invalid LinkedIn member author URN');
-  return {
+  const payload = {
     author,
     commentary: String(commentary || '').slice(0, 3000),
     visibility: 'PUBLIC',
@@ -41,6 +41,16 @@ export function buildLinkedInPost(author, commentary) {
     lifecycleState: 'PUBLISHED',
     isReshareDisabledByAuthor: false,
   };
+  if (article?.source && article?.title) {
+    const source = new URL(article.source);
+    if (source.protocol !== 'https:') throw new Error('LinkedIn article source must use HTTPS');
+    payload.content = { article: {
+      source: source.href,
+      title: String(article.title).slice(0, 200),
+      description: String(article.description || '').slice(0, 1000),
+    } };
+  }
+  return payload;
 }
 
 export function linkedinRedirectUri() {
@@ -129,7 +139,7 @@ export function linkedinService(db) {
     return { member_name: profile.name || '', expires_at: expiry };
   }
 
-  async function publishPost(commentary) {
+  async function publishPost(commentary, article) {
     const [encrypted, author, expires] = await Promise.all([get('access_token_enc'), get('author_urn'), get('expires_at')]);
     if (!encrypted || !author || !expires || new Date(expires).getTime() <= Date.now()) {
       throw new Error('LinkedIn is disconnected or its access token has expired. Reconnect LinkedIn in Social publishing.');
@@ -143,7 +153,7 @@ export function linkedinService(db) {
         'X-Restli-Protocol-Version': '2.0.0',
         'Linkedin-Version': VERSION,
       },
-      body: JSON.stringify(buildLinkedInPost(author, commentary)),
+      body: JSON.stringify(buildLinkedInPost(author, commentary, article)),
       signal: AbortSignal.timeout(20000),
     });
     if (!response.ok) {
