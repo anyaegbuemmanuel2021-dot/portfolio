@@ -53,10 +53,10 @@ export function socialService(db, { linkedin } = {}) {
     return rows;
   }
 
-  async function publishLinkedinArticle(articleId) {
+  async function publishLinkedinArticle(articleId, { force = false } = {}) {
     if (!linkedin) return { skipped: true, reason: 'LinkedIn integration unavailable' };
     const connection = await linkedin.status();
-    if (!connection.connected || !connection.auto_post_enabled) return { skipped: true, reason: 'LinkedIn automatic posting is disabled' };
+    if (!connection.connected || (!force && !connection.auto_post_enabled)) return { skipped: true, reason: 'LinkedIn automatic posting is disabled or the account is disconnected' };
     const post = (await db.query("SELECT id,caption,status FROM social_posts WHERE article_id=$1 AND platform='linkedin'", [articleId])).rows[0];
     if (!post || ['published', 'publishing'].includes(post.status)) return { skipped: true, reason: 'No eligible LinkedIn outbox item' };
     const claim = await db.query("UPDATE social_posts SET status='publishing',last_error=NULL,updated_at=$1 WHERE id=$2 AND status IN ('draft','approved','failed') RETURNING id", [now(), post.id]);
@@ -79,7 +79,7 @@ export function socialService(db, { linkedin } = {}) {
       const post = (await db.query('SELECT id,article_id,platform,status FROM social_posts WHERE id=$1', [id])).rows[0];
       if (!post || post.platform !== 'linkedin') throw new HttpError(404, 'LinkedIn post not found');
       if (post.status === 'published') return { status: 'published', skipped: true };
-      return publishLinkedinArticle(post.article_id);
+      return publishLinkedinArticle(post.article_id, { force: true });
     },
     async syncPublishedArticles() {
       const rows = (await db.query("SELECT a.id FROM articles a WHERE a.status='published' ORDER BY a.published_at DESC LIMIT 100")).rows;
