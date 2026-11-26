@@ -62,6 +62,7 @@ const metaTags = ({ canonical, title, description, image, type = 'website', json
   const tags = [
     '<link rel="alternate" type="application/rss+xml" title="Anyaegbu Emmanuel — Articles" href="' + esc(feedUrl) + '">',
     '<link rel="canonical" href="' + esc(canonical) + '">',
+    '<meta name="robots" content="index, follow, max-image-preview:large">',
     '<meta property="og:type" content="' + esc(type) + '">',
     '<meta property="og:url" content="' + esc(canonical) + '">',
     '<meta property="og:title" content="' + esc(title) + '">',
@@ -176,13 +177,13 @@ export async function decorateHtml(html, pathname) {
   out = out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
   if (/<meta\s+name=["']description["']/i.test(out)) out = out.replace(/<meta\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + esc(description) + '">');
   else out = out.replace(/<\/head>/i, '<meta name="description" content="' + esc(description) + '">\n</head>');
-  out = out.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/ig, '').replace(/<link\s+rel=["']alternate["'][^>]*type=["']application\/rss\+xml["'][^>]*>\s*/ig, '').replace(/<meta\s+property=["']og:[^"']+["'][^>]*>\s*/ig, '').replace(/<meta\s+name=["']twitter:[^"']+["'][^>]*>\s*/ig, '').replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/ig, '');
+  out = out.replace(/<meta\\s+name=["']robots["'][^>]*>\\s*/ig, '').replace(/<link\s+rel=["']canonical["'][^>]*>\s*/ig, '').replace(/<link\s+rel=["']alternate["'][^>]*type=["']application\/rss\+xml["'][^>]*>\s*/ig, '').replace(/<meta\s+property=["']og:[^"']+["'][^>]*>\s*/ig, '').replace(/<meta\s+name=["']twitter:[^"']+["'][^>]*>\s*/ig, '').replace(/<script\s+type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>\s*/ig, '');
   return out.replace(/<\/head>/i, tags + '\n</head>');
 }
 export async function dynamicText(path) {
   if (!_db) return null;
   const base = await siteBase();
-  if (path === '/robots.txt') return 'User-agent: *\nDisallow: /admin\nDisallow: /api/\nSitemap: ' + base + '/sitemap.xml\n';
+  if (path === '/robots.txt') return 'User-agent: *\\nAllow: /\\nDisallow: /admin\\nDisallow: /api/\\nSitemap: ' + base + '/sitemap.xml\\n';
   if (path === '/ads.txt') {
     const r = (await _db.query("SELECT value FROM ad_network_settings WHERE key = 'adsense_ads_txt' AND enabled = TRUE")).rows[0];
     return r?.value ? r.value + '\n' : null;
