@@ -157,6 +157,8 @@ export function rssAggregator({ fetchImpl = fetch } = {}) {
     }));
 
     const stale = results.some(source => source.status === 'stale');
+    // Retry even a source with no previous snapshot soon; don't cache a first-time outage for 30 minutes.
+    const hasUnavailable = results.some(source => source.status !== 'ok');
     const data = {
       sources: results.map(({ items, ...source }) => source),
       items: results.flatMap(source => source.items)
@@ -167,7 +169,7 @@ export function rssAggregator({ fetchImpl = fetch } = {}) {
     };
 
     if (data.items.length || !cache.data) {
-      cache = { data, expires: Date.now() + (stale ? STALE_RETRY_MS : CACHE_MS) };
+      cache = { data, expires: Date.now() + (hasUnavailable ? STALE_RETRY_MS : CACHE_MS) };
     } else {
       const fallback = {
         ...cache.data,

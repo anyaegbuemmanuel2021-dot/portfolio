@@ -102,3 +102,34 @@ test('does not turn a missing article link into the publisher home page', () => 
   const xml = '<rss><channel><item><title>Missing destination</title></item></channel></rss>';
   assert.deepEqual(parseFeed(xml, source), []);
 });
+
+test('retries a source that fails before it has a cached snapshot after one minute', async () => {
+  const originalNow = Date.now;
+  let now = 1_800_000_000_000;
+  let calls = 0;
+  let firstSourceFails = true;
+  Date.now = () => now;
+  try {
+    const aggregator = rssAggregator({ fetchImpl: async url => {
+      calls++;
+      if (url === 'https://www.withubb.com/feed.xml' && firstSourceFails) throw new Error('upstream unavailable');
+      return {
+        ok: true,
+        text: async () => '<rss><channel><item><title>Available story</title><link>https://publisher.example/story</link></item></channel></rss>'
+      };
+    } });
+    const first = await aggregator.list();
+    assert.equal(first.sources[0].status, 'unavailable');
+    assert.equal(first.items.length, 7);
+    assert.equal(calls, 8);
+
+    now += 60 * 1000 + 1;
+    firstSourceFails = false;
+    const refreshed = await aggregator.list();
+    assert.equal(refreshed.sources[0].status, 'ok');
+    assert.equal(refreshed.items.length, 8);
+    assert.equal(calls, 16);
+  } finally {
+    Date.now = originalNow;
+  }
+});
