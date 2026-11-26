@@ -76,6 +76,7 @@ test('LinkedIn OAuth state and credentials use the portfolio site_settings table
     assert.equal(authorizationUrl.pathname, '/oauth/v2/authorization');
     assert.equal(authorizationUrl.searchParams.get('client_id'), 'test-client-id');
     assert.equal(authorizationUrl.searchParams.get('scope'), 'openid profile w_member_social');
+    assert.equal(authorizationUrl.searchParams.get('enable_extended_login'), 'true');
     assert.ok(values.has('linkedin_oauth_state'));
     const status = await service.status();
     assert.equal(status.configured, true);
