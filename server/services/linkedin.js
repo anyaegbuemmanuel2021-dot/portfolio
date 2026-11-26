@@ -58,12 +58,12 @@ export function linkedinRedirectUri() {
 }
 
 export function linkedinService(db) {
-  const get = async key => (await db.query('SELECT value FROM system_settings WHERE key=$1', [TOKEN_KEY_PREFIX + key])).rows[0]?.value ?? null;
+  const get = async key => (await db.query('SELECT value FROM site_settings WHERE key=$1', [TOKEN_KEY_PREFIX + key])).rows[0]?.value ?? null;
   const set = async (key, value) => db.query(
-    'INSERT INTO system_settings (key,value,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value=$2,updated_at=$3',
+    'INSERT INTO site_settings (key,value,updated_at) VALUES ($1,$2,$3) ON CONFLICT (key) DO UPDATE SET value=$2,updated_at=$3',
     [TOKEN_KEY_PREFIX + key, value == null ? null : String(value), new Date().toISOString()]
   );
-  const remove = async key => db.query('DELETE FROM system_settings WHERE key=$1', [TOKEN_KEY_PREFIX + key]);
+  const remove = async key => db.query('DELETE FROM site_settings WHERE key=$1', [TOKEN_KEY_PREFIX + key]);
   const configured = () => Boolean(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET);
   const redirectUri = linkedinRedirectUri();
 
