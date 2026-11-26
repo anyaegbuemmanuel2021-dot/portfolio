@@ -23,10 +23,10 @@ test('LinkedIn access tokens are encrypted and can be decrypted only with the sa
 
 test('newly public LinkedIn outbox items publish once and retain the returned permalink', async () => {
   const { socialService } = await import('../server/services/social.js');
-  const row = { id: 'post-1', caption: 'Article and link', status: 'draft' };
+  const row = { id: 'post-1', caption: 'Article and link', status: 'draft', link_url: 'https://example.com/article', article_title: 'Example article', article_excerpt: 'An excerpt' };
   let calls = 0;
   const db = { query: async sql => {
-    if (sql.startsWith('SELECT id,caption,status')) return { rows: [{ ...row }], rowCount: 1 };
+    if (sql.startsWith('SELECT s.id,s.caption,s.status,s.link_url')) return { rows: [{ ...row }], rowCount: 1 };
     if (sql.includes("SET status='publishing'")) { if (!['draft','approved','failed'].includes(row.status)) return { rows: [], rowCount: 0 }; row.status = 'publishing'; return { rows: [{ id: row.id }], rowCount: 1 }; }
     if (sql.includes("SET status='published'")) { row.status = 'published'; row.published_url = 'https://www.linkedin.com/feed/update/urn:li:share:123/'; return { rows: [], rowCount: 1 }; }
     throw new Error('Unexpected SQL: ' + sql);
