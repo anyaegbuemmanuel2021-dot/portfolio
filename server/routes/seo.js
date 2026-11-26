@@ -183,7 +183,7 @@ export async function decorateHtml(html, pathname) {
 export async function dynamicText(path) {
   if (!_db) return null;
   const base = await siteBase();
-  if (path === '/robots.txt') return 'User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: ' + base + '/sitemap.xml\n';
+  if (path === '/robots.txt') return ['User-agent: *', 'Allow: /', 'Disallow: /admin', 'Disallow: /api/', 'Sitemap: ' + base + '/sitemap.xml', ''].join(String.fromCharCode(10));
   if (path === '/ads.txt') {
     const r = (await _db.query("SELECT value FROM ad_network_settings WHERE key = 'adsense_ads_txt' AND enabled = TRUE")).rows[0];
     return r?.value ? r.value + '\n' : null;
