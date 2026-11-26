@@ -16,17 +16,19 @@ import { analyticsService } from './services/analytics.js';
 import { adService } from './services/ads.js';
 import { emailService } from './services/email.js';
 import { socialService } from './services/social.js';
+import { linkedinService } from './services/linkedin.js';
 import { authRoutes } from './routes/auth.js';
 import { publicRoutes } from './routes/public.js';
 import { adminRoutes } from './routes/admin.js';
 import { entityRoutes } from './routes/entities.js';
+import { linkedinRoutes } from './routes/linkedin.js';
 import { setSeoDb } from './routes/seo.js';
 
 export async function buildApp({ db, storage, mailer } = {}) {
   assertConfig(); db ||= await connect(); storage ||= createStorage(); mailer ||= createMailer(); attachDb(db); setSeoDb(db);
   if (process.env.AUTO_MIGRATE !== 'false') await migrate(db, m => log.info('migration ' + m)); await seed(db);
   const auth = authService(db, mailer); const media = mediaService(db, storage); await media.repairPublicUrls(); const ads = adService(db);
-  const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const social = socialService(db);
+  const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const linkedin = linkedinService(db); const social = socialService(db, { linkedin });
   const app = createApp({ log, db });
   // Public, same-origin media delivery. Object-storage credentials remain server-side.
   app.get('/api/media/file', async ctx => {
@@ -60,8 +62,8 @@ export async function buildApp({ db, storage, mailer } = {}) {
     if (typeof opts.auth === 'string' && !r.admin.permissions.includes(opts.auth)) throw new HttpError(403, 'You do not have permission for this action');
     Object.assign(ctx, { admin: r.admin, session: r.session, csrf: r.csrf, rawToken: ctx.cookies.sid });
   };
-  authRoutes(app, { auth, db }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, syncUsage: media.syncUsage };
-  publicRoutes(app, deps); adminRoutes(app, deps); entityRoutes(app, deps); // specific admin routes first, generic /api/admin/:entity last
+  authRoutes(app, { auth, db }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, linkedin, syncUsage: media.syncUsage };
+  publicRoutes(app, deps); linkedinRoutes(app, deps); adminRoutes(app, deps); entityRoutes(app, deps); // specific admin routes first, generic /api/admin/:entity last
   return { app, db, deps };
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -71,7 +73,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const due = (await db.query("SELECT id FROM articles WHERE status = 'scheduled' AND publish_at <= $1", [at])).rows;
     if (!due.length) return;
     await db.query("UPDATE articles SET status = 'published', published_at = publish_at WHERE status = 'scheduled' AND publish_at <= $1", [at]);
-    for (const article of due) await social.enqueueArticle(article.id);
+    for (const article of due) { await social.enqueueArticle(article.id); await social.publishLinkedinArticle(article.id); }
   };
   const bg = setInterval(() => publishDueArticles().catch(err => log.error('scheduled article publishing failed', { error: err.message })), 60e3); bg.unref();
   publishDueArticles().catch(err => log.error('scheduled article publishing failed', { error: err.message }));

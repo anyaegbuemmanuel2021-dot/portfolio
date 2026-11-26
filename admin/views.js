@@ -211,45 +211,66 @@ export function socialPostsView() {
   const root = h('div', {}), list = h('div', {}), summary = h('div', { class: 'panel' });
   async function load() {
     const [s, p] = await Promise.all([api('GET', '/social/summary'), api('GET', '/social/posts?limit=100')]);
-    const totals = Object.fromEntries(['draft','approved','paused','published','failed'].map(k => [k, (s.data?.rows || []).filter(x => x.status === k).reduce((n, x) => n + Number(x.count || 0), 0)]));
-    const platforms = (s.data?.platforms || ['facebook','instagram','linkedin']).map(platform => {
-      const rows = (s.data?.rows || []).filter(x => x.platform === platform);
-      const count = rows.reduce((n, x) => n + Number(x.count || 0), 0);
+    const data = s.data || {}, li = data.linkedin || {};
+    const totals = Object.fromEntries(['draft','approved','paused','publishing','published','failed'].map(k => [k, (data.rows || []).filter(x => x.status === k).reduce((n, x) => n + Number(x.count || 0), 0)]));
+    const platforms = (data.platforms || ['facebook','instagram','linkedin']).map(platform => {
+      const count = (data.rows || []).filter(x => x.platform === platform).reduce((n, x) => n + Number(x.count || 0), 0);
       return h('div', { class: 'card' }, h('div', { class: 'n' }, count), h('div', { class: 'l' }, platform[0].toUpperCase() + platform.slice(1) + ' posts'));
     });
-    const connectionCards = (s.data?.connections || []).map(connection => h('div', { class: 'panel' },
-      h('div', { class: 'row between' }, h('strong', {}, connection.platform[0].toUpperCase() + connection.platform.slice(1)), badge(connection.connected ? 'configured' : 'not connected')),
-      h('p', { class: 'help' }, connection.note),
-      h('p', { class: 'help' }, connection.connected ? 'Required environment settings are present. Publishing still needs an API permission and end-to-end test.' : 'Missing Render environment settings: ' + connection.missing.join(', ')),
-      h('p', { class: 'help' }, 'Required permissions: ' + connection.permissions.join(', '))));
+    const connectionCards = (data.connections || []).map(connection => {
+      if (connection.platform === 'linkedin') return h('div', { class: 'panel' },
+        h('div', { class: 'row between' }, h('strong', {}, 'Personal LinkedIn profile'), badge(li.connected ? 'connected' : 'not connected')),
+        h('p', { class: 'help' }, li.connected ? 'Connected account: ' + (li.member_name || 'LinkedIn member') : 'Connect your personal profile using LinkedIn OAuth.'),
+        h('p', { class: 'help' }, 'Callback URL: ' + (li.callback_url || 'https://anyaegbu-emmanuel.onrender.com/api/integrations/linkedin/callback')),
+        !li.configured ? h('p', { class: 'help' }, 'Add LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in Render environment settings first.') : null,
+        h('div', { class: 'row' },
+          h('button', { class: 'btn primary', onclick: () => { location.href = '/api/integrations/linkedin/connect'; } }, li.connected ? 'Reconnect LinkedIn' : 'Connect LinkedIn'),
+          li.connected ? h('button', { class: 'btn', onclick: async () => { try { const r = await api('POST', '/integrations/linkedin/auto-post', { enabled: !li.auto_post_enabled }); toast(r.data.auto_post_enabled ? 'Automatic LinkedIn posting enabled' : 'Automatic LinkedIn posting paused', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } }, li.auto_post_enabled ? 'Pause automatic posts' : 'Enable automatic posts') : null,
+          li.connected ? h('button', { class: 'btn danger', onclick: async () => { if (await confirmBox('Disconnect the LinkedIn account? Automatic publishing will stop.', 'Disconnect')) { try { await api('POST', '/integrations/linkedin/disconnect', {}); toast('LinkedIn disconnected', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } } }, 'Disconnect') : null),
+        h('p', { class: 'help' }, 'Required LinkedIn products: Share on LinkedIn and Sign In with LinkedIn using OpenID Connect. Permissions: w_member_social, openid, profile.'));
+      return h('div', { class: 'panel' },
+        h('div', { class: 'row between' }, h('strong', {}, connection.platform[0].toUpperCase() + connection.platform.slice(1)), badge(connection.connected ? 'configured' : 'not connected')),
+        h('p', { class: 'help' }, connection.note),
+        h('p', { class: 'help' }, connection.connected ? 'Required environment settings are present.' : 'Missing Render environment settings: ' + connection.missing.join(', ')),
+        h('p', { class: 'help' }, 'Required permissions: ' + connection.permissions.join(', ')));
+    });
     summary.replaceChildren(h('h2', {}, 'Social publishing status'),
       h('div', { class: 'cards' }, platforms),
-      h('h3', {}, 'Account connection checklist'),
+      h('h3', {}, 'Account connections'),
       ...connectionCards,
-      h('div', { class: 'row', style: undefined }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
-      h('p', { class: 'muted' }, 'Publishing workflow: article published → platform-specific draft → review → approved media asset → connected platform. The portfolio website itself remains music-free. Background music belongs only in the social video asset and must be licensed for commercial use.'),
-      h('p', {}, 'Automatic delivery is currently disabled. Platform account authorisation, API permissions and licensed video/audio rendering must be configured and tested before posts can be published automatically.'));
+      h('div', { class: 'row' }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
+      h('p', { class: 'muted' }, li.auto_post_enabled ? 'Automatic LinkedIn publishing is ON. Newly published articles are posted to your personal profile. Drafts are never posted. Facebook and Instagram remain in the manual review outbox.' : 'Automatic LinkedIn publishing is paused. Connect your account and enable automatic posting to publish future public articles.'));
     list.replaceChildren(p.data.length ? p.data.map(post => {
       const caption = h('textarea', { rows: 6, 'aria-label': post.platform + ' caption' }); caption.value = post.caption;
-      const media = h('input', { type: 'url', placeholder: 'HTTPS social video URL (with licensed music mixed in)', 'aria-label': 'Social video URL' }); media.value = post.media_url || '';
+      const media = h('input', { type: 'url', placeholder: 'HTTPS social video URL', 'aria-label': 'Social video URL' }); media.value = post.media_url || '';
       const status = h('span', { class: 'badge' }, post.status);
       const save = async next => {
         try {
-          const updated = await api('PATCH', '/social/posts/' + post.id, { caption: caption.value, media_url: media.value, ...(next ? { status: next } : {}) });
-          status.textContent = updated.status; toast(next === 'approved' ? 'Draft marked ready for publishing' : 'Social draft saved', 'ok');
+          const updated = await api('PATCH', '/social/posts/' + post.id, { caption: caption.value, ...(post.platform === 'linkedin' ? {} : { media_url: media.value }), ...(next ? { status: next } : {}) });
+          status.textContent = updated.status; toast(next === 'approved' ? 'Draft marked ready' : 'Social draft saved', 'ok');
         } catch (e) { toast(e.message || 'Could not save social draft', 'bad'); }
       };
       return h('section', { class: 'panel' },
         h('div', { class: 'row between' }, h('h2', {}, post.platform[0].toUpperCase() + post.platform.slice(1)), status),
         h('p', { class: 'help' }, 'Article: ' + post.article_title + ' · ' + fmtDate(post.created_at)),
         h('label', {}, 'Post caption'), caption,
-        h('label', {}, 'Video asset URL'), media,
-        h('p', { class: 'help' }, 'Video required for the music-backed social format. Audio status: ' + post.audio_status + '. The platform may not allow selecting its in-app trending music through its publishing API.'),
+        post.platform === 'linkedin' ? null : h('div', {}, h('label', {}, 'Video asset URL'), media, h('p', { class: 'help' }, 'Video required for the music-backed social format. Audio status: ' + post.audio_status + '.')),
         h('p', { class: 'help' }, 'Article link: ' + post.link_url),
-        h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => save(null) }, 'Save draft'), h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Mark ready'), h('button', { class: 'btn', onclick: () => save('paused') }, 'Pause')));
+        post.last_error ? h('p', { class: 'err' }, 'Last error: ' + post.last_error) : null,
+        post.published_url ? h('p', {}, h('a', { href: post.published_url, target: '_blank', rel: 'noopener noreferrer' }, 'View published LinkedIn post')) : null,
+        h('div', { class: 'row' },
+          h('button', { class: 'btn', onclick: () => save(null) }, 'Save draft'),
+          post.platform === 'linkedin' ? null : h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Mark ready'),
+          post.platform === 'linkedin' && post.status === 'failed' ? h('button', { class: 'btn primary', onclick: async () => { try { const r = await api('POST', '/social/posts/' + post.id + '/retry', {}); toast('LinkedIn retry status: ' + r.data.status, r.data.status === 'published' ? 'ok' : 'bad'); await load(); } catch (e) { toast(e.message, 'bad'); } } }, 'Retry LinkedIn post') : null,
+          post.platform !== 'linkedin' ? h('button', { class: 'btn', onclick: () => save('paused') }, 'Pause') : null));
     }) : [h('p', { class: 'muted' }, 'No social drafts yet. Publish an article or use Sync published articles.')]);
   }
   root.append(h('div', { class: 'row between' }, h('h1', {}, 'Social publishing'), h('button', { class: 'btn', onclick: async () => { try { const r = await api('POST', '/social/sync'); toast(r.data.created + ' new social drafts created', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } }, 'Sync published articles')), summary, list);
+  const params = new URLSearchParams(location.hash.split('?')[1] || '');
+  if (params.get('linkedin') === 'connected') toast('LinkedIn account connected successfully', 'ok');
+  if (params.get('linkedin') === 'error') toast('LinkedIn connection failed. Check app products, callback URL and credentials.', 'bad');
+  if (params.get('linkedin') === 'denied') toast('LinkedIn authorization was cancelled', 'bad');
+  if (params.has('linkedin')) history.replaceState(null, '', '#/social');
   load().catch(e => list.replaceChildren(h('p', { class: 'err' }, e.message)));
   return root;
 }
