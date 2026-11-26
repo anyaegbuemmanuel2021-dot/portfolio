@@ -150,7 +150,7 @@ test('homepage showcases eleven projects and builds while retaining all six labe
   for (const slug of ['restaurant', 'agency', 'blog', 'shop', 'event', 'calculator']) {
     assert.ok(html.includes('projects/' + slug + '/index.html'), 'missing homepage demo link for ' + slug);
   }
-  for (const name of ['MedPulse', 'Softly Digital — CBT Platform', 'SocialPulse', 'Church Media Broadcast System', 'XOFT']) {
+  for (const name of ['MedPulse', 'Softly Digital — Enterprise CBT Platform', 'SocialPulse', 'Church Media Broadcast System', 'XOFT']) {
     assert.ok(html.includes(name), 'missing project entry: ' + name);
   }
   assert.equal((html.match(/<article class="project-card"/g) || []).length, 11);
