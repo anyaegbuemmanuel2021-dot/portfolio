@@ -119,6 +119,7 @@ test('article and static HTML pages receive clean canonical and social metadata'
 
   const staticPage = await decorateHtml(html, '/about.html');
   assert.match(staticPage, /<link rel="canonical" href="https:\/\/portfolio\.example\/about">/);
+  assert.match(staticPage, /<meta name="robots" content="index, follow, max-image-preview:large">/);
   assert.match(staticPage, /<link rel="alternate" type="application\/rss\+xml" title="Anyaegbu Emmanuel — Articles" href="https:\/\/portfolio\.example\/feed\.xml">/);
   assert.equal((staticPage.match(/type="application\/rss\+xml"/g) || []).length, 1);
 });
