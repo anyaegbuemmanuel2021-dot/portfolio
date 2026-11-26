@@ -16,7 +16,7 @@ function captionFor(platform, article, url) {
   return [title, excerpt, 'Read the full article:', url, hashtags].filter(Boolean).join('\n\n');
 }
 
-export function socialService(db) {
+export function socialService(db, { linkedin } = {}) {
   async function enqueueArticle(articleId) {
     const article = (await db.query("SELECT id,title,slug,excerpt,content_html,featured_image_url,canonical_url,status FROM articles WHERE id = $1", [articleId])).rows[0];
     if (!article || article.status !== 'published') return [];
@@ -35,21 +35,52 @@ export function socialService(db) {
     return created;
   }
 
-  function connections() {
+  async function connections() {
     const checks = [
       { platform: 'facebook', required: ['FACEBOOK_PAGE_ID', 'FACEBOOK_PAGE_ACCESS_TOKEN'], permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page; a personal profile alone cannot be used for Page publishing.' },
       { platform: 'instagram', required: ['INSTAGRAM_BUSINESS_ACCOUNT_ID', 'INSTAGRAM_ACCESS_TOKEN'], permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'], note: 'Use an Instagram Professional account linked to a Facebook Page. Reels publishing needs a publicly reachable video URL.' },
-      { platform: 'linkedin', required: ['LINKEDIN_ACCESS_TOKEN', 'LINKEDIN_AUTHOR_URN'], permissions: ['w_member_social'], note: 'For an organisation page, use its author URN and the required organisation posting permission.' }
     ];
-    return checks.map(item => {
+    const rows = checks.map(item => {
       const missing = item.required.filter(key => !process.env[key]);
       return { platform: item.platform, connected: missing.length === 0, missing, permissions: item.permissions, note: item.note };
     });
+    const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
+    rows.push({
+      platform: 'linkedin', connected: li.connected, missing: li.configured ? [] : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
+      permissions: ['w_member_social', 'openid', 'profile'],
+      note: 'Personal LinkedIn profile publishing. Connect securely with LinkedIn OAuth; no company-page permission is used.',
+    });
+    return rows;
+  }
+
+  async function publishLinkedinArticle(articleId) {
+    if (!linkedin) return { skipped: true, reason: 'LinkedIn integration unavailable' };
+    const connection = await linkedin.status();
+    if (!connection.connected || !connection.auto_post_enabled) return { skipped: true, reason: 'LinkedIn automatic posting is disabled' };
+    const post = (await db.query("SELECT id,caption,status FROM social_posts WHERE article_id=$1 AND platform='linkedin'", [articleId])).rows[0];
+    if (!post || ['published', 'publishing'].includes(post.status)) return { skipped: true, reason: 'No eligible LinkedIn outbox item' };
+    const claim = await db.query("UPDATE social_posts SET status='publishing',last_error=NULL,updated_at=$1 WHERE id=$2 AND status IN ('draft','approved','failed') RETURNING id", [now(), post.id]);
+    if (!claim.rowCount) return { skipped: true, reason: 'LinkedIn post is already being processed' };
+    try {
+      const result = await linkedin.publishPost(post.caption);
+      await db.query("UPDATE social_posts SET status='published',published_url=$1,last_error=NULL,published_at=$2,updated_at=$2 WHERE id=$3", [result.published_url, now(), post.id]);
+      return { status: 'published', published_url: result.published_url, post_urn: result.post_urn };
+    } catch (error) {
+      await db.query("UPDATE social_posts SET status='failed',last_error=$1,updated_at=$2 WHERE id=$3", [String(error.message || 'LinkedIn publishing failed').slice(0, 1000), now(), post.id]);
+      return { status: 'failed', error: String(error.message || 'LinkedIn publishing failed').slice(0, 1000) };
+    }
   }
 
   return {
     connections,
     async enqueueArticle(articleId) { return enqueueArticle(articleId); },
+    async publishLinkedinArticle(articleId) { return publishLinkedinArticle(articleId); },
+    async retryLinkedin(id) {
+      const post = (await db.query('SELECT id,article_id,platform,status FROM social_posts WHERE id=$1', [id])).rows[0];
+      if (!post || post.platform !== 'linkedin') throw new HttpError(404, 'LinkedIn post not found');
+      if (post.status === 'published') return { status: 'published', skipped: true };
+      return publishLinkedinArticle(post.article_id);
+    },
     async syncPublishedArticles() {
       const rows = (await db.query("SELECT a.id FROM articles a WHERE a.status='published' ORDER BY a.published_at DESC LIMIT 100")).rows;
       let count = 0;
@@ -87,7 +118,9 @@ export function socialService(db) {
     },
     async summary() {
       const rows = (await db.query('SELECT platform,status,COUNT(*) AS count FROM social_posts GROUP BY platform,status ORDER BY platform,status')).rows;
-      return { platforms, rows, connections: connections(), automatic_delivery: false, note: 'Posts are generated into this outbox. Platform publishing and licensed video-audio rendering require connected platform credentials and an approved media asset.' };
+      const connectionRows = await connections();
+      const li = linkedin ? await linkedin.status() : { connected: false, auto_post_enabled: false };
+      return { platforms, rows, connections: connectionRows, linkedin: li, automatic_delivery: Boolean(li.connected && li.auto_post_enabled), note: 'LinkedIn publishes article text and its link automatically after an article is made public. Other social platforms remain in the review outbox.' };
     }
   };
 }
