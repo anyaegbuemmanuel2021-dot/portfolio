@@ -11,7 +11,7 @@ function captionFor(platform, article, url) {
   const title = clean(article.title);
   const excerpt = clean(article.excerpt || article.content_html || '').slice(0, 420);
   const hashtags = tags(article.tags);
-  if (platform === 'linkedin') return [title, excerpt, 'Read the full article:', url, hashtags].filter(Boolean).join('\n\n');
+  if (platform === 'linkedin') return [title, excerpt, hashtags].filter(Boolean).join('\n\n');
   if (platform === 'instagram') return [title, excerpt, 'Read the full article through the link in bio or story:', url, hashtags || '#WebDevelopment #ProfessionalGrowth'].filter(Boolean).join('\n\n');
   return [title, excerpt, 'Read the full article:', url, hashtags].filter(Boolean).join('\n\n');
 }
