@@ -157,6 +157,7 @@ test('RSS feed is validly namespaced, self-discoverable and includes published a
 test('robots.txt points crawlers to the dynamic sitemap and keeps private routes disallowed', async () => {
   const robots = await dynamicText('/robots.txt');
   assert.match(robots, /User-agent: \*/);
+  assert.match(robots, /Allow: \\//);
   assert.match(robots, /Disallow: \/admin/);
   assert.match(robots, /Disallow: \/api\//);
   assert.match(robots, /Sitemap: https:\/\/portfolio\.example\/sitemap\.xml/);
