@@ -156,6 +156,12 @@ async function serveStatic(ctx) {
     res.writeHead(301, { Location: canonical + url.search, 'Cache-Control': 'public, max-age=86400' });
     return res.end();
   }
+  // Keep previously shared /blog/:slug links working; /articles/:slug is canonical.
+  const legacyBlogArticle = p.match(/^\/blog\/([^/]+)\/?$/);
+  if (!isAdmin && legacyBlogArticle && req.method === 'GET') {
+    res.writeHead(301, { Location: '/articles/' + encodeURIComponent(legacyBlogArticle[1]) + url.search, 'Cache-Control': 'public, max-age=86400' });
+    return res.end();
+  }
   let root = config.staticDirs.public, rel = p;
   if (isAdmin) { root = config.staticDirs.admin; rel = p.replace(/^\/admin/, '') || '/'; }
   else if (p.startsWith('/media/') && config.storage.provider === 'local') { root = join(process.cwd(), config.storage.localDir); rel = p.slice(6); }
