@@ -12,7 +12,7 @@ function captionFor(platform, article, url) {
   const title = clean(article.title);
   const excerpt = clean(article.excerpt || article.content_html || '').slice(0, 420);
   const hashtags = tags(article.tags);
-  if (platform === 'linkedin') return [title, excerpt, hashtags].filter(Boolean).join('\n\n');
+  if (platform === 'linkedin') return [title, excerpt, 'Read the full article: ' + url, hashtags].filter(Boolean).join('\n\n');
   if (platform === 'instagram') return [title, excerpt, 'Read the full article through the link in bio or story:', url, hashtags || '#WebDevelopment #ProfessionalGrowth'].filter(Boolean).join('\n\n');
   return [title, excerpt, 'Read the full article:', url, hashtags].filter(Boolean).join('\n\n');
 }
@@ -21,7 +21,7 @@ export function socialService(db, { linkedin } = {}) {
   async function enqueueArticle(articleId) {
     const article = (await db.query("SELECT id,title,slug,excerpt,content_html,featured_image_url,canonical_url,status FROM articles WHERE id = $1", [articleId])).rows[0];
     if (!article || article.status !== 'published') return [];
-    const url = article.canonical_url || config.siteUrl + '/articles/' + article.slug;
+    const url = config.siteUrl.replace(/\/+$/, '') + '/articles/' + encodeURIComponent(article.slug);
     const tagRows = (await db.query('SELECT t.name FROM article_tags t JOIN article_tag_assignments x ON x.tag_id=t.id WHERE x.article_id=$1 ORDER BY t.name', [articleId])).rows;
     article.tags = tagRows;
     const created = [];
