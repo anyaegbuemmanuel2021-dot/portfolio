@@ -10,7 +10,7 @@ async function signingKeys(fetcher = fetch) {
   if (!response.ok) throw new HttpError(503, 'Google sign-in verification is temporarily unavailable');
   const body = await response.json();
   if (!Array.isArray(body.keys)) throw new HttpError(503, 'Google signing keys are unavailable');
-  cached = new Map(body.keys.filter(k => k.kid && k.x5c?.[0]).map(k => [k.kid, createPublicKey({ key: `-----BEGIN CERTIFICATE-----\n${k.x5c[0]}\n-----END CERTIFICATE-----`, format: 'pem' })]));
+  cached = new Map(body.keys.filter(k => k.kid && (k.x5c?.[0] || (k.kty === 'RSA' && k.n && k.e))).map(k => [k.kid, k.x5c?.[0] ? createPublicKey({ key: `-----BEGIN CERTIFICATE-----\n${k.x5c[0]}\n-----END CERTIFICATE-----`, format: 'pem' }) : createPublicKey({ key: { kty: 'RSA', n: k.n, e: k.e }, format: 'jwk' })]));
   const maxAge = Number((response.headers.get('cache-control') || '').match(/max-age=(\\d+)/i)?.[1] || 1800);
   cacheUntil = Date.now() + Math.min(Math.max(maxAge, 60), 3600) * 1000;
   return cached;
