@@ -126,9 +126,12 @@ export function socialOAuthService(db) {
     await saveTokens('tiktok', token, { id: user.open_id || token.open_id, name: user.username || user.display_name });
     return { connected: true, account_name: user.username || user.display_name };
   }
-  async function status(provider) {
-    const [token, accountId, name, expires] = await Promise.all(['access_token_enc','account_id','account_name','expires_at'].map(k => get(provider, k)));
+  async function status(provider, refreshAttempted = false) {
+    const [token, accountId, name, expires, refreshToken] = await Promise.all(['access_token_enc','account_id','account_name','expires_at','refresh_token_enc'].map(k => get(provider, k)));
     const isExpired = Boolean(expires && new Date(expires).getTime() <= Date.now());
+    if (isExpired && refreshToken && !refreshAttempted && ['x','tiktok'].includes(provider)) {
+      try { await accessToken(provider); return status(provider, true); } catch { /* Keep the expired state visible; reconnect remains available. */ }
+    }
     return { platform: provider, configured: configured(provider), connected: Boolean(token && accountId && !isExpired), expired: Boolean(token && isExpired), account_name: name || null, callback_url: callbacks[provider] };
   }
   async function accessToken(provider) {
