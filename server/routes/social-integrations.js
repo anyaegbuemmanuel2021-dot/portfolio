@@ -49,6 +49,14 @@ export function socialIntegrationRoutes(app, { oauth, social, auth, db }) {
     if (!row) throw new HttpError(404, 'Social draft not found');
     if (row.platform === 'linkedin') throw new HttpError(400, 'Use the LinkedIn publish/retry action for LinkedIn posts.');
     if (row.status !== 'approved') throw new HttpError(409, 'Approve this draft before publishing. Nothing has been sent.');
+    const connection = await oauth.status(row.platform);
+    if (!connection.connected) throw new HttpError(409, row.platform + ' is not connected or its access has expired. Connect the account before publishing.');
+    if (row.platform === 'tiktok') {
+      const creator = await oauth.creatorInfo();
+      if (!Array.isArray(creator.privacy_level_options) || !creator.privacy_level_options.includes(ctx.body?.privacy_level)) {
+        throw new HttpError(422, 'Choose one of the TikTok privacy options available to the connected creator.');
+      }
+    }
     const claimed = await db.query("UPDATE social_posts SET status='publishing',last_error=NULL,updated_at=$1 WHERE id=$2 AND status='approved' RETURNING id", [new Date().toISOString(), row.id]);
     if (!claimed.rowCount) throw new HttpError(409, 'This post is already being processed or is not approved.');
     try {
