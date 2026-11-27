@@ -6,7 +6,7 @@ import { log, attachDb } from './lib/logger.js';
 import { createApp, rateLimit, mimeFor } from './lib/http.js';
 import { HttpError } from './lib/validate.js';
 import { safeEq } from './lib/security.js';
-import { createStorage } from './providers/storage.js';
+import { createStorage, localStorageProvider } from './providers/storage.js';
 import { createMailer } from './providers/mail.js';
 import { authService } from './services/auth.js';
 import { leadService } from './services/leads.js';
@@ -27,7 +27,7 @@ import { setSeoDb } from './routes/seo.js';
 export async function buildApp({ db, storage, mailer } = {}) {
   assertConfig(); db ||= await connect(); storage ||= createStorage(); mailer ||= createMailer(); attachDb(db); setSeoDb(db);
   if (process.env.AUTO_MIGRATE !== 'false') await migrate(db, m => log.info('migration ' + m)); await seed(db);
-  const auth = authService(db, mailer); const media = mediaService(db, storage); await media.repairPublicUrls(); const ads = adService(db);
+  const auth = authService(db, mailer); const media = mediaService(db, storage); await media.repairPublicUrls(); const legacyLocalStorage = localStorageProvider(); const ads = adService(db);
   const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const linkedin = linkedinService(db); const social = socialService(db, { linkedin });
   const app = createApp({ log, db });
   // Public, same-origin media delivery. Object-storage credentials remain server-side.
@@ -37,11 +37,15 @@ export async function buildApp({ db, storage, mailer } = {}) {
     // Only deliver objects registered in the media library. A syntactically
     // valid key alone must never become an object-storage read capability.
     const record = (await db.query('SELECT storage_provider, mime_type FROM media_files WHERE storage_key = $1 LIMIT 1', [key])).rows[0];
-    if (!record || record.storage_provider !== storage.name) throw new HttpError(404, 'Media not found');
+    if (!record) throw new HttpError(404, 'Media not found');
     const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']);
     if (!allowedTypes.has(record.mime_type)) throw new HttpError(404, 'Media not found');
     let body;
-    try { body = await storage.get(key); } catch { throw new HttpError(404, 'Media not found'); }
+    try {
+      if (record.storage_provider === storage.name) body = await storage.get(key);
+      else if (record.storage_provider === 'local') body = await legacyLocalStorage.get(key);
+      else throw new Error('Unsupported legacy storage provider');
+    } catch { throw new HttpError(404, 'Media not found'); }
     return { __raw: true, status: 200, headers: { 'Content-Type': record.mime_type, 'Content-Length': body.length, 'Content-Disposition': 'inline', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' }, body };
   });
   app.middleware = async (ctx, opts) => {
