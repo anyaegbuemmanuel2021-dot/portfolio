@@ -6,7 +6,7 @@ const { setSeoDb, dynamicText, dynamicHtml, decorateHtml } = await import('../se
 const { config } = await import('../server/config.js');
 
 const article = {
-  id: 'article-1', title: 'Search Ready Article', slug: 'search-ready-article',
+  id: 'article-1', title: 'Search Ready Article', slug: 'search-ready-article', author_name: 'Anyaegbu Emmanuel Ikenna',
   excerpt: 'A useful article description.', content_html: '<h2>Overview</h2><h4>Details</h4><p><a href="/assets/files/Emmanuel_Anyaegbu_CV.pdf">Download CV</a></p>', canonical_url: null,
   featured_image_url: 'https://cdn.example.com/article-cover.webp',
   published_at: '2026-11-01T10:00:00.000Z', updated_at: '2026-11-02T10:00:00.000Z'
@@ -121,6 +121,8 @@ test('Cloudinary article social previews use a public 1200x630 JPEG with complet
     assert.match(html, /property="og:image:height" content="630"/);
     assert.match(html, /property="og:image:secure_url"/);
     assert.match(html, /property="og:image:alt" content="Search Ready Article"/);
+    assert.match(html, /"author":\{"@type":"Person","name":"Anyaegbu Emmanuel Ikenna"\}/);
+    assert.match(html, /<div class="article__meta">Nov 1, 2026 · By Anyaegbu Emmanuel Ikenna<\/div>/);
     assert.match(html, /name="twitter:card" content="summary_large_image"/);
     assert.match(html, /property="article:published_time"/);
     assert.match(html, /property="article:modified_time"/);
