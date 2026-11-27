@@ -166,7 +166,7 @@ export function socialOAuthService(db) {
     const data = await safeJson(response);
     if (!response.ok || data.error?.code && data.error.code !== 'ok') throw new Error(data.error?.message || 'TikTok publication status could not be retrieved');
     const status = data.data?.status || 'PROCESSING';
-    return { status, detail: data.data?.fail_reason || null, published: status === 'PUBLISH_COMPLETE', failed: status === 'FAILED' };
+    return { status, detail: data.data?.fail_reason || null, url: data.data?.share_url || null, published: status === 'PUBLISH_COMPLETE', failed: status === 'FAILED' };
   }
   async function publish(provider, { caption, mediaUrl, linkUrl }) {
     const token = await accessToken(provider);
