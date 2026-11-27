@@ -188,8 +188,17 @@ export function linkedinService(db) {
       throw new Error('LinkedIn is disconnected or its access token has expired. Reconnect LinkedIn in Social publishing.');
     }
     const accessToken = decryptLinkedInToken(encrypted);
-    const thumbnail = article?.image ? await uploadArticleThumbnail(accessToken, author, article.image) : null;
-    const postArticle = { ...article, thumbnail };
+    let thumbnail = null;
+    let thumbnail_warning = null;
+    if (article?.image) {
+      try { thumbnail = await uploadArticleThumbnail(accessToken, author, article.image); }
+      catch (error) {
+        // A thumbnail is optional for LinkedIn article posts. Do not lose the
+        // text and article link because an image host or upload request failed.
+        thumbnail_warning = String(error?.message || 'LinkedIn thumbnail upload failed').slice(0, 500);
+      }
+    }
+    const postArticle = { ...article, ...(thumbnail ? { thumbnail } : {}) };
     const response = await fetch('https://api.linkedin.com/rest/posts', {
       method: 'POST',
       headers: {
@@ -207,7 +216,7 @@ export function linkedinService(db) {
     }
     const postUrn = response.headers.get('x-restli-id');
     if (!postUrn) throw new Error('LinkedIn accepted the request but did not return a post ID. Check LinkedIn before retrying to avoid a duplicate.');
-    return { post_urn: postUrn, published_url: 'https://www.linkedin.com/feed/update/' + postUrn + '/' };
+    return { post_urn: postUrn, published_url: 'https://www.linkedin.com/feed/update/' + postUrn + '/', ...(thumbnail_warning ? { thumbnail_warning } : {}) };
   }
 
   return {
