@@ -156,6 +156,18 @@ export function socialOAuthService(db) {
   }
   async function disconnect(provider) { if (!providerKeys[provider]) throw new HttpError(404, 'Unknown social provider'); await remove(provider); if (provider === 'facebook') await remove('instagram'); return { disconnected: true }; }
 
+  async function publishStatus(provider, providerPostId) {
+    if (provider !== 'tiktok' || !providerPostId) throw new HttpError(400, 'No asynchronous provider receipt is available for this post.');
+    const token = await accessToken(provider);
+    const response = await fetch('https://open.tiktokapis.com/v2/post/publish/status/fetch/', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({ publish_id: providerPostId }), signal: AbortSignal.timeout(15000),
+    });
+    const data = await safeJson(response);
+    if (!response.ok || data.error?.code && data.error.code !== 'ok') throw new Error(data.error?.message || 'TikTok publication status could not be retrieved');
+    const status = data.data?.status || 'PROCESSING';
+    return { status, detail: data.data?.fail_reason || null, published: status === 'PUBLISH_COMPLETE', failed: status === 'FAILED' };
+  }
   async function publish(provider, { caption, mediaUrl, linkUrl }) {
     const token = await accessToken(provider);
     const text = String(caption || '').trim().slice(0, 4000);
@@ -197,5 +209,5 @@ export function socialOAuthService(db) {
     }
     throw new HttpError(404, 'Unsupported social platform');
   }
-  return { start, complete, status, disconnect, publish, callbacks };
+  return { start, complete, status, disconnect, publish, publishStatus, callbacks };
 }
