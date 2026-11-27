@@ -170,7 +170,7 @@ export function socialOAuthService(db) {
   }
   async function publish(provider, { caption, mediaUrl, linkUrl }) {
     const token = await accessToken(provider);
-    const text = String(caption || '').trim().slice(0, 4000);
+    const text = String(caption || '').trim().slice(0, provider === 'x' ? 280 : provider === 'tiktok' ? 150 : 2200);
     if (provider === 'facebook') {
       const pageId = await get('facebook', 'account_id');
       const body = new URLSearchParams({ message: text, access_token: token });
