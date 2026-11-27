@@ -64,8 +64,9 @@ export function socialService(db, { linkedin } = {}) {
     if (!claim.rowCount) return { skipped: true, reason: 'LinkedIn post is already being processed' };
     try {
       const result = await linkedin.publishPost(post.caption, { source: post.link_url, title: post.article_title, description: post.article_excerpt || post.article_title, image: post.article_image || firstImage(post.article_content_html) });
-      await db.query("UPDATE social_posts SET status='published',published_url=$1,last_error=NULL,published_at=$2,updated_at=$2 WHERE id=$3", [result.published_url, now(), post.id]);
-      return { status: 'published', published_url: result.published_url, post_urn: result.post_urn };
+      const warning = result.thumbnail_warning || null;
+      await db.query("UPDATE social_posts SET status='published',published_url=$1,last_error=$2,published_at=$3,updated_at=$3 WHERE id=$4", [result.published_url, warning, now(), post.id]);
+      return { status: 'published', published_url: result.published_url, post_urn: result.post_urn, ...(warning ? { warning } : {}) };
     } catch (error) {
       await db.query("UPDATE social_posts SET status='failed',last_error=$1,updated_at=$2 WHERE id=$3", [String(error.message || 'LinkedIn publishing failed').slice(0, 1000), now(), post.id]);
       return { status: 'failed', error: String(error.message || 'LinkedIn publishing failed').slice(0, 1000) };
