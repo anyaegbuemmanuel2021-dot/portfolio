@@ -2,6 +2,7 @@ import { cookie, rateLimit } from '../lib/http.js';
 import { config } from '../config.js';
 import { HttpError, validate } from '../lib/validate.js';
 import { sha256 } from '../lib/security.js';
+import { verifyGoogleIdToken } from '../services/google-identity.js';
 
 function passwordField(value, field) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 200) {
@@ -11,6 +12,17 @@ function passwordField(value, field) {
 }
 
 export function authRoutes(app, { auth, db }) {
+  app.get('/api/auth/google/config', () => ({ enabled: Boolean(process.env.GOOGLE_CLIENT_ID), client_id: process.env.GOOGLE_CLIENT_ID || null }));
+  app.post('/api/auth/google', async ctx => {
+    await rateLimit('google-login:' + ctx.ipHash, 8, 10 * 60e3, db);
+    const credential = ctx.body?.credential;
+    const nonce = ctx.body?.nonce;
+    if (typeof nonce !== 'string' || nonce.length < 20 || nonce.length > 200) throw new HttpError(401, 'Google login request is invalid. Refresh and try again.');
+    const identity = await verifyGoogleIdToken(credential, { clientId: process.env.GOOGLE_CLIENT_ID, nonce });
+    const r = await auth.loginWithGoogle(identity, { ipHash: ctx.ipHash, userAgent: ctx.req.headers['user-agent'] });
+    ctx.setCookies.push(cookie('sid', r.raw, { maxAge: config.sessionHours * 3600, path: '/' }));
+    return { admin: r.admin, csrf: r.csrf };
+  });
   app.post('/api/auth/login', async ctx => {
     await rateLimit('login:' + ctx.ipHash, 12, 15 * 60e3, db);
     const b = validate({ email: { type: 'string', required: true, max: 254 }, password: { required: true, max: 200 } }, ctx.body);
