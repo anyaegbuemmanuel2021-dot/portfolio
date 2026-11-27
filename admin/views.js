@@ -257,6 +257,7 @@ export function socialPostsView() {
         try {
           const updated = await api('PATCH', '/social/posts/' + post.id, { caption: caption.value, ...(post.platform === 'linkedin' ? {} : { media_url: media.value }), ...(next ? { status: next } : {}) });
           status.textContent = updated.status; toast(next === 'approved' ? 'Draft marked ready' : 'Social draft saved', 'ok');
+          if (next) await load();
         } catch (e) { toast(e.message || 'Could not save social draft', 'bad'); }
       };
       return h('section', { class: 'panel' },
@@ -267,7 +268,7 @@ export function socialPostsView() {
         privacy ? h('div', {}, h('label', {}, 'TikTok audience'), privacy, h('p', { class: 'help' }, 'Choose from the privacy options allowed for the connected creator account.')) : null,
         h('p', { class: 'help' }, 'Article link: ' + post.link_url),
         post.last_error ? h('p', { class: 'err' }, 'Last error: ' + post.last_error) : null,
-        post.published_url ? h('p', {}, h('a', { href: post.published_url, target: '_blank', rel: 'noopener noreferrer' }, 'View published LinkedIn post')) : null,
+        post.published_url ? h('p', {}, h('a', { href: post.published_url, target: '_blank', rel: 'noopener noreferrer' }, 'View published post')) : null,
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => save(null) }, 'Save draft'),
           post.platform !== 'linkedin' && post.status !== 'approved' ? h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Approve draft') : null,
