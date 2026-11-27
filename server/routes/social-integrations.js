@@ -32,9 +32,9 @@ export function socialIntegrationRoutes(app, { oauth, social, auth, db }) {
     if (row.platform !== 'tiktok' || row.status !== 'publishing' || !row.provider_post_id) return { status: row.status, checked: false };
     const result = await oauth.publishStatus('tiktok', row.provider_post_id);
     if (result.published) {
-      await db.query("UPDATE social_posts SET status='published',last_error=NULL,published_at=$1,updated_at=$1 WHERE id=$2", [new Date().toISOString(), row.id]);
+      await db.query("UPDATE social_posts SET status='published',published_url=$1,last_error=NULL,published_at=$2,updated_at=$2 WHERE id=$3", [result.url || null, new Date().toISOString(), row.id]);
       await auth.audit(ctx, 'publish_confirmed', 'social_post', row.id, { platform: 'tiktok', provider_status: result.status });
-      return { status: 'published', checked: true };
+      return { status: 'published', checked: true, published_url: result.url || null };
     }
     if (result.failed) {
       const error = String(result.detail || 'TikTok could not publish this video').slice(0, 1000);
