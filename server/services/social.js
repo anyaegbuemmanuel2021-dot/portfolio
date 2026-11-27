@@ -5,7 +5,7 @@ import { config } from '../config.js';
 const now = () => new Date().toISOString();
 const platforms = ['facebook', 'instagram', 'linkedin'];
 const clean = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-const firstImage = html => { const match = String(html || '').match(/<img\\b[^>]*?src=[\"']([^\"']+)[\"']/i); return match ? match[1] : null; };\nconst tags = value => (Array.isArray(value) ? value : []).map(t => String(t.name || t).replace(/[^\p{L}\p{N}_]/gu, '')).filter(Boolean).slice(0, 5).map(t => '#' + t).join(' ');
+const firstImage = html => { const match = String(html || '').match(/<img\b[^>]*?src=["']([^"']+)["']/i); return match ? match[1] : null; };
 
 function captionFor(platform, article, url) {
   const title = clean(article.title);
