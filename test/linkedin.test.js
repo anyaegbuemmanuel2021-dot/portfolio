@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 process.env.AUTH_SECRET = 'test-secret-test-secret-test-secret-123';
-const { buildLinkedInPost, encryptLinkedInToken, decryptLinkedInToken, linkedinService } = await import('../server/services/linkedin.js');
+const { buildLinkedInPost, encryptLinkedInToken, decryptLinkedInToken, linkedinService, resolveLinkedInThumbnailUrl } = await import('../server/services/linkedin.js');
 
 test('LinkedIn post payload publishes as the authenticated personal member', () => {
   const payload = buildLinkedInPost('urn:li:person:abc123', 'New article\n\nRead more: https://example.com/article', { source: 'https://example.com/article', title: 'New article', description: 'An article summary' });
@@ -14,6 +14,27 @@ test('LinkedIn post payload publishes as the authenticated personal member', () 
   assert.deepEqual(payload.content.article, { source: 'https://example.com/article', title: 'New article', description: 'An article summary' });
   const withImage = buildLinkedInPost('urn:li:person:abc123', 'Post', { source: 'https://example.com/article', title: 'New article', description: 'Summary', thumbnail: 'urn:li:image:abc' });
   assert.equal(withImage.content.article.thumbnail, 'urn:li:image:abc');
+});
+
+
+test('LinkedIn thumbnail URLs accept the configured Cloudinary account and request JPEG output', () => {
+  const source = 'https://res.cloudinary.com/demo-cloud/image/upload/uploads/2026/11/article-cover.webp';
+  assert.equal(
+    resolveLinkedInThumbnailUrl(source, 'https://portfolio.example', 'demo-cloud'),
+    'https://res.cloudinary.com/demo-cloud/image/upload/f_jpg,q_auto/uploads/2026/11/article-cover.webp'
+  );
+  assert.equal(
+    resolveLinkedInThumbnailUrl('/api/media/file?key=uploads%2Fcover.jpg', 'https://portfolio.example', 'demo-cloud'),
+    'https://portfolio.example/api/media/file?key=uploads%2Fcover.jpg'
+  );
+  assert.throws(
+    () => resolveLinkedInThumbnailUrl('https://res.cloudinary.com/another-cloud/image/upload/cover.webp', 'https://portfolio.example', 'demo-cloud'),
+    /public HTTPS image/
+  );
+  assert.throws(
+    () => resolveLinkedInThumbnailUrl('https://untrusted.example/cover.jpg', 'https://portfolio.example', 'demo-cloud'),
+    /public HTTPS image/
+  );
 });
 
 test('LinkedIn access tokens are encrypted and can be decrypted only with the same secret', () => {

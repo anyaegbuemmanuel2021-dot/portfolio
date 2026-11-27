@@ -53,16 +53,31 @@ const imageUrl = (value, base) => {
   if (raw.startsWith('/')) return base.replace(/\/+$/, '') + raw;
   return validUrl(raw);
 };
+const socialImageUrl = value => {
+  if (!value) return null;
+  try {
+    const image = new URL(value);
+    const cloudName = config.storage.cloudinary.cloudName;
+    const path = cloudName ? '/' + cloudName + '/image/upload/' : null;
+    if (image.protocol === 'https:' && image.hostname === 'res.cloudinary.com'
+      && path && image.pathname.includes(path)) {
+      image.pathname = image.pathname.replace(path, path + 'f_jpg,q_auto,w_1200,h_630,c_fill,g_auto/');
+    }
+    return image.href;
+  } catch { return null; }
+};
 const slugMatch = (path, type) => {
   const m = canonicalPath(path).match(new RegExp('^/' + type + '/([^/]+)$'));
   return m ? decodeURIComponent(m[1]) : null;
 };
-const metaTags = ({ canonical, title, description, image, type = 'website', jsonLd }) => {
+const metaTags = ({ canonical, title, description, image, imageAlt = title, type = 'website', jsonLd, publishedTime, modifiedTime }) => {
   const feedUrl = new URL('/feed.xml', canonical).href;
   const tags = [
     '<link rel="alternate" type="application/rss+xml" title="Anyaegbu Emmanuel — Articles" href="' + esc(feedUrl) + '">',
     '<link rel="canonical" href="' + esc(canonical) + '">',
     '<meta name="robots" content="index, follow, max-image-preview:large">',
+    '<meta property="og:site_name" content="Anyaegbu Emmanuel">',
+    '<meta property="og:locale" content="en_NG">',
     '<meta property="og:type" content="' + esc(type) + '">',
     '<meta property="og:url" content="' + esc(canonical) + '">',
     '<meta property="og:title" content="' + esc(title) + '">',
@@ -72,9 +87,22 @@ const metaTags = ({ canonical, title, description, image, type = 'website', json
     '<meta name="twitter:description" content="' + esc(description) + '">'
   ];
   if (image) {
+    const path = new URL(image).pathname.toLowerCase();
+    const isCloudinaryJpeg = image.includes('/f_jpg,');
+    const imageType = isCloudinaryJpeg || path.endsWith('.jpg') || path.endsWith('.jpeg') ? 'image/jpeg' : path.endsWith('.png') ? 'image/png' : path.endsWith('.gif') ? 'image/gif' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
     tags.push('<meta property="og:image" content="' + esc(image) + '">');
+    tags.push('<meta property="og:image:secure_url" content="' + esc(image) + '">');
+    tags.push('<meta property="og:image:type" content="' + imageType + '">');
+    if (image.includes('w_1200,h_630')) {
+      tags.push('<meta property="og:image:width" content="1200">');
+      tags.push('<meta property="og:image:height" content="630">');
+    }
+    tags.push('<meta property="og:image:alt" content="' + esc(imageAlt) + '">');
     tags.push('<meta name="twitter:image" content="' + esc(image) + '">');
+    tags.push('<meta name="twitter:image:alt" content="' + esc(imageAlt) + '">');
   }
+  if (publishedTime) tags.push('<meta property="article:published_time" content="' + esc(publishedTime) + '">');
+  if (modifiedTime) tags.push('<meta property="article:modified_time" content="' + esc(modifiedTime) + '">');
   if (jsonLd) tags.push('<script type="application/ld+json">' + JSON.stringify(jsonLd).replace(/</g, '\\u003c') + '</script>');
   return tags.join('\n  ');
 };
@@ -118,7 +146,7 @@ function pageHtml(kind, row, base) {
     ? { '@context': 'https://schema.org', '@type': 'CreativeWork', name: title, description, url: canonical, image: image || undefined, creator: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } }
     : { '@context': 'https://schema.org', '@type': 'Service', name: title, description, url: canonical, provider: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, areaServed: { '@type': 'Country', name: 'Nigeria' } };
   const seoTitle = clip(title + ' | Anyaegbu Emmanuel', 60);
-  const head = metaTags({ canonical, title: seoTitle, description, image, type: kind === 'project' ? 'article' : 'website', jsonLd: schema });
+  const head = metaTags({ canonical, title: seoTitle, description, image: socialImageUrl(image), imageAlt: title, type: kind === 'project' ? 'article' : 'website', jsonLd: schema });
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(seoTitle) + '</title><meta name="description" content="' + esc(description) + '">\n' + head + '\n<link rel="stylesheet" href="/assets/css/global.css"><link rel="stylesheet" href="/assets/css/platform.css"><style>body{min-height:100vh}.seo-detail{width:min(900px,calc(100% - 36px));margin:8rem auto 4rem}.seo-detail img{width:100%;max-height:520px;object-fit:cover;border-radius:18px}.seo-detail h1{font-size:clamp(2.2rem,6vw,4.5rem);line-height:1.08}.seo-detail p{font-size:1.08rem;line-height:1.8}.seo-actions{display:flex;gap:12px;flex-wrap:wrap;margin:2rem 0}.button{display:inline-block;padding:12px 18px;border-radius:8px;background:#c8a96e;color:#111;text-decoration:none}.button.secondary{background:transparent;border:1px solid currentColor;color:inherit}.back{display:inline-block;margin-bottom:2rem}</style></head><body><main class="seo-detail"><a class="back" href="/' + (kind === 'project' ? 'projects' : 'services') + '">← Back to ' + (kind === 'project' ? 'projects' : 'services') + '</a><article><h1>' + esc(title) + '</h1>' + (image ? '<img src="' + esc(image) + '" alt="' + esc(row.title || title) + '" loading="eager">' : '') + (row.category ? '<p><strong>' + esc(row.category) + '</strong></p>' : '') + (row.price_note ? '<p><strong>' + esc(row.price_note) + '</strong></p>' : '') + '<p>' + esc(row.summary || '').replace(/\r?\n/g, '<br>') + '</p>' + paragraphs + '<div class="seo-actions">' + links.join('') + '<a class="button secondary" href="/contact">Discuss a project</a></div></article></main><script src="/assets/js/config.js"></script><script src="/assets/js/main.js"></script><script src="/assets/js/site.js"></script></body></html>';
 }
 export async function dynamicHtml(pathname) {
@@ -175,7 +203,7 @@ export async function decorateHtml(html, pathname) {
       out = out.replace(/<\/body>/i, section + '</body>');
     }
   }
-  const tags = metaTags({ canonical, title, description, image, type, jsonLd });
+  const tags = metaTags({ canonical, title, description, image: socialImageUrl(image), imageAlt: found?.kind === 'article' ? found.row.title : title, type, jsonLd, publishedTime: found?.kind === 'article' ? found.row.published_at : undefined, modifiedTime: found?.kind === 'article' ? (found.row.updated_at || found.row.published_at) : undefined });
   out = out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
   if (/<meta\s+name=["']description["']/i.test(out)) out = out.replace(/<meta\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + esc(description) + '">');
   else out = out.replace(/<\/head>/i, '<meta name="description" content="' + esc(description) + '">\n</head>');

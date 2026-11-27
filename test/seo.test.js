@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 process.env.SITE_URL = 'https://portfolio.example';
 const { setSeoDb, dynamicText, dynamicHtml, decorateHtml } = await import('../server/routes/seo.js');
+const { config } = await import('../server/config.js');
 
 const article = {
   id: 'article-1', title: 'Search Ready Article', slug: 'search-ready-article',
@@ -103,6 +104,31 @@ test('project and service HTML decoration honours CMS SEO overrides', async () =
   assert.match(await dynamicText('/sitemap.xml'), /https:\/\/portfolio\.example\/work\/seo-project/);
   project.canonical_url = null;
   service.canonical_url = null;
+});
+
+
+test('Cloudinary article social previews use a public 1200x630 JPEG with complete Open Graph metadata', async () => {
+  const previousCloud = config.storage.cloudinary.cloudName;
+  const previousImage = article.featured_image_url;
+  config.storage.cloudinary.cloudName = 'portfolio-cloud';
+  article.featured_image_url = 'https://res.cloudinary.com/portfolio-cloud/image/upload/v1730000000/articles/cover.webp';
+  try {
+    const shell = '<!doctype html><html><head><title>Article</title><meta name="description" content="Old description"></head><body><article id="articleView">Loading</article></body></html>';
+    const html = await decorateHtml(shell, '/articles/search-ready-article');
+    assert.match(html, /property="og:image" content="https:\/\/res\.cloudinary\.com\/portfolio-cloud\/image\/upload\/f_jpg,q_auto,w_1200,h_630,c_fill,g_auto\/v1730000000\/articles\/cover\.webp"/);
+    assert.match(html, /property="og:image:type" content="image\/jpeg"/);
+    assert.match(html, /property="og:image:width" content="1200"/);
+    assert.match(html, /property="og:image:height" content="630"/);
+    assert.match(html, /property="og:image:secure_url"/);
+    assert.match(html, /property="og:image:alt" content="Search Ready Article"/);
+    assert.match(html, /name="twitter:card" content="summary_large_image"/);
+    assert.match(html, /property="article:published_time"/);
+    assert.match(html, /property="article:modified_time"/);
+    assert.match(html, /class="article__hero" src="https:\/\/res\.cloudinary\.com\/portfolio-cloud\/image\/upload\/v1730000000\/articles\/cover\.webp"/);
+  } finally {
+    config.storage.cloudinary.cloudName = previousCloud;
+    article.featured_image_url = previousImage;
+  }
 });
 
 test('article and static HTML pages receive clean canonical and social metadata', async () => {
