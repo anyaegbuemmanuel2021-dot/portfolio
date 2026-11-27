@@ -316,9 +316,35 @@ export function mediaService(db, storage) {
           let [mime, ext] = TYPES[kind]; let data = buf, size = imageSize(buf, kind); const variants = []; const id = randomUUID(); const d = new Date(); const base = `uploads/${d.getUTCFullYear()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${id}`;
           if (['png', 'jpeg', 'gif', 'webp'].includes(kind)) size = validateImageDimensions(size);
           const sharp = ['png', 'jpeg', 'webp'].includes(kind) ? await getSharp() : null;
-          if (sharp) { try { const img = sharp(buf, { failOn: 'error', limitInputPixels: MAX_IMAGE_PIXELS }).rotate(); const meta = await img.metadata(); if (meta.width && meta.height && meta.width * meta.height > MAX_IMAGE_PIXELS) throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit'); const out = await img.resize({ width: Math.min(meta.width || 2400, 2400), withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
-            if (out.data.length < buf.length) { data = out.data; mime = 'image/webp'; ext = 'webp'; size = { width: out.info.width, height: out.info.height }; }
-            for (const w of [480, 960]) if ((size.width || 0) > w) { const v = await sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).resize({ width: w }).webp({ quality: 78 }).toBuffer(); const variantKey = `${base}-${w}.webp`; await storage.put(variantKey, v, 'image/webp'); uploadedKeys.push(variantKey); variants.push({ width: w, url: storage.publicUrl(variantKey) }); } } catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(422, 'Image could not be processed'); } }
+          if (sharp) {
+            // Image optimization is optional: a decoder/encoder issue must not
+            // prevent a valid original image from being saved. Keep the source
+            // bytes and let the browser display the original when optimization
+            // is unavailable for a particular image.
+            try {
+              const img = sharp(buf, { failOn: 'error', limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
+              const meta = await img.metadata();
+              if (meta.width && meta.height && meta.width * meta.height > MAX_IMAGE_PIXELS) throw new HttpError(413, 'Image dimensions exceed the 40 megapixel limit');
+              const out = await img.resize({ width: Math.min(meta.width || 2400, 2400), withoutEnlargement: true }).webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
+              if (out.data.length < buf.length) { data = out.data; mime = 'image/webp'; ext = 'webp'; size = { width: out.info.width, height: out.info.height }; }
+              for (const w of [480, 960]) if ((size.width || 0) > w) {
+                const v = await sharp(data, { limitInputPixels: MAX_IMAGE_PIXELS }).resize({ width: w }).webp({ quality: 78 }).toBuffer();
+                const variantKey = `${base}-${w}.webp`;
+                await storage.put(variantKey, v, 'image/webp');
+                uploadedKeys.push(variantKey);
+                variants.push({ width: w, url: storage.publicUrl(variantKey) });
+              }
+            } catch (error) {
+              if (error instanceof HttpError) throw error;
+              await Promise.all(uploadedKeys.map(key => storage.remove(key).catch(() => {})));
+              uploadedKeys = [];
+              data = buf;
+              mime = TYPES[kind][0];
+              ext = TYPES[kind][1];
+              size = imageSize(buf, kind);
+              variants.length = 0;
+            }
+          }
           const key = `${base}.${ext}`; await storage.put(key, data, mime); uploadedKeys.push(key);
           const row = { id, folder_id: folderId, storage_provider: storage.name, storage_key: key, url: storage.publicUrl(key), original_name: safeName, mime_type: mime, size_bytes: data.length, width: size.width || null, height: size.height || null, checksum: createHash('sha256').update(data).digest('hex'), alt_text: alt, variants: JSON.stringify(variants), created_by: adminId, created_at: now() };
           const keys = Object.keys(row); await tx.query(`INSERT INTO media_files (${keys.join(',')}) VALUES (${keys.map((_, i) => '$' + (i + 1)).join(',')})`, keys.map(k => row[k]));
