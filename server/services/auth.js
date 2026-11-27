@@ -28,6 +28,20 @@ export function authService(db, mailer) {
       await db.query('UPDATE admins SET last_login_at = $1 WHERE id = $2', [t, a.id]); await event('login_ok', email, ipHash);
       return { raw, admin: await publicAdmin(a), csrf: csrfFor(raw) };
     },
+    async loginWithGoogle({ email, name }, { ipHash, userAgent }) {
+      email = String(email || '').trim().toLowerCase();
+      if (!email || email !== String(config.ownerEmail).trim().toLowerCase()) {
+        await event('google_login_denied', email, ipHash, 'email is not the configured owner');
+        throw new HttpError(403, 'This Google account is not authorized for portfolio administration.');
+      }
+      const a = fixRow((await db.query('SELECT * FROM admins WHERE email = $1 AND is_active = TRUE', [email])).rows[0]);
+      if (!a) throw new HttpError(403, 'No active administrator exists for this Google account. Use the existing admin bootstrap process first.');
+      const raw = token(32), t = now();
+      await db.query('INSERT INTO sessions (id,admin_id,token_hash,ip_hash,user_agent,expires_at,created_at,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$7)', [randomUUID(), a.id, sha256(raw), ipHash, String(userAgent || '').slice(0, 200), new Date(Date.now() + config.sessionHours * 3600e3).toISOString(), t]);
+      await db.query('UPDATE admins SET last_login_at = $1 WHERE id = $2', [t, a.id]);
+      await event('google_login_ok', email, ipHash, 'verified Google identity');
+      return { raw, admin: await publicAdmin(a), csrf: csrfFor(raw) };
+    },
     async resolve(raw) {
       if (!raw) return null; const s = (await db.query('SELECT * FROM sessions WHERE token_hash = $1', [sha256(raw)])).rows[0];
       if (!s || s.revoked_at || new Date(s.expires_at) < new Date()) return null;
