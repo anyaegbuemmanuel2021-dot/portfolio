@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { HttpError, validate } from '../lib/validate.js';
 import { sha256 } from '../lib/security.js';
 import { verifyGoogleIdToken } from '../services/google-identity.js';
+import { oauthSecurity } from '../services/oauth-security.js';
 
 function passwordField(value, field) {
   if (typeof value !== 'string' || value.length === 0 || value.length > 200) {
@@ -12,13 +13,16 @@ function passwordField(value, field) {
 }
 
 export function authRoutes(app, { auth, db }) {
-  app.get('/api/auth/google/config', () => ({ enabled: Boolean(process.env.GOOGLE_CLIENT_ID), client_id: process.env.GOOGLE_CLIENT_ID || null }));
+  const googleState = oauthSecurity(db);
+  app.get('/api/auth/google/config', async () => ({ enabled: Boolean(process.env.GOOGLE_CLIENT_ID), client_id: process.env.GOOGLE_CLIENT_ID || null, nonce: process.env.GOOGLE_CLIENT_ID ? await googleState.createState('google', { purpose: 'admin_login' }) : null }));
   app.post('/api/auth/google', async ctx => {
     await rateLimit('google-login:' + ctx.ipHash, 8, 10 * 60e3, db);
     const credential = ctx.body?.credential;
     const nonce = ctx.body?.nonce;
     if (typeof nonce !== 'string' || nonce.length < 20 || nonce.length > 200) throw new HttpError(401, 'Google login request is invalid. Refresh and try again.');
     const identity = await verifyGoogleIdToken(credential, { clientId: process.env.GOOGLE_CLIENT_ID, nonce });
+    const nonceState = await googleState.consumeState('google', nonce);
+    if (nonceState?.purpose !== 'admin_login') throw new HttpError(401, 'This Google login request has already been used or has expired. Refresh and try again.');
     const r = await auth.loginWithGoogle(identity, { ipHash: ctx.ipHash, userAgent: ctx.req.headers['user-agent'] });
     ctx.setCookies.push(cookie('sid', r.raw, { maxAge: config.sessionHours * 3600, path: '/' }));
     return { admin: r.admin, csrf: r.csrf };
