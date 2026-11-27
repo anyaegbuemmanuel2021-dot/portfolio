@@ -56,8 +56,8 @@ export function oauthSecurity(db, { secret = config.authSecret, clock = now } = 
     async consumeState(provider, state) {
       if (typeof state !== 'string' || state.length < 32 || state.length > 200) return null;
       const key = keyForState(provider, state);
-      const row = (await db.query('SELECT value FROM site_settings WHERE key=$1', [key])).rows[0];
-      await db.query('DELETE FROM site_settings WHERE key=$1', [key]);
+      // Consume atomically: concurrent callbacks must not both read the same state.
+      const row = (await db.query('DELETE FROM site_settings WHERE key=$1 RETURNING value', [key])).rows[0];
       if (!row?.value) return null;
       let record;
       try { record = JSON.parse(row.value); } catch { return null; }
