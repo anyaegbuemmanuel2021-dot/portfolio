@@ -111,7 +111,7 @@ async function entityFor(path) {
   if (articleSlug) {
     const requested = articleSlug.toLowerCase();
     const baseSlug = requested.replace(/-[0-9]+[a-z]?$/i, '');
-    const row = (await _db.query("SELECT a.title, a.slug, a.excerpt, a.content_html, a.seo_title, a.seo_description, a.canonical_url, a.featured_image_url, a.published_at, a.updated_at, c.name AS category_name FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = lower($1) OR lower(a.slug) = lower($2)) ORDER BY CASE WHEN lower(a.slug) = lower($1) THEN 0 ELSE 1 END, a.published_at DESC LIMIT 1", [requested, baseSlug])).rows[0];
+    const row = (await _db.query("SELECT a.title, a.slug, a.excerpt, a.content_html, a.seo_title, a.seo_description, a.canonical_url, a.featured_image_url, a.author_name, a.published_at, a.updated_at, c.name AS category_name FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = lower($1) OR lower(a.slug) = lower($2)) ORDER BY CASE WHEN lower(a.slug) = lower($1) THEN 0 ELSE 1 END, a.published_at DESC LIMIT 1", [requested, baseSlug])).rows[0];
     if (row) return { kind: 'article', row };
   }
   const projectSlug = slugMatch(path, 'projects');
@@ -176,7 +176,7 @@ export async function decorateHtml(html, pathname) {
     canonical = validUrl(a.canonical_url) || canonicalUrl(base, '/articles/' + encodeURIComponent(a.slug));
     image = imageUrl(a.featured_image_url, base);
     type = 'article';
-    jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, articleBody: cleanText(a.content_html).slice(0, 5000) || undefined, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
+    jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, articleBody: cleanText(a.content_html).slice(0, 5000) || undefined, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: a.author_name || 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
     const hero = image ? '<img class="article__hero" src="' + esc(image) + '" alt="' + esc(a.title) + '" loading="eager">' : '';
     const safeArticleHtml = normaliseArticleHeadings(String(a.content_html || '').replace(/href=(["'])[^"']*Emmanuel_Anyaegbu_CV\.pdf(?:\?[^"']*)?\1/gi, 'href="/resume"'));
     const articleBody = '<h1 class="article__title">' + esc(a.title) + '</h1><div class="article__meta">' + esc([dateOnly(a.published_at), a.category_name].filter(Boolean).join(' · ')) + '</div>' + hero + (a.excerpt ? '<p class="article__excerpt">' + esc(a.excerpt) + '</p>' : '') + '<div class="article__body">' + safeArticleHtml + '</div>';
