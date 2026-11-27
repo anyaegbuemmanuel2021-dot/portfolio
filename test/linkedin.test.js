@@ -12,6 +12,8 @@ test('LinkedIn post payload publishes as the authenticated personal member', () 
   assert.equal(payload.distribution.feedDistribution, 'MAIN_FEED');
   assert.deepEqual(payload.distribution.targetEntities, []);
   assert.deepEqual(payload.content.article, { source: 'https://example.com/article', title: 'New article', description: 'An article summary' });
+  const withImage = buildLinkedInPost('urn:li:person:abc123', 'Post', { source: 'https://example.com/article', title: 'New article', description: 'Summary', thumbnail: 'urn:li:image:abc' });
+  assert.equal(withImage.content.article.thumbnail, 'urn:li:image:abc');
 });
 
 test('LinkedIn access tokens are encrypted and can be decrypted only with the same secret', () => {
@@ -23,7 +25,7 @@ test('LinkedIn access tokens are encrypted and can be decrypted only with the sa
 
 test('newly public LinkedIn outbox items publish once and retain the returned permalink', async () => {
   const { socialService } = await import('../server/services/social.js');
-  const row = { id: 'post-1', caption: 'Article and link', status: 'draft', link_url: 'https://example.com/article', article_title: 'Example article', article_excerpt: 'An excerpt' };
+  const row = { id: 'post-1', caption: 'Article and link', status: 'draft', link_url: 'https://example.com/article', article_title: 'Example article', article_excerpt: 'An excerpt', article_image: 'https://example.com/cover.jpg' };
   let calls = 0;
   const db = { query: async sql => {
     if (sql.startsWith('SELECT s.id,s.caption,s.status,s.link_url')) return { rows: [{ ...row }], rowCount: 1 };
@@ -31,7 +33,7 @@ test('newly public LinkedIn outbox items publish once and retain the returned pe
     if (sql.includes("SET status='published'")) { row.status = 'published'; row.published_url = 'https://www.linkedin.com/feed/update/urn:li:share:123/'; return { rows: [], rowCount: 1 }; }
     throw new Error('Unexpected SQL: ' + sql);
   } };
-  const linkedin = { status: async () => ({ connected: true, auto_post_enabled: true }), publishPost: async () => { calls++; return { post_urn: 'urn:li:share:123', published_url: 'https://www.linkedin.com/feed/update/urn:li:share:123/' }; } };
+  const linkedin = { status: async () => ({ connected: true, auto_post_enabled: true }), publishPost: async (caption, article) => { calls++; assert.equal(article.image, 'https://example.com/cover.jpg'); return { post_urn: 'urn:li:share:123', published_url: 'https://www.linkedin.com/feed/update/urn:li:share:123/' }; } };
   const social = socialService(db, { linkedin });
   const first = await social.publishLinkedinArticle('article-1');
   const second = await social.publishLinkedinArticle('article-1');
