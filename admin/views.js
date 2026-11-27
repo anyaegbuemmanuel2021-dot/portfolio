@@ -208,7 +208,7 @@ export function analyticsView() {
 }
 
 export function socialPostsView() {
-  const root = h('div', {}), list = h('div', {}), summary = h('div', { class: 'panel' });
+  const root = h('div', { class: 'social-publishing' }), list = h('div', {}), summary = h('div', { class: 'panel' });
   async function load() {
     const [s, p] = await Promise.all([api('GET', '/social/summary'), api('GET', '/social/posts?limit=100')]);
     const data = s.data || {}, li = data.linkedin || {};
@@ -263,7 +263,8 @@ export function socialPostsView() {
         h('div', { class: 'row between' }, h('h2', {}, post.platform[0].toUpperCase() + post.platform.slice(1)), status),
         h('p', { class: 'help' }, 'Article: ' + post.article_title + ' · ' + fmtDate(post.created_at)),
         h('label', {}, 'Post caption'), caption,
-        post.platform === 'linkedin' || post.platform === 'x' ? null : h('div', {}, h('label', {}, post.platform === 'instagram' ? 'Public HTTPS image or video URL (optional; article image used by default)' : post.platform === 'tiktok' ? 'Public HTTPS video URL (required)' : 'Optional public HTTPS video URL'), media, h('p', { class: 'help' }, post.platform === 'tiktok' ? 'TikTok requires a verified public media domain and approved Content Posting API access.' : post.platform === 'instagram' ? 'Instagram requires a Professional account and a publicly reachable image or video.' : 'Facebook Page posts can publish the article link without a separate media asset.')),
+        post.platform === 'linkedin' || post.platform === 'x' || post.platform === 'facebook' ? null : h('div', {}, h('label', {}, post.platform === 'instagram' ? 'Public HTTPS image or video URL (optional; article image used by default)' : 'Public HTTPS video URL (required)'), media, h('p', { class: 'help' }, post.platform === 'tiktok' ? 'TikTok requires a verified public media domain and approved Content Posting API access.' : 'Instagram requires a Professional account and a publicly reachable image or video.')),
+        privacy ? h('div', {}, h('label', {}, 'TikTok audience'), privacy, h('p', { class: 'help' }, 'Choose from the privacy options allowed for the connected creator account.')) : null,
         h('p', { class: 'help' }, 'Article link: ' + post.link_url),
         post.last_error ? h('p', { class: 'err' }, 'Last error: ' + post.last_error) : null,
         post.published_url ? h('p', {}, h('a', { href: post.published_url, target: '_blank', rel: 'noopener noreferrer' }, 'View published LinkedIn post')) : null,
