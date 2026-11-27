@@ -1,6 +1,6 @@
 /* AEI Portfolio PWA service worker. Never cache admin, API, auth or private responses. */
 'use strict';
-const VERSION = 'aei-pwa-v14';
+const VERSION = 'aei-pwa-v15';
 const APP_CACHE = VERSION + '-app';
 const ASSET_CACHE = VERSION + '-assets';
 const CORE_PAGES = ['/index.html', '/about.html', '/projects.html', '/services.html', '/contact.html', '/articles.html', '/article.html', '/manifest.webmanifest', '/offline.html'];
@@ -49,7 +49,23 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  if (request.destination === 'style' || request.destination === 'script' || request.destination === 'image' || request.destination === 'font' || url.pathname.startsWith('/assets/')) {
+  if (request.destination === 'script') {
+    // Scripts must refresh after a deployment; cache-first can keep an old CMS
+    // client alive indefinitely on an installed PWA.
+    event.respondWith((async () => {
+      const cache = await caches.open(ASSET_CACHE);
+      try {
+        const response = await fetch(request, { cache: 'no-store' });
+        if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
+        return response;
+      } catch {
+        return (await cache.match(request)) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  if (request.destination === 'style' || request.destination === 'image' || request.destination === 'font' || url.pathname.startsWith('/assets/')) {
     event.respondWith((async () => {
       const cache = await caches.open(ASSET_CACHE);
       const cached = await cache.match(request);
