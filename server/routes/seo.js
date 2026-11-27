@@ -88,7 +88,8 @@ const metaTags = ({ canonical, title, description, image, imageAlt = title, type
   ];
   if (image) {
     const path = new URL(image).pathname.toLowerCase();
-    const isCloudinaryJpeg = image.includes('/f_jpg,');\n    const imageType = isCloudinaryJpeg || path.endsWith('.jpg') || path.endsWith('.jpeg') ? 'image/jpeg' : path.endsWith('.png') ? 'image/png' : path.endsWith('.gif') ? 'image/gif' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+    const isCloudinaryJpeg = image.includes('/f_jpg,');
+    const imageType = isCloudinaryJpeg || path.endsWith('.jpg') || path.endsWith('.jpeg') ? 'image/jpeg' : path.endsWith('.png') ? 'image/png' : path.endsWith('.gif') ? 'image/gif' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
     tags.push('<meta property="og:image" content="' + esc(image) + '">');
     tags.push('<meta property="og:image:secure_url" content="' + esc(image) + '">');
     tags.push('<meta property="og:image:type" content="' + imageType + '">');
@@ -103,7 +104,7 @@ const metaTags = ({ canonical, title, description, image, imageAlt = title, type
   if (publishedTime) tags.push('<meta property="article:published_time" content="' + esc(publishedTime) + '">');
   if (modifiedTime) tags.push('<meta property="article:modified_time" content="' + esc(modifiedTime) + '">');
   if (jsonLd) tags.push('<script type="application/ld+json">' + JSON.stringify(jsonLd).replace(/</g, '\\u003c') + '</script>');
-  return tags.join('\\n  ');
+  return tags.join('\n  ');
 };
 async function entityFor(path) {
   const articleSlug = slugMatch(path, 'articles');
