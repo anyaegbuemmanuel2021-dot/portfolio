@@ -240,6 +240,29 @@
     (data.homepage_sections || []).forEach(function (section) { var root = $('[data-cms-section="' + String(section.key).replace(/[^a-z0-9_-]/gi, '') + '"]'); if (!root) return; var heading = $('[data-cms-title]', root); var body = $('[data-cms-body]', root); text(heading, safeCopy(section.title)); text(body, safeCopy(section.body)); });
     var settings = data.settings || {}; if (settings.site_title) document.title = safeCopy(settings.site_title); applySettings(settings); renderTestimonials(data.testimonials || []);
   }
-  function init() { fetch(base + '/api/content', { headers: { Accept: 'application/json' } }).then(function (r) { if (!r.ok) throw new Error('CMS unavailable'); return r.json(); }).then(function (j) { if (j && j.data) apply(j.data); }).catch(function () { /* original static content remains as offline fallback */ }); }
+  async function init() {
+    // Render Free may briefly restart or wake while a visitor is opening the site.
+    // Retry transient API failures instead of silently leaving the static fallback forever.
+    var endpoint = base + '/api/content';
+    var lastError;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        var response = await fetch(endpoint, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('Portfolio content request failed (' + response.status + ')');
+        var payload = await response.json();
+        if (!payload || !payload.data) throw new Error('Portfolio content response was incomplete');
+        apply(payload.data);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) await new Promise(function (resolve) { setTimeout(resolve, 700 * (attempt + 1)); });
+      }
+    }
+    console.warn('Portfolio content could not be refreshed; keeping the static page fallback.', lastError);
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
