@@ -11,10 +11,16 @@ export const bytes = n => n == null ? 'n/a' : n < 1024 ? n + ' B' : n < 1048576 
 export const session = { csrf: '', admin: null, onExpire: () => {} };
 export async function api(method, path, body, opts = {}) {
   const headers = { Accept: 'application/json' }; if (method !== 'GET') headers['X-CSRF-Token'] = session.csrf;
-  let payload; if (opts.raw) { payload = body; if (opts.filename) headers['X-Filename'] = encodeURIComponent(opts.filename); } else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
-  const r = await fetch('/api' + path, { method, headers, body: payload, credentials: 'same-origin' });
+  let payload; let requestPath = path; if (opts.raw) { payload = body; if (opts.filename) requestPath += (requestPath.includes('?') ? '&' : '?') + 'filename=' + encodeURIComponent(opts.filename); } else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
+  let r; let j;
+  for (let attempt = 0; attempt < (opts.raw ? 3 : 1); attempt++) {
+    r = await fetch('/api' + requestPath, { method, headers, body: payload, credentials: 'same-origin', cache: 'no-store' });
+    if (![423, 502, 503, 504].includes(r.status) || attempt === 2) break;
+    await new Promise(resolve => setTimeout(resolve, 700 * (attempt + 1)));
+  }
   if (opts.blob) { if (!r.ok) throw new Error('Download failed'); return { blob: await r.blob(), checksum: r.headers.get('X-Backup-Checksum') }; }
-  const j = await r.json().catch(() => ({ ok: false, error: { message: 'Bad response' } }));
+  const responseText = await r.text();
+  try { j = JSON.parse(responseText); } catch { j = { ok: false, error: { message: `Upload/request was blocked by the hosting layer (HTTP ${r.status}). Please retry in a moment.` } }; }
   if (r.status === 401 && !path.startsWith('/auth/login') && !opts.quiet) session.onExpire();
   if (!r.ok || j.ok === false) { const e = new Error(j.error?.message || 'Request failed'); e.status = r.status; e.details = j.error?.details; throw e; }
   return j;
