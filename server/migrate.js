@@ -23,7 +23,7 @@ export async function migrate(db, log = console.log) {
           if (!columns.some(column => column.name === addColumn[2].split(/\s+/, 1)[0])) {
             await t.exec('ALTER TABLE ' + addColumn[1] + ' ADD COLUMN ' + addColumn[2]);
           }
-        } else if (t.dialect === 'sqlite' && /^ALTER TABLE\\s+[a-z_][a-z0-9_]*\\s+ALTER COLUMN\\s+/i.test(stmt)) {
+        } else if (t.dialect === 'sqlite' && /^ALTER TABLE\s+[a-z_][a-z0-9_]*\s+ALTER COLUMN\s+/i.test(stmt)) {
           // SQLite cannot change a column's default or NOT NULL constraint in place.
           // The author value is still assigned by the application on every article save.
         } else await t.exec(stmt);
