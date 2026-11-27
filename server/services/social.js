@@ -4,7 +4,7 @@ import { config } from '../config.js';
 
 const now = () => new Date().toISOString();
 const platforms = ['facebook', 'instagram', 'linkedin', 'x', 'tiktok'];
-const outboxPlatforms = ['facebook', 'instagram', 'linkedin'];
+const outboxPlatforms = ['facebook', 'instagram', 'linkedin', 'x', 'tiktok'];
 const clean = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const firstImage = html => { const match = String(html || '').match(/<img\b[^>]*?src=["']([^"']+)["']/i); return match ? match[1] : null; };
 const tags = value => (Array.isArray(value) ? value : []).map(t => String(t.name || t).replace(/[^\p{L}\p{N}_]/gu, '')).filter(Boolean).slice(0, 5).map(t => '#' + t).join(' ');
@@ -18,7 +18,7 @@ function captionFor(platform, article, url) {
   return [title, excerpt, 'Read the full article:', url, hashtags].filter(Boolean).join('\n\n');
 }
 
-export function socialService(db, { linkedin } = {}) {
+export function socialService(db, { linkedin, oauth } = {}) {
   async function enqueueArticle(articleId) {
     const article = (await db.query("SELECT id,title,slug,excerpt,content_html,featured_image_url,canonical_url,status FROM articles WHERE id = $1", [articleId])).rows[0];
     if (!article || article.status !== 'published') return [];
@@ -38,34 +38,23 @@ export function socialService(db, { linkedin } = {}) {
   }
 
   async function connections() {
-    const providers = [
-      { platform: 'facebook', appKeys: ['META_APP_ID', 'FACEBOOK_APP_ID'], secretKeys: ['META_APP_SECRET', 'FACEBOOK_APP_SECRET'], permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page through Meta OAuth. A personal profile alone cannot publish to a Page.' },
-      { platform: 'instagram', appKeys: ['META_APP_ID', 'FACEBOOK_APP_ID'], secretKeys: ['META_APP_SECRET', 'FACEBOOK_APP_SECRET'], permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'], note: 'Connect an Instagram Professional account linked to a Facebook Page. Media publishing requires publicly reachable media.' },
-      { platform: 'x', appKeys: ['X_CLIENT_ID'], secretKeys: ['X_CLIENT_SECRET'], permissions: ['users.read', 'tweet.read', 'tweet.write', 'offline.access'], note: 'Connect an X account using OAuth 2.0 with PKCE. Publishing remains approval-gated.' },
-      { platform: 'tiktok', appKeys: ['TIKTOK_CLIENT_KEY'], secretKeys: ['TIKTOK_CLIENT_SECRET'], permissions: ['user.info.basic', 'video.publish', 'video.upload'], note: 'Connect a TikTok account using Login Kit. Direct publishing may require TikTok app review and approved scopes.' },
-    ];
+    const descriptions = {
+      facebook: { permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page. Personal profiles cannot publish through the Page API.' },
+      instagram: { permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list'], note: 'Requires an Instagram Professional account linked to a Facebook Page.' },
+      x: { permissions: ['users.read', 'tweet.read', 'tweet.write', 'offline.access'], note: 'Connect an X account using OAuth 2.0 with PKCE. Posts remain approval-gated.' },
+      tiktok: { permissions: ['user.info.basic', 'video.publish', 'video.upload'], note: 'TikTok direct publishing depends on app review and approved Content Posting API scopes.' },
+    };
     const rows = [];
-    for (const item of providers) {
-      const setting = async key => (await db.query('SELECT value FROM site_settings WHERE key=$1', [key])).rows[0]?.value || null;
-      const [token, accountId] = await Promise.all([
-        setting('oauth_' + item.platform + '_access_token_enc'),
-        setting('oauth_' + item.platform + '_account_id'),
-      ]);
-      const appId = item.appKeys.some(key => Boolean(process.env[key]));
-      const appSecret = item.secretKeys.some(key => Boolean(process.env[key]));
-      const missing = [];
-      if (!appId) missing.push(item.appKeys[0]);
-      if (!appSecret) missing.push(item.secretKeys[0]);
-      if (!token || !accountId) missing.push('Complete account authorization');
-      rows.push({ platform: item.platform, configured: appId && appSecret, connected: Boolean(token && accountId), missing, permissions: item.permissions, note: item.note });
+    for (const platform of ['facebook', 'instagram', 'linkedin', 'x', 'tiktok']) {
+      if (platform === 'linkedin') {
+        const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
+        rows.push({ platform, configured: li.configured, connected: li.connected, missing: li.configured ? (li.connected ? [] : ['Complete LinkedIn authorization']) : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'], permissions: ['w_member_social', 'openid', 'profile'], note: 'Personal LinkedIn profile publishing. Existing LinkedIn OAuth connection is preserved.', account_name: li.member_name || null, callback_url: li.callback_url });
+      } else {
+        const status = oauth ? await oauth.status(platform) : { configured: false, connected: false };
+        const d = descriptions[platform];
+        rows.push({ ...status, missing: !status.configured ? [platform === 'facebook' || platform === 'instagram' ? 'META_APP_ID / META_APP_SECRET' : platform === 'x' ? 'X_CLIENT_ID / X_CLIENT_SECRET' : 'TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET'] : (status.connected ? [] : ['Complete account authorization']), permissions: d.permissions, note: d.note });
+      }
     }
-    const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
-    rows.splice(2, 0, {
-      platform: 'linkedin', configured: li.configured, connected: li.connected,
-      missing: li.configured ? (li.connected ? [] : ['Complete LinkedIn authorization']) : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
-      permissions: ['w_member_social', 'openid', 'profile'],
-      note: 'Personal LinkedIn profile publishing. Existing LinkedIn OAuth connection is preserved.',
-    });
     return rows;
   }
 
