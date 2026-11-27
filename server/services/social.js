@@ -57,7 +57,7 @@ export function socialService(db, { linkedin } = {}) {
     if (!linkedin) return { skipped: true, reason: 'LinkedIn integration unavailable' };
     const connection = await linkedin.status();
     if (!connection.connected || (!force && !connection.auto_post_enabled)) return { skipped: true, reason: 'LinkedIn automatic posting is disabled or the account is disconnected' };
-    const post = (await db.query("SELECT s.id,s.caption,s.status,s.link_url,a.title AS article_title,a.excerpt AS article_excerpt,a.featured_image_url AS article_image FROM social_posts s JOIN articles a ON a.id=s.article_id WHERE s.article_id=$1 AND s.platform='linkedin'", [articleId])).rows[0];
+    const post = (await db.query("SELECT s.id,s.caption,s.status,s.link_url,a.title AS article_title,a.excerpt AS article_excerpt,COALESCE(a.featured_image_url,(SELECT ai.url FROM article_images ai WHERE ai.article_id=a.id ORDER BY ai.sort_order ASC LIMIT 1)) AS article_image FROM social_posts s JOIN articles a ON a.id=s.article_id WHERE s.article_id=$1 AND s.platform='linkedin'", [articleId])).rows[0];
     if (!post || ['published', 'publishing'].includes(post.status)) return { skipped: true, reason: 'No eligible LinkedIn outbox item' };
     const claim = await db.query("UPDATE social_posts SET status='publishing',last_error=NULL,updated_at=$1 WHERE id=$2 AND status IN ('draft','approved','failed') RETURNING id", [now(), post.id]);
     if (!claim.rowCount) return { skipped: true, reason: 'LinkedIn post is already being processed' };
