@@ -20,7 +20,7 @@ export const config = {
   sessionHours: Number(e.SESSION_HOURS || 12),
   storage: { provider: e.STORAGE_PROVIDER || (e.NODE_ENV === 'production' ? 'cloudinary' : 'local'), localDir: e.LOCAL_MEDIA_DIR || './data/media',
     publicBase: (e.DBRIJ_MEDIA_PUBLIC_BASE || e.MEDIA_PUBLIC_BASE || '').replace(/\/$/, ''),
-    cloudinary: { cloudName: e.CLOUDINARY_CLOUD_NAME, apiKey: e.CLOUDINARY_API_KEY, apiSecret: e.CLOUDINARY_API_SECRET },
+    cloudinary: { cloudName: (e.CLOUDINARY_CLOUD_NAME || '').trim(), apiKey: (e.CLOUDINARY_API_KEY || '').trim(), apiSecret: (e.CLOUDINARY_API_SECRET || '').trim() },
     dbrij: { endpoint: e.DBRIJ_S3_ENDPOINT || 'https://s3.dbrij.com', region: e.DBRIJ_S3_REGION || 'auto', bucket: e.DBRIJ_BUCKET, accessKeyId: e.DBRIJ_KEY_ID, secretAccessKey: e.DBRIJ_KEY_SECRET, publicBase: (e.DBRIJ_MEDIA_PUBLIC_BASE || e.MEDIA_PUBLIC_BASE || '').replace(/\/$/, '') } },
   email: { provider: e.EMAIL_PROVIDER || 'log', brevoKey: e.BREVO_API_KEY, from: e.EMAIL_FROM || 'no-reply@example.com', fromName: e.EMAIL_FROM_NAME || 'Portfolio', inboundSecret: e.EMAIL_INBOUND_SECRET || '' },
   ai: { provider: e.AI_PROVIDER || 'rules', baseUrl: e.AI_BASE_URL, apiKey: e.AI_API_KEY, model: e.AI_MODEL },
