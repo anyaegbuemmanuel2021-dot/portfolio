@@ -31,7 +31,8 @@ function renderLogin(note) {
     try {
       const cfg = (await api('GET', '/auth/google/config')).data;
       if (!cfg.enabled || !cfg.client_id) { googleBox.textContent = 'Google sign-in will appear when GOOGLE_CLIENT_ID is configured.'; return; }
-      const nonce = crypto.randomUUID() + crypto.randomUUID();
+      const nonce = cfg.nonce;
+      if (!nonce) { googleBox.textContent = 'Google sign-in could not create a secure login request. Use password sign-in.'; return; }
       const init = () => {
         if (!window.google?.accounts?.id) return false;
         window.google.accounts.id.initialize({ client_id: cfg.client_id, nonce, callback: async response => {
