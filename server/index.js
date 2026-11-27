@@ -17,18 +17,20 @@ import { adService } from './services/ads.js';
 import { emailService } from './services/email.js';
 import { socialService } from './services/social.js';
 import { linkedinService } from './services/linkedin.js';
+import { socialOAuthService } from './services/social-oauth.js';
 import { authRoutes } from './routes/auth.js';
 import { publicRoutes } from './routes/public.js';
 import { adminRoutes } from './routes/admin.js';
 import { entityRoutes } from './routes/entities.js';
 import { linkedinRoutes } from './routes/linkedin.js';
+import { socialIntegrationRoutes } from './routes/social-integrations.js';
 import { setSeoDb } from './routes/seo.js';
 
 export async function buildApp({ db, storage, mailer } = {}) {
   assertConfig(); db ||= await connect(); storage ||= createStorage(); mailer ||= createMailer(); attachDb(db); setSeoDb(db);
   if (process.env.AUTO_MIGRATE !== 'false') await migrate(db, m => log.info('migration ' + m)); await seed(db);
   const auth = authService(db, mailer); const media = mediaService(db, storage); await media.repairPublicUrls(); const legacyLocalStorage = localStorageProvider(); const ads = adService(db);
-  const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const linkedin = linkedinService(db); const social = socialService(db, { linkedin });
+  const analytics = analyticsService(db, { siteHost: new URL(config.siteUrl).hostname }); const articles = articleService(db, { syncUsage: media.syncUsage }); const email = emailService(db, mailer); const leads = leadService(db, { mailer }); const linkedin = linkedinService(db); const oauth = socialOAuthService(db); const social = socialService(db, { linkedin, oauth });
   const app = createApp({ log, db });
   // Public, same-origin media delivery. Object-storage credentials remain server-side.
   app.get('/api/media/file', async ctx => {
@@ -66,8 +68,8 @@ export async function buildApp({ db, storage, mailer } = {}) {
     if (typeof opts.auth === 'string' && !r.admin.permissions.includes(opts.auth)) throw new HttpError(403, 'You do not have permission for this action');
     Object.assign(ctx, { admin: r.admin, session: r.session, csrf: r.csrf, rawToken: ctx.cookies.sid });
   };
-  authRoutes(app, { auth, db }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, linkedin, syncUsage: media.syncUsage };
-  publicRoutes(app, deps); linkedinRoutes(app, deps); adminRoutes(app, deps); entityRoutes(app, deps); // specific admin routes first, generic /api/admin/:entity last
+  authRoutes(app, { auth, db }); const deps = { db, auth, articles, media, leads, email, ads, analytics, storage, mailer, social, linkedin, oauth, syncUsage: media.syncUsage };
+  publicRoutes(app, deps); linkedinRoutes(app, deps); socialIntegrationRoutes(app, deps); adminRoutes(app, deps); entityRoutes(app, deps); // specific admin routes first, generic /api/admin/:entity last
   return { app, db, deps };
 }
 if (import.meta.url === `file://${process.argv[1]}`) {
