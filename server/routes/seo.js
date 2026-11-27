@@ -251,20 +251,6 @@ export async function dynamicText(path) {
   const urls = [...entries.values()].map(e => '<url><loc>' + esc(e.loc) + '</loc>' + (e.lastmod ? '<lastmod>' + e.lastmod + '</lastmod>' : '') + e.images.map(i => '<image:image><image:loc>' + esc(i.loc) + '</image:loc>' + (i.title ? '<image:title>' + esc(i.title) + '</image:title>' : '') + '</image:image>').join('') + '</url>').join('');
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' + urls + '</urlset>';
 }
-    if (row) return { kind: 'article', row };
-  }
-  const projectSlug = slugMatch(path, 'projects');
-  if (projectSlug) {
-    const row = (await _db.query('SELECT * FROM projects WHERE lower(slug) = lower($1) LIMIT 1', [projectSlug])).rows[0];
-    if (row) return { kind: 'project', row };
-  }
-  const serviceSlug = slugMatch(path, 'services');
-  if (serviceSlug) {
-    const row = (await _db.query('SELECT * FROM services WHERE lower(slug) = lower($1) LIMIT 1', [serviceSlug])).rows[0];
-    if (row) return { kind: 'service', row };
-  }
-  return null;
-}
 const safeLink = value => {
   const raw = String(value || '').trim();
   if (raw.startsWith('/')) return raw;
