@@ -3,6 +3,7 @@ import { renderMarkdown } from '../lib/markdown.js';
 import { HttpError, slugify } from '../lib/validate.js';
 import { fixRow } from '../repositories/base.js';
 const now = () => new Date().toISOString();
+const DEFAULT_ARTICLE_AUTHOR = 'Anyaegbu Emmanuel Ikenna';
 const imgsIn = md => [...String(md || '').matchAll(/!\[[^\]]*\]\(([^)\s]+)\)/g)].map(m => m[1]);
 export function articleService(db, { syncUsage }) {
   const withTags = async rows => { for (const a of rows) a.tags = (await db.query('SELECT t.id, t.name, t.slug FROM article_tags t JOIN article_tag_assignments x ON x.tag_id = t.id WHERE x.article_id = $1 ORDER BY t.name', [a.id])).rows; return rows; };
@@ -13,7 +14,7 @@ export function articleService(db, { syncUsage }) {
     async listPublic({ page = 1, limit = 10, category, tag, q }) {
       await svc.publishDue(); const w = ["a.status = 'published'"], p = []; if (category) { p.push(category); w.push(`c.slug = $${p.length}`); } if (q) { p.push('%' + q + '%'); w.push(`(a.title ILIKE $${p.length} OR a.excerpt ILIKE $${p.length})`); } if (tag) { p.push(tag); w.push(`EXISTS (SELECT 1 FROM article_tag_assignments x JOIN article_tags t ON t.id = x.tag_id WHERE x.article_id = a.id AND t.slug = $${p.length})`); }
       const from = `FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE ${w.join(' AND ')}`; const total = Number((await db.query(`SELECT COUNT(*) AS c ${from}`, p)).rows[0].c); limit = Math.min(+limit || 10, 50);
-      const rows = (await db.query(`SELECT a.id, a.title, a.slug, a.excerpt, a.featured_image_url, a.published_at, c.name AS category_name, c.slug AS category_slug ${from} ORDER BY a.published_at DESC LIMIT ${limit} OFFSET ${(Math.max(parseInt(page) || 1, 1) - 1) * limit}`, p)).rows;
+      const rows = (await db.query(`SELECT a.id, a.title, a.slug, a.excerpt, a.featured_image_url, a.author_name, a.published_at, c.name AS category_name, c.slug AS category_slug ${from} ORDER BY a.published_at DESC LIMIT ${limit} OFFSET ${(Math.max(parseInt(page) || 1, 1) - 1) * limit}`, p)).rows;
       return { rows: await withTags(rows), total, page: +page, limit };
     },
     async getPublic(slug) {
@@ -34,7 +35,7 @@ export function articleService(db, { syncUsage }) {
       // Duplicate checks, slug allocation and insert/update share one transaction.
       let slug;
       const publishedAt = status === 'published' ? (existing?.published_at || (d.publish_at && new Date(d.publish_at) < new Date() ? d.publish_at : t)) : status === 'scheduled' ? d.publish_at : null;
-      const f = { title: d.title, slug, excerpt: d.excerpt || null, content_md: d.content_md || '', content_html: html, featured_image_url: d.featured_image_url || null, category_id: d.category_id || null, seo_title: d.seo_title || null, seo_description: d.seo_description || null, canonical_url: d.canonical_url || null, status, publish_at: status === 'scheduled' ? d.publish_at : null, published_at: publishedAt };
+      const f = { title: d.title, author_name: DEFAULT_ARTICLE_AUTHOR, slug, excerpt: d.excerpt || null, content_md: d.content_md || '', content_html: html, featured_image_url: d.featured_image_url || null, category_id: d.category_id || null, seo_title: d.seo_title || null, seo_description: d.seo_description || null, canonical_url: d.canonical_url || null, status, publish_at: status === 'scheduled' ? d.publish_at : null, published_at: publishedAt };
       const aid = id || randomUUID();
       await db.tx(async tx => {
         if (tx.dialect === 'postgres') await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['article-title:' + String(d.title || '').trim().toLowerCase()]);
