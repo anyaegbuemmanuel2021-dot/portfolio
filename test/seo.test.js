@@ -172,3 +172,12 @@ test('RSS feed exposes a safe public featured image for social publishing integr
   assert.match(xml, /<media:content url="https:\/\/cdn\.example\.com\/article-cover\.webp" medium="image" \/>/);
   assert.match(xml, /<enclosure url="https:\/\/cdn\.example\.com\/article-cover\.webp" type="image\/webp" length="0" \/>/);
 });
+
+
+test('article SEO lookup accepts the same numeric slug aliases as the public article API', async () => {
+  const html = '<!doctype html><html><head><title>Article</title><meta name="description" content="Old description"></head><body><article id="articleView">Loading</article></body></html>';
+  assert.equal(await dynamicHtml('/articles/search-ready-article-2'), null);
+  const decorated = await decorateHtml(html, '/articles/search-ready-article-2');
+  assert.match(decorated, /<h1 class="article__title">Search Ready Article<\/h1>/);
+  assert.match(decorated, /<link rel="canonical" href="https:\/\/portfolio\.example\/articles\/search-ready-article">/);
+});
