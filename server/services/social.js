@@ -50,7 +50,7 @@ export function socialService(db, { linkedin, oauth } = {}) {
         const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
         rows.push({ platform, configured: li.configured, connected: li.connected, missing: li.configured ? (li.connected ? [] : ['Complete LinkedIn authorization']) : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'], permissions: ['w_member_social', 'openid', 'profile'], note: 'Personal LinkedIn profile publishing. Existing LinkedIn OAuth connection is preserved.', account_name: li.member_name || null, callback_url: li.callback_url });
       } else {
-        const status = oauth ? await oauth.status(platform) : { configured: false, connected: false };
+        const status = oauth ? await oauth.status(platform) : { platform, configured: false, connected: false };
         const d = descriptions[platform];
         rows.push({ ...status, missing: !status.configured ? [platform === 'facebook' || platform === 'instagram' ? 'META_APP_ID / META_APP_SECRET' : platform === 'x' ? 'X_CLIENT_ID / X_CLIENT_SECRET' : 'TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET'] : (status.connected ? [] : ['Complete account authorization']), permissions: d.permissions, note: d.note });
       }
