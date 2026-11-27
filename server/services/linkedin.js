@@ -142,14 +142,28 @@ export function linkedinService(db) {
   }
 
 
-  async function uploadArticleThumbnail(accessToken, author, imageUrl) {
+  export function resolveLinkedInThumbnailUrl(imageUrl, siteUrl = config.siteUrl, cloudName = config.storage.cloudinary.cloudName) {
+  if (!imageUrl) return null;
+  const source = new URL(String(imageUrl), siteUrl);
+  const site = new URL(siteUrl);
+  const sameSite = source.origin === site.origin;
+  const cloudinaryPath = cloudName ? '/' + cloudName + '/image/upload/' : null;
+  const isCloudinary = source.protocol === 'https:' && source.hostname === 'res.cloudinary.com'
+    && cloudinaryPath && source.pathname.includes(cloudinaryPath);
+  if (source.protocol !== 'https:' || source.username || source.password || (!sameSite && !isCloudinary)) {
+    throw new Error('LinkedIn thumbnail must be a public HTTPS image on this portfolio or its configured Cloudinary account.');
+  }
+  // Cloudinary-hosted portfolio images are often stored as WebP. LinkedIn's
+  // image upload endpoint does not accept WebP, so request a JPEG rendition
+  // directly from Cloudinary without changing the stored original.
+  if (isCloudinary) source.pathname = source.pathname.replace(cloudinaryPath, cloudinaryPath + 'f_jpg,q_auto/');
+  return source.href;
+}
+
+async function uploadArticleThumbnail(accessToken, author, imageUrl) {
     if (!imageUrl) return null;
-    const source = new URL(String(imageUrl), config.siteUrl);
-    const site = new URL(config.siteUrl);
-    if (source.protocol !== 'https:' || source.origin !== site.origin) {
-      throw new Error('LinkedIn thumbnail must be a publicly reachable HTTPS image hosted on this portfolio site.');
-    }
-    const imageResponse = await fetch(source.href, { signal: AbortSignal.timeout(15000), redirect: 'error' });
+    const sourceUrl = resolveLinkedInThumbnailUrl(imageUrl);
+    const imageResponse = await fetch(sourceUrl, { signal: AbortSignal.timeout(15000), redirect: 'follow' });
     if (!imageResponse.ok) throw new Error('Could not fetch the article featured image (HTTP ' + imageResponse.status + ').');
     const contentType = (imageResponse.headers.get('content-type') || '').split(';')[0].toLowerCase();
     if (!['image/jpeg', 'image/png', 'image/gif'].includes(contentType)) throw new Error('The article featured image must be JPG, PNG or GIF for LinkedIn.');
