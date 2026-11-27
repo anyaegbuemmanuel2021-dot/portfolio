@@ -16,11 +16,11 @@ export function securityHeaders(res, { admin = false, api = false } = {}) {
   res.removeHeader('X-Powered-By');
   res.removeHeader('Server');
   const csp = api ? "default-src 'none'; frame-ancestors 'none'"
-    : admin ? "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'"
+    : admin ? "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https:; connect-src 'self' https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'"
     : "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https: https://challenges.cloudflare.com; frame-src https://googleads.g.doubleclick.net https://challenges.cloudflare.com; frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'";
   res.setHeader('Content-Security-Policy', csp);
   res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('X-Frame-Options', admin || api ? 'DENY' : 'SAMEORIGIN'); res.setHeader('X-Permitted-Cross-Domain-Policies', 'none'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()'); res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()'); res.setHeader('Cross-Origin-Opener-Policy', admin ? 'same-origin-allow-popups' : 'same-origin');
   if (config.isProd) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   if (admin || api) res.setHeader('X-Robots-Tag', 'noindex');
   if (admin || api) res.setHeader('Cache-Control', 'no-store');
