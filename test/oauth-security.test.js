@@ -56,3 +56,14 @@ test('OAuth state rejects malformed values and provider names', async () => {
   assert.equal(await oauth.consumeState('google', 'short'), null);
   await assert.rejects(() => oauth.createState('../google'), /Invalid OAuth provider/);
 });
+
+test('OAuth state can be consumed by only one concurrent callback', async () => {
+  const db = memoryDb();
+  const oauth = oauthSecurity(db, { secret });
+  const state = await oauth.createState('facebook', { intent: 'connect' });
+  const results = await Promise.all([
+    oauth.consumeState('facebook', state),
+    oauth.consumeState('facebook', state),
+  ]);
+  assert.equal(results.filter(Boolean).length, 1);
+});
