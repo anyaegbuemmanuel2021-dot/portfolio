@@ -81,7 +81,9 @@ const metaTags = ({ canonical, title, description, image, type = 'website', json
 async function entityFor(path) {
   const articleSlug = slugMatch(path, 'articles');
   if (articleSlug) {
-    const row = (await _db.query("SELECT a.title, a.slug, a.excerpt, a.content_html, a.seo_title, a.seo_description, a.canonical_url, a.featured_image_url, a.published_at, a.updated_at, c.name AS category_name FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = lower($1) OR lower(a.slug) = regexp_replace(lower($1), '-[0-9]+[a-z]?
+    const requested = articleSlug.toLowerCase();
+    const baseSlug = requested.replace(/-[0-9]+[a-z]?$/i, '');
+    const row = (await _db.query("SELECT a.title, a.slug, a.excerpt, a.content_html, a.seo_title, a.seo_description, a.canonical_url, a.featured_image_url, a.published_at, a.updated_at, c.name AS category_name FROM articles a LEFT JOIN article_categories c ON c.id = a.category_id WHERE a.status = 'published' AND (lower(a.slug) = lower($1) OR lower(a.slug) = lower($2)) ORDER BY CASE WHEN lower(a.slug) = lower($1) THEN 0 ELSE 1 END, a.published_at DESC LIMIT 1", [requested, baseSlug])).rows[0];
     if (row) return { kind: 'article', row };
   }
   const projectSlug = slugMatch(path, 'projects');
