@@ -120,8 +120,14 @@ export function createApp({ log, db }) {
           }
           const out = await r.handler(ctx);
           if (out && out.__raw) { res.writeHead(out.status || 200, { ...out.headers, ...(ctx.setCookies.length ? { 'Set-Cookie': ctx.setCookies } : {}) }); return res.end(out.body); }
-          const env = out && typeof out === 'object' && 'data' in out && Object.keys(out).every(k => ['data', 'status', 'meta', 'headers'].includes(k)); // explicit envelope; anything else is plain data
-          if (env) return send(out.status || 200, { ok: true, data: out.data ?? null, ...(out.meta ? { meta: out.meta } : {}) }, out.headers);
+          // Explicit response envelopes may include endpoint-specific sibling metadata.
+          // Preserve those fields and the requested HTTP status instead of silently
+          // downgrading extended responses to 200.
+          const env = out && typeof out === 'object' && 'data' in out && ('status' in out || Object.keys(out).every(k => ['data', 'meta', 'headers'].includes(k)));
+          if (env) {
+            const { status = 200, headers, ...payload } = out;
+            return send(status, { ok: true, ...payload }, headers);
+          }
           return send(200, { ok: true, data: out ?? null });
         }
         return await serveStatic(ctx);
