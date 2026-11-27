@@ -34,7 +34,7 @@
         r.data.forEach(function (a) {
           var c = el('a', 'article-card'); c.href = '/articles/' + encodeURIComponent(a.slug);
           if (safeImg(a.featured_image_url)) { var i = el('img', 'article-card__img'); attachImage(i, a.featured_image_url); i.alt = ''; i.loading = 'lazy'; i.decoding = 'async'; c.appendChild(i); }
-          var b = el('div', 'article-card__body'); b.appendChild(el('div', 'article-card__meta', [a.category_name, fmt(a.published_at)].filter(Boolean).join(' · ')));
+          var b = el('div', 'article-card__body'); b.appendChild(el('div', 'article-card__meta', [a.category_name, fmt(a.published_at), 'By ' + (a.author_name || 'Anyaegbu Emmanuel Ikenna')].filter(Boolean).join(' · ')));
           b.appendChild(el('h2', 'article-card__title', a.title)); if (a.excerpt) b.appendChild(el('p', 'article-card__excerpt', a.excerpt)); c.appendChild(b); list.appendChild(c);
         });
         var pg = $('#pager'); pg.textContent = ''; var pages = Math.ceil(r.meta.total / r.meta.limit);
@@ -130,7 +130,7 @@
       var a = r.data; document.title = (a.seo_title || a.title) + ' — Anyaegbu Emmanuel';
       setMeta('description', a.seo_description || a.excerpt); setMeta('og:title', a.seo_title || a.title, 1); setMeta('og:description', a.seo_description || a.excerpt, 1); setMeta('og:type', 'article', 1); if (safeImg(a.featured_image_url)) setMeta('og:image', a.featured_image_url, 1);
       var link = document.head.querySelector('link[rel=canonical]') || document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' })); link.href = a.canonical_url || link.href || location.origin + '/articles/' + a.slug;
-      box.textContent = ''; box.appendChild(el('h1', 'article__title', a.title)); box.appendChild(el('div', 'article__meta', [fmt(a.published_at), a.category_name].filter(Boolean).join(' · ')));
+      box.textContent = ''; box.appendChild(el('h1', 'article__title', a.title)); box.appendChild(el('div', 'article__meta', [fmt(a.published_at), a.category_name, 'By ' + (a.author_name || 'Anyaegbu Emmanuel Ikenna')].filter(Boolean).join(' · ')));
       if (safeImg(a.featured_image_url)) { var h = el('img', 'article__hero'); attachImage(h, a.featured_image_url); h.alt = ''; box.appendChild(h); }
       var body = el('div', 'article__body'); body.innerHTML = a.content_html; Array.prototype.forEach.call(body.querySelectorAll('img'), function (img) { var src = img.getAttribute('src') || ''; if (/^\/api\/media\/file\?/.test(src)) { img.removeAttribute('src'); attachImage(img, src); } }); box.appendChild(body); // server-rendered from escaped Markdown (no raw HTML possible)
       var ad = el('div', 'ad-slot'); ad.hidden = true; ad.setAttribute('data-ad-slot', 'article'); box.appendChild(ad);
