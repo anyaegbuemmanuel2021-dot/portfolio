@@ -80,9 +80,11 @@ export function socialOAuthService(db) {
     const clientId = process.env[providerKeys[provider].id], secret = process.env[providerKeys[provider].secret];
     if (!configured(provider)) throw new HttpError(503, 'Provider credentials are not configured');
     if (provider === 'facebook' || provider === 'instagram') {
-      const tokenData = await exchange('https://graph.facebook.com/' + META_VERSION + '/oauth/access_token', {
+      const tokenResponse = await fetch('https://graph.facebook.com/' + META_VERSION + '/oauth/access_token?' + new URLSearchParams({
         client_id: clientId, client_secret: secret, redirect_uri: callbacks[provider], code,
-      });
+      }), { signal: AbortSignal.timeout(20000) });
+      const tokenData = await safeJson(tokenResponse);
+      if (!tokenResponse.ok || !tokenData.access_token) throw new Error('Meta authorization-code exchange failed. Verify the app credentials and exact callback URL.');
       // Exchange for a long-lived user token before reading the Page token.
       const longToken = await safeJson(await fetch('https://graph.facebook.com/' + META_VERSION + '/oauth/access_token?' + new URLSearchParams({
         grant_type: 'fb_exchange_token', client_id: clientId, client_secret: secret, fb_exchange_token: tokenData.access_token,
@@ -174,7 +176,7 @@ export function socialOAuthService(db) {
       const container = await safeJson(create); if (!create.ok || container.error || !container.id) throw new Error(container.error?.message || 'Instagram media container creation failed');
       if (isVideo) {
         let ready = false;
-        for (let i=0;i<12;i++) { await new Promise(resolve => setTimeout(resolve, 5000)); const check = await safeJson(await fetch('https://graph.facebook.com/' + META_VERSION + '/' + container.id + '?fields=status_code&access_token=' + encodeURIComponent(token), { signal: AbortSignal.timeout(10000) })); if (check.status_code === 'FINISHED') { ready = true; break; } if (check.status_code === 'ERROR') throw new Error('Instagram could not process the video asset'); }
+        for (let i=0;i<12;i++) { await new Promise(resolve => setTimeout(resolve, 5000)); const check = await safeJson(await fetch('https://graph.facebook.com/' + META_VERSION + '/' + container.id + '?fields=status_code', { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(10000) })); if (check.status_code === 'FINISHED') { ready = true; break; } if (check.status_code === 'ERROR') throw new Error('Instagram could not process the video asset'); }
         if (!ready) throw new Error('Instagram video processing is still pending. Retry after a short wait.');
       }
       const publishResponse = await fetch('https://graph.facebook.com/' + META_VERSION + '/' + igId + '/media_publish', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ creation_id: container.id, access_token: token }), signal: AbortSignal.timeout(30000) });
