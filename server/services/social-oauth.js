@@ -171,7 +171,7 @@ export function socialOAuthService(db) {
       const igId = await get('instagram', 'account_id');
       const media = validMedia(mediaUrl);
       if (!media) throw new HttpError(422, 'Instagram publishing requires a public HTTPS image or video URL.');
-      const isVideo = /\\.(mp4|mov)(?:$|\\?)/i.test(media);
+      const isVideo = /\.(mp4|mov)(?:$|\?)/i.test(media);
       const create = await fetch('https://graph.facebook.com/' + META_VERSION + '/' + igId + '/media', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ caption: text, ...(isVideo ? { media_type: 'REELS', video_url: media } : { image_url: media }), access_token: token }), signal: AbortSignal.timeout(30000) });
       const container = await safeJson(create); if (!create.ok || container.error || !container.id) throw new Error(container.error?.message || 'Instagram media container creation failed');
       if (isVideo) {
