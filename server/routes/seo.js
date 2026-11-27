@@ -88,7 +88,7 @@ const metaTags = ({ canonical, title, description, image, imageAlt = title, type
   ];
   if (image) {
     const path = new URL(image).pathname.toLowerCase();
-    const imageType = path.endsWith('.png') ? 'image/png' : path.endsWith('.gif') ? 'image/gif' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+    const isCloudinaryJpeg = image.includes('/f_jpg,');\n    const imageType = isCloudinaryJpeg || path.endsWith('.jpg') || path.endsWith('.jpeg') ? 'image/jpeg' : path.endsWith('.png') ? 'image/png' : path.endsWith('.gif') ? 'image/gif' : path.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
     tags.push('<meta property="og:image" content="' + esc(image) + '">');
     tags.push('<meta property="og:image:secure_url" content="' + esc(image) + '">');
     tags.push('<meta property="og:image:type" content="' + imageType + '">');
@@ -202,7 +202,7 @@ export async function decorateHtml(html, pathname) {
       out = out.replace(/<\/body>/i, section + '</body>');
     }
   }
-  const tags = metaTags({ canonical, title, description, image: socialImageUrl(image), imageAlt: title, type, jsonLd, publishedTime: found?.kind === 'article' ? found.row.published_at : undefined, modifiedTime: found?.kind === 'article' ? (found.row.updated_at || found.row.published_at) : undefined });
+  const tags = metaTags({ canonical, title, description, image: socialImageUrl(image), imageAlt: found?.kind === 'article' ? found.row.title : title, type, jsonLd, publishedTime: found?.kind === 'article' ? found.row.published_at : undefined, modifiedTime: found?.kind === 'article' ? (found.row.updated_at || found.row.published_at) : undefined });
   out = out.replace(/<title[^>]*>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
   if (/<meta\s+name=["']description["']/i.test(out)) out = out.replace(/<meta\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + esc(description) + '">');
   else out = out.replace(/<\/head>/i, '<meta name="description" content="' + esc(description) + '">\n</head>');
