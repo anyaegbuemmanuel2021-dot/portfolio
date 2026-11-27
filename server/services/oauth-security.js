@@ -34,7 +34,7 @@ export function decryptOAuthToken(value, secret = config.authSecret) {
 
 export function oauthSecurity(db, { secret = config.authSecret, clock = now } = {}) {
   const keyForState = (provider, state) => {
-    if (!/^[a-z][a-z0-9_-]{1,30}$/.test(String(provider || ''))) throw new Error('Invalid OAuth provider');
+    if (!/^[a-z][a-z0-9_-]{0,30}$/.test(String(provider || ''))) throw new Error('Invalid OAuth provider');
     return 'oauth_state_' + provider + '_' + createHash('sha256').update(String(state || '')).digest('hex');
   };
   const set = async (key, value) => db.query(
