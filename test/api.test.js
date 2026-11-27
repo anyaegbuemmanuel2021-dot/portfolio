@@ -120,7 +120,7 @@ test('published articles create idempotent social drafts for all three platforms
   }
   const summary = await api('GET', '/api/social/summary');
   assert.equal(summary.j.data.automatic_delivery, false);
-  assert.deepEqual(summary.j.data.connections.map(x => x.platform), ['facebook', 'instagram', 'linkedin']);
+  assert.deepEqual(summary.j.data.connections.map(x => x.platform), ['facebook', 'instagram', 'linkedin', 'x', 'tiktok']);
   for (const connection of summary.j.data.connections) {
     assert.equal(typeof connection.connected, 'boolean');
     assert.ok(Array.isArray(connection.missing));

@@ -120,9 +120,10 @@ export function createApp({ log, db }) {
           }
           const out = await r.handler(ctx);
           if (out && out.__raw) { res.writeHead(out.status || 200, { ...out.headers, ...(ctx.setCookies.length ? { 'Set-Cookie': ctx.setCookies } : {}) }); return res.end(out.body); }
-          // Explicit response envelopes may include endpoint-specific sibling metadata.
-          // Preserve those fields and the requested HTTP status instead of silently
-          // downgrading extended responses to 200.
+          // Treat any object carrying data + status as an explicit response envelope.
+          // Some endpoints also return sibling metadata (for example social publish
+          // results); the previous allowlist silently downgraded those responses to 200
+          // and wrapped the entire object as data.
           const env = out && typeof out === 'object' && 'data' in out && ('status' in out || Object.keys(out).every(k => ['data', 'meta', 'headers'].includes(k)));
           if (env) {
             const { status = 200, headers, ...payload } = out;

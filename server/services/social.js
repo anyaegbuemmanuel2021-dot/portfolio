@@ -3,7 +3,8 @@ import { HttpError } from '../lib/validate.js';
 import { config } from '../config.js';
 
 const now = () => new Date().toISOString();
-const platforms = ['facebook', 'instagram', 'linkedin'];
+const platforms = ['facebook', 'instagram', 'linkedin', 'x', 'tiktok'];
+const outboxPlatforms = ['facebook', 'instagram', 'linkedin'];
 const clean = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const firstImage = html => { const match = String(html || '').match(/<img\b[^>]*?src=["']([^"']+)["']/i); return match ? match[1] : null; };
 const tags = value => (Array.isArray(value) ? value : []).map(t => String(t.name || t).replace(/[^\p{L}\p{N}_]/gu, '')).filter(Boolean).slice(0, 5).map(t => '#' + t).join(' ');
@@ -25,7 +26,7 @@ export function socialService(db, { linkedin } = {}) {
     const tagRows = (await db.query('SELECT t.name FROM article_tags t JOIN article_tag_assignments x ON x.tag_id=t.id WHERE x.article_id=$1 ORDER BY t.name', [articleId])).rows;
     article.tags = tagRows;
     const created = [];
-    for (const platform of platforms) {
+    for (const platform of outboxPlatforms) {
       const id = randomUUID(), t = now();
       const result = await db.query(
         'INSERT INTO social_posts (id,article_id,platform,caption,link_url,media_url,media_kind,audio_status,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,$9,$9) ON CONFLICT (article_id,platform) DO NOTHING',
@@ -37,19 +38,33 @@ export function socialService(db, { linkedin } = {}) {
   }
 
   async function connections() {
-    const checks = [
-      { platform: 'facebook', required: ['FACEBOOK_PAGE_ID', 'FACEBOOK_PAGE_ACCESS_TOKEN'], permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page; a personal profile alone cannot be used for Page publishing.' },
-      { platform: 'instagram', required: ['INSTAGRAM_BUSINESS_ACCOUNT_ID', 'INSTAGRAM_ACCESS_TOKEN'], permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'], note: 'Use an Instagram Professional account linked to a Facebook Page. Reels publishing needs a publicly reachable video URL.' },
+    const providers = [
+      { platform: 'facebook', appKeys: ['META_APP_ID', 'FACEBOOK_APP_ID'], secretKeys: ['META_APP_SECRET', 'FACEBOOK_APP_SECRET'], permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page through Meta OAuth. A personal profile alone cannot publish to a Page.' },
+      { platform: 'instagram', appKeys: ['META_APP_ID', 'FACEBOOK_APP_ID'], secretKeys: ['META_APP_SECRET', 'FACEBOOK_APP_SECRET'], permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'], note: 'Connect an Instagram Professional account linked to a Facebook Page. Media publishing requires publicly reachable media.' },
+      { platform: 'x', appKeys: ['X_CLIENT_ID'], secretKeys: ['X_CLIENT_SECRET'], permissions: ['users.read', 'tweet.read', 'tweet.write', 'offline.access'], note: 'Connect an X account using OAuth 2.0 with PKCE. Publishing remains approval-gated.' },
+      { platform: 'tiktok', appKeys: ['TIKTOK_CLIENT_KEY'], secretKeys: ['TIKTOK_CLIENT_SECRET'], permissions: ['user.info.basic', 'video.publish', 'video.upload'], note: 'Connect a TikTok account using Login Kit. Direct publishing may require TikTok app review and approved scopes.' },
     ];
-    const rows = checks.map(item => {
-      const missing = item.required.filter(key => !process.env[key]);
-      return { platform: item.platform, connected: missing.length === 0, missing, permissions: item.permissions, note: item.note };
-    });
+    const rows = [];
+    for (const item of providers) {
+      const setting = async key => (await db.query('SELECT value FROM site_settings WHERE key=$1', [key])).rows[0]?.value || null;
+      const [token, accountId] = await Promise.all([
+        setting('oauth_' + item.platform + '_access_token_enc'),
+        setting('oauth_' + item.platform + '_account_id'),
+      ]);
+      const appId = item.appKeys.some(key => Boolean(process.env[key]));
+      const appSecret = item.secretKeys.some(key => Boolean(process.env[key]));
+      const missing = [];
+      if (!appId) missing.push(item.appKeys[0]);
+      if (!appSecret) missing.push(item.secretKeys[0]);
+      if (!token || !accountId) missing.push('Complete account authorization');
+      rows.push({ platform: item.platform, configured: appId && appSecret, connected: Boolean(token && accountId), missing, permissions: item.permissions, note: item.note });
+    }
     const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
-    rows.push({
-      platform: 'linkedin', connected: li.connected, missing: li.configured ? [] : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
+    rows.splice(2, 0, {
+      platform: 'linkedin', configured: li.configured, connected: li.connected,
+      missing: li.configured ? (li.connected ? [] : ['Complete LinkedIn authorization']) : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
       permissions: ['w_member_social', 'openid', 'profile'],
-      note: 'Personal LinkedIn profile publishing. Connect securely with LinkedIn OAuth; no company-page permission is used.',
+      note: 'Personal LinkedIn profile publishing. Existing LinkedIn OAuth connection is preserved.',
     });
     return rows;
   }
