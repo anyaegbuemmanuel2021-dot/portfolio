@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { HttpError } from '../lib/validate.js';
 import { oauthSecurity } from './oauth-security.js';
 
-const META_VERSION = process.env.META_GRAPH_VERSION || 'v23.0';
+const META_VERSION = process.env.META_GRAPH_VERSION || 'v27.0';
 const callbacks = {
   facebook: process.env.META_FACEBOOK_REDIRECT_URI || config.siteUrl + '/api/integrations/facebook/callback',
   instagram: process.env.META_INSTAGRAM_REDIRECT_URI || config.siteUrl + '/api/integrations/instagram/callback',
