@@ -16,8 +16,9 @@ function memoryDb() {
         return { rowCount: rows.has(params[0]) ? 1 : 0, rows: rows.has(params[0]) ? [{ value: rows.get(params[0]) }] : [] };
       }
       if (sql.startsWith('DELETE FROM site_settings')) {
+        const value = rows.get(params[0]);
         const existed = rows.delete(params[0]);
-        return { rowCount: existed ? 1 : 0, rows: [] };
+        return { rowCount: existed ? 1 : 0, rows: sql.includes('RETURNING value') && existed ? [{ value }] : [] };
       }
       throw new Error('Unexpected SQL: ' + sql);
     },
