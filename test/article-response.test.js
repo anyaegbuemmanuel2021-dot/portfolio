@@ -38,6 +38,9 @@ test('article creation returns the created article payload', async () => {
     const body = await response.json();
     assert.equal(response.status, 201, JSON.stringify(body));
     assert.equal(body.data?.slug, 'diagnostic-article', JSON.stringify(body));
+    const legacyLink = await fetch(base + '/blog/diagnostic-article', { redirect: 'manual' });
+    assert.equal(legacyLink.status, 301);
+    assert.equal(legacyLink.headers.get('location'), '/articles/diagnostic-article');
   } finally {
     await new Promise(resolve => server.close(resolve));
     await db.close();
