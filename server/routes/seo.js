@@ -143,7 +143,7 @@ export async function decorateHtml(html, pathname) {
     const a = found.row;
     title = clip((a.seo_title || a.title) + ' | Anyaegbu Emmanuel', 60);
     description = metaDescription(a.seo_description, a.excerpt || cleanText(a.content_html).slice(0, 500));
-    canonical = validUrl(a.canonical_url) || canonical;
+    canonical = validUrl(a.canonical_url) || canonicalUrl(base, '/articles/' + encodeURIComponent(a.slug));
     image = imageUrl(a.featured_image_url, base);
     type = 'article';
     jsonLd = { '@context': 'https://schema.org', '@type': 'Article', headline: cleanText(a.title), description, articleBody: cleanText(a.content_html).slice(0, 5000) || undefined, mainEntityOfPage: canonical, datePublished: a.published_at || undefined, dateModified: a.updated_at || a.published_at || undefined, image: image ? [image] : undefined, author: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' }, publisher: { '@type': 'Person', name: 'Anyaegbu Emmanuel Ikenna' } };
