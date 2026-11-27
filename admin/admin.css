@@ -61,3 +61,12 @@ td.actions{white-space:nowrap}
 .password-toggle{position:absolute;right:.35rem;top:50%;transform:translateY(-50%);width:2.5rem;height:2.5rem;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
 .password-toggle:hover{color:var(--gold);background:var(--panel2)}
 .password-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
+
+/* Social publishing: keep provider metadata, callback URLs and controls within narrow phones. */
+.social-publishing,.social-publishing *{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.social-publishing .cards{grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr))}
+.social-publishing .panel{width:100%;min-width:0}
+.social-publishing .row{max-width:100%}
+.social-publishing textarea,.social-publishing input,.social-publishing select{width:100%;min-width:0}
+.social-publishing .badge{white-space:normal}
