@@ -122,7 +122,7 @@ test('Cloudinary article social previews use a public 1200x630 JPEG with complet
     assert.match(html, /property="og:image:secure_url"/);
     assert.match(html, /property="og:image:alt" content="Search Ready Article"/);
     assert.match(html, /"author":\{"@type":"Person","name":"Anyaegbu Emmanuel Ikenna"\}/);
-    assert.match(html, /<div class="article__meta">Nov 1, 2026 · By Anyaegbu Emmanuel Ikenna<\/div>/);
+    assert.match(html, /<div class="article__meta">2026-11-01 · By Anyaegbu Emmanuel Ikenna<\/div>/);
     assert.match(html, /name="twitter:card" content="summary_large_image"/);
     assert.match(html, /property="article:published_time"/);
     assert.match(html, /property="article:modified_time"/);
