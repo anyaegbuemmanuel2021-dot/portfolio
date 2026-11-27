@@ -156,6 +156,16 @@ export function socialOAuthService(db) {
   }
   async function disconnect(provider) { if (!providerKeys[provider]) throw new HttpError(404, 'Unknown social provider'); await remove(provider); if (provider === 'facebook') await remove('instagram'); return { disconnected: true }; }
 
+  async function creatorInfo() {
+    const token = await accessToken('tiktok');
+    const response = await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json; charset=UTF-8' },
+      body: '{}', signal: AbortSignal.timeout(15000),
+    });
+    const data = await safeJson(response);
+    if (!response.ok || data.error?.code && data.error.code !== 'ok') throw new Error(data.error?.message || 'TikTok creator settings could not be retrieved');
+    return data.data || {};
+  }
   async function publishStatus(provider, providerPostId) {
     if (provider !== 'tiktok' || !providerPostId) throw new HttpError(400, 'No asynchronous provider receipt is available for this post.');
     const token = await accessToken(provider);
@@ -168,7 +178,7 @@ export function socialOAuthService(db) {
     const status = data.data?.status || 'PROCESSING';
     return { status, detail: data.data?.fail_reason || null, url: data.data?.share_url || null, published: status === 'PUBLISH_COMPLETE', failed: status === 'FAILED' };
   }
-  async function publish(provider, { caption, mediaUrl, linkUrl }) {
+  async function publish(provider, { caption, mediaUrl, linkUrl, privacyLevel }) {
     const token = await accessToken(provider);
     const text = String(caption || '').trim().slice(0, provider === 'x' ? 280 : provider === 'tiktok' ? 150 : 2200);
     if (provider === 'facebook') {
@@ -203,11 +213,14 @@ export function socialOAuthService(db) {
     if (provider === 'tiktok') {
       const video = validMedia(mediaUrl);
       if (!video) throw new HttpError(422, 'TikTok publishing requires a publicly reachable HTTPS video URL.');
-      const response = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify({ post_info: { title: text.slice(0, 150), privacy_level: 'PUBLIC_TO_EVERYONE', disable_comment: false, disable_duet: false, disable_stitch: false }, source_info: { source: 'PULL_FROM_URL', video_url: video } }), signal: AbortSignal.timeout(30000) });
+      const creator = await creatorInfo();
+      const allowedPrivacy = Array.isArray(creator.privacy_level_options) ? creator.privacy_level_options : [];
+      if (!privacyLevel || !allowedPrivacy.includes(privacyLevel)) throw new HttpError(422, 'Choose one of the privacy options returned by TikTok before publishing.');
+      const response = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify({ post_info: { title: text.slice(0, 150), privacy_level: privacyLevel, disable_comment: false, disable_duet: false, disable_stitch: false }, source_info: { source: 'PULL_FROM_URL', video_url: video } }), signal: AbortSignal.timeout(30000) });
       const data = await safeJson(response); if (!response.ok || data.error?.code && data.error.code !== 'ok') throw new Error(data.error?.message || 'TikTok publish initialization failed');
       return { id: data.data?.publish_id || null, url: null, pending: true, message: 'TikTok accepted the upload request; check Creator Inbox for final processing status.' };
     }
     throw new HttpError(404, 'Unsupported social platform');
   }
-  return { start, complete, status, disconnect, publish, publishStatus, callbacks };
+  return { start, complete, status, disconnect, publish, publishStatus, creatorInfo, callbacks };
 }
