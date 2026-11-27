@@ -265,20 +265,39 @@ export function mediaService(db, storage) {
   const svc = {
     // Migrate existing references to stable same-origin URLs without moving or deleting stored objects.
     async repairPublicUrls() {
-      const rows = (await db.query('SELECT id, url, storage_key, variants FROM media_files WHERE storage_key IS NOT NULL AND storage_provider = $1', [storage.name])).rows;
+      // Older local uploads used /media/<key>. After switching to object
+      // storage that static route is no longer mounted. Repair legacy
+      // references to the stable same-origin media endpoint.
+      const rows = (await db.query('SELECT id, url, storage_key, storage_provider, variants FROM media_files WHERE storage_key IS NOT NULL AND storage_provider IN ($1, $2)', [storage.name, 'local'])).rows;
+      const localUrl = key => '/api/media/file?key=' + encodeURIComponent(key);
+      const repairLegacyUrl = value => {
+        if (typeof value !== 'string' || !value) return value;
+        try {
+          const parsed = new URL(value, 'https://portfolio.invalid');
+          if (parsed.pathname.startsWith('/media/')) return localUrl(decodeURIComponent(parsed.pathname.slice('/media/'.length)));
+          if (parsed.pathname === '/api/media/file' && parsed.searchParams.has('key')) return localUrl(parsed.searchParams.get('key'));
+        } catch {}
+        return value;
+      };
       let repaired = 0;
       for (const row of rows) {
-        const nextUrl = storage.publicUrl(row.storage_key);
-        if (row.url === nextUrl) continue;
+        const nextUrl = row.storage_provider === 'local' ? localUrl(row.storage_key) : storage.publicUrl(row.storage_key);
+        let variants = [];
+        try { variants = Array.isArray(row.variants) ? row.variants : JSON.parse(row.variants || '[]'); } catch { variants = []; }
+        const nextVariants = variants.map(v => ({ ...v, url: repairLegacyUrl(v.url) }));
+        const variantsChanged = JSON.stringify(nextVariants) !== JSON.stringify(variants);
+        if (row.url === nextUrl && !variantsChanged) continue;
         await db.tx(async tx => {
-          await tx.query('UPDATE media_files SET url = $1 WHERE id = $2', [nextUrl, row.id]);
-          await tx.query('UPDATE articles SET featured_image_url = $1 WHERE featured_image_url = $2', [nextUrl, row.url]);
-          await tx.query('UPDATE article_images SET url = $1 WHERE url = $2', [nextUrl, row.url]);
-          await tx.query('UPDATE articles SET content_md = REPLACE(content_md, $1, $2), content_html = REPLACE(content_html, $1, $2) WHERE content_md LIKE $3 OR content_html LIKE $3', [row.url, nextUrl, `%${row.url}%`]);
-          await tx.query('UPDATE article_revisions SET content_md = REPLACE(content_md, $1, $2) WHERE content_md LIKE $3', [row.url, nextUrl, `%${row.url}%`]);
-          await tx.query('UPDATE biography SET photo_url = $1 WHERE photo_url = $2', [nextUrl, row.url]);
-          await tx.query('UPDATE project_images SET url = $1 WHERE url = $2', [nextUrl, row.url]);
-          if (row.variants) await tx.query('UPDATE media_files SET variants = REPLACE(variants, $1, $2) WHERE id = $3', [row.url, nextUrl, row.id]);
+          if (row.url !== nextUrl) {
+            await tx.query('UPDATE media_files SET url = $1 WHERE id = $2', [nextUrl, row.id]);
+            await tx.query('UPDATE articles SET featured_image_url = $1 WHERE featured_image_url = $2', [nextUrl, row.url]);
+            await tx.query('UPDATE article_images SET url = $1 WHERE url = $2', [nextUrl, row.url]);
+            await tx.query('UPDATE articles SET content_md = REPLACE(content_md, $1, $2), content_html = REPLACE(content_html, $1, $2) WHERE content_md LIKE $3 OR content_html LIKE $3', [row.url, nextUrl, `%${row.url}%`]);
+            await tx.query('UPDATE article_revisions SET content_md = REPLACE(content_md, $1, $2) WHERE content_md LIKE $3', [row.url, nextUrl, `%${row.url}%`]);
+            await tx.query('UPDATE biography SET photo_url = $1 WHERE photo_url = $2', [nextUrl, row.url]);
+            await tx.query('UPDATE project_images SET url = $1 WHERE url = $2', [nextUrl, row.url]);
+          }
+          if (variantsChanged) await tx.query('UPDATE media_files SET variants = $1 WHERE id = $2', [JSON.stringify(nextVariants), row.id]);
         });
         repaired++;
       }
