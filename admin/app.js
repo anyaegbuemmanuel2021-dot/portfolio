@@ -7,9 +7,16 @@ session.onExpire = () => { session.admin = null; renderLogin('Your session expir
 // ---------- login / reset ----------
 function renderLogin(note) {
   const reset = (location.hash.match(/^#reset=(.+)$/) || [])[1]; 
-  const email = h('input', { type: 'email', id: 'em', autocomplete: 'username', required: true }), pw = h('input', { type: 'password', id: 'pw', autocomplete: 'current-password', required: true });
+  const email = h('input', { type: 'email', id: 'em', autocomplete: 'username', required: true }), pw = h('input', { type: 'password', id: 'pw', autocomplete: 'current-password', required: true, 'aria-describedby': 'password-visibility-help' });
   const passwordWrap = h('div', { class: 'password-field' }, pw);
-  const togglePassword = h('button', { class: 'password-toggle', type: 'button', 'aria-label': 'Show password', 'aria-pressed': 'false', title: 'Show password', onclick: () => { const visible = pw.type === 'password'; pw.type = visible ? 'text' : 'password'; togglePassword.setAttribute('aria-label', visible ? 'Hide password' : 'Show password'); togglePassword.setAttribute('aria-pressed', String(visible)); togglePassword.title = visible ? 'Hide password' : 'Show password'; togglePassword.innerHTML = visible ? '<i class="fa-solid fa-eye-slash" aria-hidden="true"></i>' : '<i class="fa-solid fa-eye" aria-hidden="true"></i>'; } }, h('i', { class: 'fa-solid fa-eye', 'aria-hidden': 'true' }));
+  const togglePassword = h('button', { class: 'password-toggle', type: 'button', 'aria-label': 'Show password', 'aria-controls': 'pw', 'aria-pressed': 'false', title: 'Show password', onclick: () => {
+    const visible = pw.type === 'password';
+    pw.type = visible ? 'text' : 'password';
+    togglePassword.textContent = visible ? 'Hide' : 'Show';
+    togglePassword.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+    togglePassword.setAttribute('aria-pressed', String(visible));
+    togglePassword.title = visible ? 'Hide password' : 'Show password';
+  } }, 'Show');
   passwordWrap.append(togglePassword);
   const msg = h('div', { class: 'err', role: 'alert' }, note || '');
   if (reset) { const np = h('input', { type: 'password', autocomplete: 'new-password' }); app.replaceChildren(h('div', { class: 'login' }, h('h1', {}, 'Set a new password'), h('label', {}, 'New password (12+ chars, upper, lower, digit)'), np, msg, h('button', { class: 'btn primary', onclick: async () => { try { await api('POST', '/auth/reset', { token: reset, password: np.value }); history.replaceState(null, '', '/admin/'); toast('Password updated. Sign in.', 'ok'); renderLogin(); } catch (e) { msg.textContent = e.message; } } }, 'Update password'))); return; }
