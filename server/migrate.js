@@ -15,7 +15,16 @@ export async function migrate(db, log = console.log) {
   const st = await migrationStatus(db); if (st.drift.length) throw new Error('Migration checksum drift: ' + st.drift.join(', '));
   for (const m of st.pending) {
     await db.tx(async t => {
-      for (const stmt of m.sql.split(/;\s*\n/).map(s => s.replace(/^(\s*--.*\n)+/g, '').trim()).filter(Boolean)) await t.exec(stmt);
+      for (const stmt of m.sql.split(/;\s*\n/).map(s => s.replace(/^(\s*--.*\n)+/g, '').trim()).filter(Boolean)) {
+        // SQLite does not support PostgreSQL's ADD COLUMN IF NOT EXISTS syntax.
+        const addColumn = t.dialect === 'sqlite' && stmt.match(/^ALTER TABLE\s+([a-z_][a-z0-9_]*)\s+ADD COLUMN IF NOT EXISTS\s+([a-z_][a-z0-9_]*\s+.+)$/i);
+        if (addColumn) {
+          const columns = (await t.query('PRAGMA table_info(' + addColumn[1] + ')')).rows;
+          if (!columns.some(column => column.name === addColumn[2].split(/\s+/, 1)[0])) {
+            await t.exec('ALTER TABLE ' + addColumn[1] + ' ADD COLUMN ' + addColumn[2]);
+          }
+        } else await t.exec(stmt);
+      }
       await t.query('INSERT INTO migration_history (id, version, name, checksum, applied_at) VALUES ($1,$2,$3,$4,$5)', [randomUUID(), m.version, m.name, m.checksum, new Date().toISOString()]);
     });
     log('applied ' + m.name);
