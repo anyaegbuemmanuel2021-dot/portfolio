@@ -103,14 +103,14 @@ test('restoring an article revision invalidates content cache and records an aud
   assert.ok(after.rows[0].admin_id);
   assert.equal(after.rows[0].entity_id, id);
 });
-test('published articles create idempotent social drafts for all three platforms', async () => {
+test('published articles create idempotent social drafts for all five platforms', async () => {
   const a = await api('POST', '/api/admin/articles', { title: 'Social Distribution Test', excerpt: 'A practical guide to shipping better websites.', content_md: '# Social test', status: 'published', tags: ['Web Development', 'Portfolio'] });
   assert.equal(a.s, 201);
   let posts = await api('GET', '/api/social/posts');
   assert.equal(posts.s, 200);
   const matching = posts.j.data.filter(p => p.article_id === a.j.data.id);
-  assert.equal(matching.length, 3);
-  assert.deepEqual(matching.map(p => p.platform).sort(), ['facebook', 'instagram', 'linkedin']);
+  assert.equal(matching.length, 5);
+  assert.deepEqual(matching.map(p => p.platform).sort(), ['facebook', 'instagram', 'linkedin', 'tiktok', 'x']);
   for (const post of matching) {
     assert.match(post.link_url, /\/articles\/social-distribution-test$/);
     assert.match(post.caption, /Social Distribution Test/);
