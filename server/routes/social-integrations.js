@@ -26,6 +26,7 @@ export function socialIntegrationRoutes(app, { oauth, social, auth, db }) {
   }
 
   app.get('/api/social/connections', { auth: 'articles' }, async () => ({ connections: await social.connections() }));
+  app.get('/api/integrations/tiktok/creator-info', { auth: 'articles' }, async () => oauth.creatorInfo());
   app.get('/api/social/posts/:id/status', { auth: 'articles' }, async ctx => {
     const row = (await db.query('SELECT id,platform,status,provider_post_id FROM social_posts WHERE id=$1', [ctx.params.id])).rows[0];
     if (!row) throw new HttpError(404, 'Social post not found');
@@ -51,7 +52,7 @@ export function socialIntegrationRoutes(app, { oauth, social, auth, db }) {
     const claimed = await db.query("UPDATE social_posts SET status='publishing',last_error=NULL,updated_at=$1 WHERE id=$2 AND status='approved' RETURNING id", [new Date().toISOString(), row.id]);
     if (!claimed.rowCount) throw new HttpError(409, 'This post is already being processed or is not approved.');
     try {
-      const result = await oauth.publish(row.platform, { caption: row.caption, mediaUrl: row.media_url || row.featured_image_url, linkUrl: row.link_url });
+      const result = await oauth.publish(row.platform, { caption: row.caption, mediaUrl: row.media_url || row.featured_image_url, linkUrl: row.link_url, privacyLevel: ctx.body?.privacy_level });
       if (result.pending) {
         await db.query("UPDATE social_posts SET status='publishing',provider_post_id=$1,published_url=NULL,last_error=$2,updated_at=$3 WHERE id=$4", [result.id || null, result.message || 'Provider is processing this post.', new Date().toISOString(), row.id]);
         await auth.audit(ctx, 'publish_started', 'social_post', row.id, { platform: row.platform, provider_id: result.id });
