@@ -58,6 +58,24 @@ export function linkedinRedirectUri() {
   return process.env.LINKEDIN_REDIRECT_URI || config.siteUrl + CALLBACK_PATH;
 }
 
+export function resolveLinkedInThumbnailUrl(imageUrl, siteUrl = config.siteUrl, cloudName = config.storage.cloudinary.cloudName) {
+  if (!imageUrl) return null;
+  const source = new URL(String(imageUrl), siteUrl);
+  const site = new URL(siteUrl);
+  const sameSite = source.origin === site.origin;
+  const cloudinaryPath = cloudName ? '/' + cloudName + '/image/upload/' : null;
+  const isCloudinary = source.protocol === 'https:' && source.hostname === 'res.cloudinary.com'
+    && cloudinaryPath && source.pathname.includes(cloudinaryPath);
+  if (source.protocol !== 'https:' || source.username || source.password || (!sameSite && !isCloudinary)) {
+    throw new Error('LinkedIn thumbnail must be a public HTTPS image on this portfolio or its configured Cloudinary account.');
+  }
+  // Cloudinary-hosted portfolio images are often stored as WebP. LinkedIn's
+  // image upload endpoint does not accept WebP, so request a JPEG rendition
+  // directly from Cloudinary without changing the stored original.
+  if (isCloudinary) source.pathname = source.pathname.replace(cloudinaryPath, cloudinaryPath + 'f_jpg,q_auto/');
+  return source.href;
+}
+
 export function linkedinService(db) {
   const get = async key => (await db.query('SELECT value FROM site_settings WHERE key=$1', [TOKEN_KEY_PREFIX + key])).rows[0]?.value ?? null;
   const set = async (key, value) => db.query(
@@ -142,25 +160,7 @@ export function linkedinService(db) {
   }
 
 
-  export function resolveLinkedInThumbnailUrl(imageUrl, siteUrl = config.siteUrl, cloudName = config.storage.cloudinary.cloudName) {
-  if (!imageUrl) return null;
-  const source = new URL(String(imageUrl), siteUrl);
-  const site = new URL(siteUrl);
-  const sameSite = source.origin === site.origin;
-  const cloudinaryPath = cloudName ? '/' + cloudName + '/image/upload/' : null;
-  const isCloudinary = source.protocol === 'https:' && source.hostname === 'res.cloudinary.com'
-    && cloudinaryPath && source.pathname.includes(cloudinaryPath);
-  if (source.protocol !== 'https:' || source.username || source.password || (!sameSite && !isCloudinary)) {
-    throw new Error('LinkedIn thumbnail must be a public HTTPS image on this portfolio or its configured Cloudinary account.');
-  }
-  // Cloudinary-hosted portfolio images are often stored as WebP. LinkedIn's
-  // image upload endpoint does not accept WebP, so request a JPEG rendition
-  // directly from Cloudinary without changing the stored original.
-  if (isCloudinary) source.pathname = source.pathname.replace(cloudinaryPath, cloudinaryPath + 'f_jpg,q_auto/');
-  return source.href;
-}
-
-async function uploadArticleThumbnail(accessToken, author, imageUrl) {
+  async function uploadArticleThumbnail(accessToken, author, imageUrl) {
     if (!imageUrl) return null;
     const sourceUrl = resolveLinkedInThumbnailUrl(imageUrl);
     const imageResponse = await fetch(sourceUrl, { signal: AbortSignal.timeout(15000), redirect: 'follow' });
