@@ -1,3 +1,7 @@
 -- Give every portfolio article a stable, visible author identity.
--- This single ADD COLUMN form is supported by both PostgreSQL and SQLite.
-ALTER TABLE articles ADD COLUMN author_name TEXT NOT NULL DEFAULT 'Anyaegbu Emmanuel Ikenna';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS author_name TEXT;
+UPDATE articles
+SET author_name = 'Anyaegbu Emmanuel Ikenna'
+WHERE author_name IS NULL OR trim(author_name) = '';
+ALTER TABLE articles ALTER COLUMN author_name SET DEFAULT 'Anyaegbu Emmanuel Ikenna';
+ALTER TABLE articles ALTER COLUMN author_name SET NOT NULL;
