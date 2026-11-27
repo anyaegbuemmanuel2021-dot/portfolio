@@ -244,10 +244,15 @@ export function socialPostsView() {
       ...connectionCards,
       h('div', { class: 'row' }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
       h('p', { class: 'muted' }, li.auto_post_enabled ? 'Automatic LinkedIn publishing is ON. Newly published articles are posted to your personal profile. Drafts are never posted. Facebook and Instagram remain in the manual review outbox.' : 'Automatic LinkedIn publishing is paused. Connect your account and enable automatic posting to publish future public articles.'));
+    let tiktokPrivacyOptions = [];
+    if (p.data.some(post => post.platform === 'tiktok' && post.status === 'approved')) {
+      try { const creator = (await api('GET', '/integrations/tiktok/creator-info')).data; tiktokPrivacyOptions = creator.privacy_level_options || []; } catch { /* The publish endpoint will report missing authorization. */ }
+    }
     list.replaceChildren(p.data.length ? p.data.map(post => {
       const caption = h('textarea', { rows: 6, 'aria-label': post.platform + ' caption' }); caption.value = post.caption;
       const media = h('input', { type: 'url', placeholder: 'HTTPS social video URL', 'aria-label': 'Social video URL' }); media.value = post.media_url || '';
       const status = h('span', { class: 'badge' }, post.status);
+      const privacy = post.platform === 'tiktok' ? h('select', { 'aria-label': 'TikTok audience', required: true }, [h('option', { value: '' }, 'Choose TikTok audience'), ...tiktokPrivacyOptions.map(value => h('option', { value }, value.replaceAll('_', ' ').toLowerCase()))]) : null;
       const save = async next => {
         try {
           const updated = await api('PATCH', '/social/posts/' + post.id, { caption: caption.value, ...(post.platform === 'linkedin' ? {} : { media_url: media.value }), ...(next ? { status: next } : {}) });
@@ -265,7 +270,7 @@ export function socialPostsView() {
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => save(null) }, 'Save draft'),
           post.platform !== 'linkedin' && post.status !== 'approved' ? h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Approve draft') : null,
-          post.platform !== 'linkedin' && post.status === 'approved' ? h('button', { class: 'btn primary', onclick: async () => { if (!await confirmBox('Publish this approved post to ' + post.platform + '? This sends it to the connected account.', 'Publish now')) return; try { const r = await api('POST', '/social/posts/' + post.id + '/publish', {}); toast(r.data.pending ? 'Provider accepted the post; processing is pending.' : 'Post published successfully.', 'ok'); await load(); } catch (e) { toast(e.message || 'Publishing failed', 'bad'); await load(); } } }, 'Publish now') : null,
+          post.platform !== 'linkedin' && post.status === 'approved' ? h('button', { class: 'btn primary', onclick: async () => { if (!await confirmBox('Publish this approved post to ' + post.platform + '? This sends it to the connected account.', 'Publish now')) return; try { const r = await api('POST', '/social/posts/' + post.id + '/publish', { ...(privacy ? { privacy_level: privacy.value } : {}) }); toast(r.data.pending ? 'Provider accepted the post; processing is pending.' : 'Post published successfully.', 'ok'); await load(); } catch (e) { toast(e.message || 'Publishing failed', 'bad'); await load(); } } }, 'Publish now') : null,
           post.platform === 'tiktok' && post.status === 'publishing' ? h('button', { class: 'btn', onclick: async () => { try { const r = await api('GET', '/social/posts/' + post.id + '/status'); toast(r.data.message || ('TikTok status: ' + r.data.status), r.data.status === 'failed' ? 'bad' : 'ok'); await load(); } catch (e) { toast(e.message || 'Could not check TikTok status', 'bad'); } } }, 'Check TikTok status') : null,
           post.platform === 'linkedin' && post.status === 'failed' ? h('button', { class: 'btn primary', onclick: async () => { try { const r = await api('POST', '/social/posts/' + post.id + '/retry', {}); toast('LinkedIn retry status: ' + r.data.status, r.data.status === 'published' ? 'ok' : 'bad'); await load(); } catch (e) { toast(e.message, 'bad'); } } }, 'Retry LinkedIn post') : null,
           post.platform !== 'linkedin' ? h('button', { class: 'btn', onclick: () => save('paused') }, 'Pause') : null));
