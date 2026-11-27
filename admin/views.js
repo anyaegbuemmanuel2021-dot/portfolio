@@ -235,13 +235,21 @@ export function socialPostsView() {
         h('p', { class: 'help' }, 'Callback URL: ' + (connection.callback_url || 'Set provider credentials to activate the callback.')),
         h('p', { class: 'help' }, 'Required permissions: ' + connection.permissions.join(', ')),
         h('div', { class: 'row' },
-          connection.configured ? h('button', { class: 'btn primary', onclick: () => { location.href = '/api/integrations/' + connection.platform + '/connect'; } }, connection.connected ? 'Reconnect ' + connection.platform : 'Connect ' + connection.platform) : null,
+          h('button', { class: 'btn primary', disabled: !connection.configured, title: connection.configured ? 'Authorize this account with the provider' : 'Add the provider credentials in Render first', onclick: () => { if (connection.configured) location.href = '/api/integrations/' + connection.platform + '/connect'; } }, connection.connected ? 'Reconnect ' + connection.platform : connection.configured ? 'Connect ' + connection.platform : 'Connect ' + connection.platform + ' — setup required'),
           connection.connected ? h('button', { class: 'btn danger', onclick: async () => { if (await confirmBox('Disconnect ' + connection.platform + '? Publishing will stop until reconnected.', 'Disconnect')) { try { await api('POST', '/integrations/' + connection.platform + '/disconnect', {}); toast(connection.platform + ' disconnected', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } } }, 'Disconnect') : null));
     });
     summary.replaceChildren(h('h2', {}, 'Social publishing status'),
       h('div', { class: 'cards' }, platforms),
       h('h3', {}, 'Account connections'),
       ...connectionCards,
+      h('div', { class: 'notice' },
+        h('strong', {}, 'Facebook and Instagram connection setup'),
+        h('p', {}, 'Create one Meta Business app, add Facebook Login, and configure the two callback URLs below. Store the App ID and App Secret only in Render environment variables — never in browser code or GitHub.'),
+        h('p', {}, 'Facebook callback: ' + ((data.connections || []).find(x => x.platform === 'facebook')?.callback_url || 'https://anyaegbu-emmanuel.onrender.com/api/integrations/facebook/callback')),
+        h('p', {}, 'Instagram callback: ' + ((data.connections || []).find(x => x.platform === 'instagram')?.callback_url || 'https://anyaegbu-emmanuel.onrender.com/api/integrations/instagram/callback')),
+        h('p', {}, 'Render variables: META_APP_ID and META_APP_SECRET. Instagram publishing requires a Business or Creator account linked to a Facebook Page for this login method.'),
+        h('p', {}, h('a', { href: 'https://developers.facebook.com/apps/', target: '_blank', rel: 'noopener noreferrer' }, 'Open Meta for Developers')),
+        h('p', {}, 'Permissions requested: pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish. Meta may require App Review and Advanced Access before accounts outside your app roles can connect.')),
       h('div', { class: 'row' }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
       h('p', { class: 'muted' }, li.auto_post_enabled ? 'Automatic LinkedIn publishing is ON. Newly published articles are posted to your personal profile. Drafts are never posted. Facebook and Instagram remain in the manual review outbox.' : 'Automatic LinkedIn publishing is paused. Connect your account and enable automatic posting to publish future public articles.'));
     let tiktokPrivacyOptions = [];
