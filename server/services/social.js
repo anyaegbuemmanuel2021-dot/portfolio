@@ -3,7 +3,8 @@ import { HttpError } from '../lib/validate.js';
 import { config } from '../config.js';
 
 const now = () => new Date().toISOString();
-const platforms = ['facebook', 'instagram', 'linkedin'];
+const platforms = ['facebook', 'instagram', 'linkedin', 'x', 'tiktok'];
+const outboxPlatforms = ['facebook', 'instagram', 'linkedin', 'x', 'tiktok'];
 const clean = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const firstImage = html => { const match = String(html || '').match(/<img\b[^>]*?src=["']([^"']+)["']/i); return match ? match[1] : null; };
 const tags = value => (Array.isArray(value) ? value : []).map(t => String(t.name || t).replace(/[^\p{L}\p{N}_]/gu, '')).filter(Boolean).slice(0, 5).map(t => '#' + t).join(' ');
@@ -17,7 +18,7 @@ function captionFor(platform, article, url) {
   return [title, excerpt, 'Read the full article:', url, hashtags].filter(Boolean).join('\n\n');
 }
 
-export function socialService(db, { linkedin } = {}) {
+export function socialService(db, { linkedin, oauth } = {}) {
   async function enqueueArticle(articleId) {
     const article = (await db.query("SELECT id,title,slug,excerpt,content_html,featured_image_url,canonical_url,status FROM articles WHERE id = $1", [articleId])).rows[0];
     if (!article || article.status !== 'published') return [];
@@ -25,7 +26,7 @@ export function socialService(db, { linkedin } = {}) {
     const tagRows = (await db.query('SELECT t.name FROM article_tags t JOIN article_tag_assignments x ON x.tag_id=t.id WHERE x.article_id=$1 ORDER BY t.name', [articleId])).rows;
     article.tags = tagRows;
     const created = [];
-    for (const platform of platforms) {
+    for (const platform of outboxPlatforms) {
       const id = randomUUID(), t = now();
       const result = await db.query(
         'INSERT INTO social_posts (id,article_id,platform,caption,link_url,media_url,media_kind,audio_status,status,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,NULL,$6,$7,$8,$9,$9) ON CONFLICT (article_id,platform) DO NOTHING',
@@ -37,20 +38,23 @@ export function socialService(db, { linkedin } = {}) {
   }
 
   async function connections() {
-    const checks = [
-      { platform: 'facebook', required: ['FACEBOOK_PAGE_ID', 'FACEBOOK_PAGE_ACCESS_TOKEN'], permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page; a personal profile alone cannot be used for Page publishing.' },
-      { platform: 'instagram', required: ['INSTAGRAM_BUSINESS_ACCOUNT_ID', 'INSTAGRAM_ACCESS_TOKEN'], permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list', 'pages_read_engagement'], note: 'Use an Instagram Professional account linked to a Facebook Page. Reels publishing needs a publicly reachable video URL.' },
-    ];
-    const rows = checks.map(item => {
-      const missing = item.required.filter(key => !process.env[key]);
-      return { platform: item.platform, connected: missing.length === 0, missing, permissions: item.permissions, note: item.note };
-    });
-    const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
-    rows.push({
-      platform: 'linkedin', connected: li.connected, missing: li.configured ? [] : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'],
-      permissions: ['w_member_social', 'openid', 'profile'],
-      note: 'Personal LinkedIn profile publishing. Connect securely with LinkedIn OAuth; no company-page permission is used.',
-    });
+    const descriptions = {
+      facebook: { permissions: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'], note: 'Connect a Facebook Page. Personal profiles cannot publish through the Page API.' },
+      instagram: { permissions: ['instagram_basic', 'instagram_content_publish', 'pages_show_list'], note: 'Requires an Instagram Professional account linked to a Facebook Page.' },
+      x: { permissions: ['users.read', 'tweet.read', 'tweet.write', 'offline.access'], note: 'Connect an X account using OAuth 2.0 with PKCE. Posts remain approval-gated.' },
+      tiktok: { permissions: ['user.info.basic', 'video.publish', 'video.upload'], note: 'TikTok direct publishing depends on app review and approved Content Posting API scopes.' },
+    };
+    const rows = [];
+    for (const platform of ['facebook', 'instagram', 'linkedin', 'x', 'tiktok']) {
+      if (platform === 'linkedin') {
+        const li = linkedin ? await linkedin.status() : { connected: false, configured: false };
+        rows.push({ platform, configured: li.configured, connected: li.connected, missing: li.configured ? (li.connected ? [] : ['Complete LinkedIn authorization']) : ['LINKEDIN_CLIENT_ID', 'LINKEDIN_CLIENT_SECRET'], permissions: ['w_member_social', 'openid', 'profile'], note: 'Personal LinkedIn profile publishing. Existing LinkedIn OAuth connection is preserved.', account_name: li.member_name || null, callback_url: li.callback_url });
+      } else {
+        const status = oauth ? await oauth.status(platform) : { platform, configured: false, connected: false };
+        const d = descriptions[platform];
+        rows.push({ ...status, missing: !status.configured ? [platform === 'facebook' || platform === 'instagram' ? 'META_APP_ID / META_APP_SECRET' : platform === 'x' ? 'X_CLIENT_ID / X_CLIENT_SECRET' : 'TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET'] : (status.connected ? [] : ['Complete account authorization']), permissions: d.permissions, note: d.note });
+      }
+    }
     return rows;
   }
 

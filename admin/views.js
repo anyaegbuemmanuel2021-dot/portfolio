@@ -229,10 +229,14 @@ export function socialPostsView() {
           li.connected ? h('button', { class: 'btn danger', onclick: async () => { if (await confirmBox('Disconnect the LinkedIn account? Automatic publishing will stop.', 'Disconnect')) { try { await api('POST', '/integrations/linkedin/disconnect', {}); toast('LinkedIn disconnected', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } } }, 'Disconnect') : null),
         h('p', { class: 'help' }, 'Required LinkedIn products: Share on LinkedIn and Sign In with LinkedIn using OpenID Connect. Permissions: w_member_social, openid, profile.'));
       return h('div', { class: 'panel' },
-        h('div', { class: 'row between' }, h('strong', {}, connection.platform[0].toUpperCase() + connection.platform.slice(1)), badge(connection.connected ? 'configured' : 'not connected')),
+        h('div', { class: 'row between' }, h('strong', {}, connection.platform[0].toUpperCase() + connection.platform.slice(1)), badge(connection.connected ? 'connected' : connection.configured ? 'ready to connect' : 'not configured')),
         h('p', { class: 'help' }, connection.note),
-        h('p', { class: 'help' }, connection.connected ? 'Required environment settings are present.' : 'Missing Render environment settings: ' + connection.missing.join(', ')),
-        h('p', { class: 'help' }, 'Required permissions: ' + connection.permissions.join(', ')));
+        h('p', { class: 'help' }, connection.account_name ? 'Connected account: ' + connection.account_name : (connection.connected ? 'Account authorized.' : 'Missing Render environment settings: ' + connection.missing.join(', '))),
+        h('p', { class: 'help' }, 'Callback URL: ' + (connection.callback_url || 'Set provider credentials to activate the callback.')),
+        h('p', { class: 'help' }, 'Required permissions: ' + connection.permissions.join(', ')),
+        h('div', { class: 'row' },
+          connection.configured ? h('button', { class: 'btn primary', onclick: () => { location.href = '/api/integrations/' + connection.platform + '/connect'; } }, connection.connected ? 'Reconnect ' + connection.platform : 'Connect ' + connection.platform) : null,
+          connection.connected ? h('button', { class: 'btn danger', onclick: async () => { if (await confirmBox('Disconnect ' + connection.platform + '? Publishing will stop until reconnected.', 'Disconnect')) { try { await api('POST', '/integrations/' + connection.platform + '/disconnect', {}); toast(connection.platform + ' disconnected', 'ok'); await load(); } catch (e) { toast(e.message, 'bad'); } } } }, 'Disconnect') : null));
     });
     summary.replaceChildren(h('h2', {}, 'Social publishing status'),
       h('div', { class: 'cards' }, platforms),
@@ -240,10 +244,15 @@ export function socialPostsView() {
       ...connectionCards,
       h('div', { class: 'row' }, ...Object.entries(totals).map(([k, v]) => h('span', { class: 'badge' }, k + ': ' + v))),
       h('p', { class: 'muted' }, li.auto_post_enabled ? 'Automatic LinkedIn publishing is ON. Newly published articles are posted to your personal profile. Drafts are never posted. Facebook and Instagram remain in the manual review outbox.' : 'Automatic LinkedIn publishing is paused. Connect your account and enable automatic posting to publish future public articles.'));
+    let tiktokPrivacyOptions = [];
+    if (p.data.some(post => post.platform === 'tiktok' && post.status === 'approved')) {
+      try { const creator = (await api('GET', '/integrations/tiktok/creator-info')).data; tiktokPrivacyOptions = creator.privacy_level_options || []; } catch { /* The publish endpoint will report missing authorization. */ }
+    }
     list.replaceChildren(p.data.length ? p.data.map(post => {
       const caption = h('textarea', { rows: 6, 'aria-label': post.platform + ' caption' }); caption.value = post.caption;
       const media = h('input', { type: 'url', placeholder: 'HTTPS social video URL', 'aria-label': 'Social video URL' }); media.value = post.media_url || '';
       const status = h('span', { class: 'badge' }, post.status);
+      const privacy = post.platform === 'tiktok' ? h('select', { 'aria-label': 'TikTok audience', required: true }, [h('option', { value: '' }, 'Choose TikTok audience'), ...tiktokPrivacyOptions.map(value => h('option', { value }, value.replaceAll('_', ' ').toLowerCase()))]) : null;
       const save = async next => {
         try {
           const updated = await api('PATCH', '/social/posts/' + post.id, { caption: caption.value, ...(post.platform === 'linkedin' ? {} : { media_url: media.value }), ...(next ? { status: next } : {}) });
@@ -254,13 +263,15 @@ export function socialPostsView() {
         h('div', { class: 'row between' }, h('h2', {}, post.platform[0].toUpperCase() + post.platform.slice(1)), status),
         h('p', { class: 'help' }, 'Article: ' + post.article_title + ' · ' + fmtDate(post.created_at)),
         h('label', {}, 'Post caption'), caption,
-        post.platform === 'linkedin' ? null : h('div', {}, h('label', {}, 'Video asset URL'), media, h('p', { class: 'help' }, 'Video required for the music-backed social format. Audio status: ' + post.audio_status + '.')),
+        post.platform === 'linkedin' || post.platform === 'x' ? null : h('div', {}, h('label', {}, post.platform === 'instagram' ? 'Public HTTPS image or video URL (optional; article image used by default)' : post.platform === 'tiktok' ? 'Public HTTPS video URL (required)' : 'Optional public HTTPS video URL'), media, h('p', { class: 'help' }, post.platform === 'tiktok' ? 'TikTok requires a verified public media domain and approved Content Posting API access.' : post.platform === 'instagram' ? 'Instagram requires a Professional account and a publicly reachable image or video.' : 'Facebook Page posts can publish the article link without a separate media asset.')),
         h('p', { class: 'help' }, 'Article link: ' + post.link_url),
         post.last_error ? h('p', { class: 'err' }, 'Last error: ' + post.last_error) : null,
         post.published_url ? h('p', {}, h('a', { href: post.published_url, target: '_blank', rel: 'noopener noreferrer' }, 'View published LinkedIn post')) : null,
         h('div', { class: 'row' },
           h('button', { class: 'btn', onclick: () => save(null) }, 'Save draft'),
-          post.platform === 'linkedin' ? null : h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Mark ready'),
+          post.platform !== 'linkedin' && post.status !== 'approved' ? h('button', { class: 'btn primary', onclick: () => save('approved') }, 'Approve draft') : null,
+          post.platform !== 'linkedin' && post.status === 'approved' ? h('button', { class: 'btn primary', onclick: async () => { if (!await confirmBox('Publish this approved post to ' + post.platform + '? This sends it to the connected account.', 'Publish now')) return; try { const r = await api('POST', '/social/posts/' + post.id + '/publish', { ...(privacy ? { privacy_level: privacy.value } : {}) }); toast(r.data.pending ? 'Provider accepted the post; processing is pending.' : 'Post published successfully.', 'ok'); await load(); } catch (e) { toast(e.message || 'Publishing failed', 'bad'); await load(); } } }, 'Publish now') : null,
+          post.platform === 'tiktok' && post.status === 'publishing' ? h('button', { class: 'btn', onclick: async () => { try { const r = await api('GET', '/social/posts/' + post.id + '/status'); toast(r.data.message || ('TikTok status: ' + r.data.status), r.data.status === 'failed' ? 'bad' : 'ok'); await load(); } catch (e) { toast(e.message || 'Could not check TikTok status', 'bad'); } } }, 'Check TikTok status') : null,
           post.platform === 'linkedin' && post.status === 'failed' ? h('button', { class: 'btn primary', onclick: async () => { try { const r = await api('POST', '/social/posts/' + post.id + '/retry', {}); toast('LinkedIn retry status: ' + r.data.status, r.data.status === 'published' ? 'ok' : 'bad'); await load(); } catch (e) { toast(e.message, 'bad'); } } }, 'Retry LinkedIn post') : null,
           post.platform !== 'linkedin' ? h('button', { class: 'btn', onclick: () => save('paused') }, 'Pause') : null));
     }) : [h('p', { class: 'muted' }, 'No social drafts yet. Publish an article or use Sync published articles.')]);
@@ -270,7 +281,13 @@ export function socialPostsView() {
   if (params.get('linkedin') === 'connected') toast('LinkedIn account connected successfully', 'ok');
   if (params.get('linkedin') === 'error') toast('LinkedIn connection failed. Check app products, callback URL and credentials.', 'bad');
   if (params.get('linkedin') === 'denied') toast('LinkedIn authorization was cancelled', 'bad');
-  if (params.has('linkedin')) history.replaceState(null, '', '#/social');
+  for (const platform of ['facebook','instagram','x','tiktok']) {
+    if (params.get(platform) === 'connected') toast(platform[0].toUpperCase() + platform.slice(1) + ' account connected successfully', 'ok');
+    if (params.get(platform) === 'needs_setup') toast('Facebook Page connected, but no linked Instagram Professional account was found.', 'bad');
+    if (params.get(platform) === 'error') toast(platform + ' connection failed. Check credentials, app review and callback URL.', 'bad');
+    if (params.get(platform) === 'denied') toast(platform + ' authorization was cancelled', 'bad');
+  }
+  if (params.has('linkedin') || ['facebook','instagram','x','tiktok'].some(k => params.has(k))) history.replaceState(null, '', '#/social');
   load().catch(e => list.replaceChildren(h('p', { class: 'err' }, e.message)));
   return root;
 }

@@ -103,14 +103,14 @@ test('restoring an article revision invalidates content cache and records an aud
   assert.ok(after.rows[0].admin_id);
   assert.equal(after.rows[0].entity_id, id);
 });
-test('published articles create idempotent social drafts for all three platforms', async () => {
+test('published articles create idempotent social drafts for all five platforms', async () => {
   const a = await api('POST', '/api/admin/articles', { title: 'Social Distribution Test', excerpt: 'A practical guide to shipping better websites.', content_md: '# Social test', status: 'published', tags: ['Web Development', 'Portfolio'] });
   assert.equal(a.s, 201);
   let posts = await api('GET', '/api/social/posts');
   assert.equal(posts.s, 200);
   const matching = posts.j.data.filter(p => p.article_id === a.j.data.id);
-  assert.equal(matching.length, 3);
-  assert.deepEqual(matching.map(p => p.platform).sort(), ['facebook', 'instagram', 'linkedin']);
+  assert.equal(matching.length, 5);
+  assert.deepEqual(matching.map(p => p.platform).sort(), ['facebook', 'instagram', 'linkedin', 'tiktok', 'x']);
   for (const post of matching) {
     assert.match(post.link_url, /\/articles\/social-distribution-test$/);
     assert.match(post.caption, /Social Distribution Test/);
@@ -120,7 +120,7 @@ test('published articles create idempotent social drafts for all three platforms
   }
   const summary = await api('GET', '/api/social/summary');
   assert.equal(summary.j.data.automatic_delivery, false);
-  assert.deepEqual(summary.j.data.connections.map(x => x.platform), ['facebook', 'instagram', 'linkedin']);
+  assert.deepEqual(summary.j.data.connections.map(x => x.platform), ['facebook', 'instagram', 'linkedin', 'x', 'tiktok']);
   for (const connection of summary.j.data.connections) {
     assert.equal(typeof connection.connected, 'boolean');
     assert.ok(Array.isArray(connection.missing));
@@ -135,7 +135,7 @@ test('published articles create idempotent social drafts for all three platforms
   assert.equal((await api('PATCH', '/api/social/posts/' + facebook.id, { media_url: 'http://insecure.example/video.mp4' })).s, 422);
   await api('POST', '/api/social/sync');
   const afterSync = await api('GET', '/api/social/posts');
-  assert.equal(afterSync.j.data.filter(p => p.article_id === a.j.data.id).length, 3);
+  assert.equal(afterSync.j.data.filter(p => p.article_id === a.j.data.id).length, 5);
   const hidden = await api('GET', '/api/social/posts', null, { auth: false });
   assert.equal(hidden.s, 401);
 });

@@ -21,7 +21,39 @@ function renderLogin(note) {
   const msg = h('div', { class: 'err', role: 'alert' }, note || '');
   if (reset) { const np = h('input', { type: 'password', autocomplete: 'new-password' }); app.replaceChildren(h('div', { class: 'login' }, h('h1', {}, 'Set a new password'), h('label', {}, 'New password (12+ chars, upper, lower, digit)'), np, msg, h('button', { class: 'btn primary', onclick: async () => { try { await api('POST', '/auth/reset', { token: reset, password: np.value }); history.replaceState(null, '', '/admin/'); toast('Password updated. Sign in.', 'ok'); renderLogin(); } catch (e) { msg.textContent = e.message; } } }, 'Update password'))); return; }
   const go = async ev => { ev.preventDefault(); msg.textContent = ''; try { const r = await api('POST', '/auth/login', { email: email.value, password: pw.value }); session.csrf = r.data.csrf; session.admin = r.data.admin; start(); } catch (e) { msg.textContent = e.message; } };
-  app.replaceChildren(h('form', { class: 'login', onsubmit: go }, h('h1', {}, 'Admin sign in'), h('label', { for: 'em' }, 'Email'), email, h('label', { for: 'pw' }, 'Password'), passwordWrap, msg, h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'submit' }, 'Sign in'), h('button', { class: 'btn', type: 'button', onclick: async () => { if (!email.value) { msg.textContent = 'Enter your email first.'; return; } await api('POST', '/auth/forgot', { email: email.value }).catch(() => {}); toast('If that account exists, a reset link was sent.', 'ok'); } }, 'Forgot password'))));
+  const googleBox = h('div', { id: 'google-signin', style: 'margin:0 0 1rem;min-height:42px' });
+  app.replaceChildren(h('div', { class: 'login' }, h('h1', {}, 'Admin sign in'),
+    h('p', { class: 'help' }, 'Use your authorized Google account or your existing email and password.'),
+    googleBox, h('div', { class: 'help', style: 'text-align:center;margin:.5rem 0' }, 'OR SIGN IN WITH PASSWORD'),
+    h('form', { onsubmit: go }, h('label', { for: 'em' }, 'Email'), email, h('label', { for: 'pw' }, 'Password'), passwordWrap, msg,
+      h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'submit' }, 'Sign in'), h('button', { class: 'btn', type: 'button', onclick: async () => { if (!email.value) { msg.textContent = 'Enter your email first.'; return; } await api('POST', '/auth/forgot', { email: email.value }).catch(() => {}); toast('If that account exists, a reset link was sent.', 'ok'); } }, 'Forgot password')))));
+  (async () => {
+    try {
+      const cfg = (await api('GET', '/auth/google/config')).data;
+      if (!cfg.enabled || !cfg.client_id) { googleBox.textContent = 'Google sign-in will appear when GOOGLE_CLIENT_ID is configured.'; return; }
+      const nonce = cfg.nonce;
+      if (!nonce) { googleBox.textContent = 'Google sign-in could not create a secure login request. Use password sign-in.'; return; }
+      const init = () => {
+        if (!window.google?.accounts?.id) return false;
+        window.google.accounts.id.initialize({ client_id: cfg.client_id, nonce, callback: async response => {
+          try {
+            const result = await api('POST', '/auth/google', { credential: response.credential, nonce });
+            session.csrf = result.data.csrf; session.admin = result.data.admin; start();
+          } catch (error) { msg.textContent = error.message || 'Google sign-in failed.'; }
+        } });
+        window.google.accounts.id.renderButton(googleBox, { theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: 320 });
+        return true;
+      };
+      if (init()) return;
+      let script = document.querySelector('script[data-google-identity]');
+      if (!script) {
+        script = document.createElement('script'); script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.defer = true; script.dataset.googleIdentity = 'true';
+        script.onload = () => { if (!init()) googleBox.textContent = 'Google sign-in could not be loaded. Use password sign-in.'; };
+        script.onerror = () => { googleBox.textContent = 'Google sign-in is unavailable. Use password sign-in.'; };
+        document.head.append(script);
+      } else { script.addEventListener('load', init, { once: true }); }
+    } catch { googleBox.textContent = 'Google sign-in is not configured yet. Use password sign-in.'; }
+  })();
   email.focus();
 }
 
