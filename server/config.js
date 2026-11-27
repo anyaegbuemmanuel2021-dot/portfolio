@@ -18,7 +18,7 @@ export const config = {
   whatsappNumber: (e.WHATSAPP_NUMBER || '2347046947391').replace(/\D/g, ''),
   ownerEmail: e.OWNER_EMAIL || 'anyaegbuemmanuel2021@gmail.com',
   sessionHours: Number(e.SESSION_HOURS || 12),
-  storage: { provider: e.STORAGE_PROVIDER || 'local', localDir: e.LOCAL_MEDIA_DIR || './data/media',
+  storage: { provider: e.STORAGE_PROVIDER || (e.NODE_ENV === 'production' ? 'cloudinary' : 'local'), localDir: e.LOCAL_MEDIA_DIR || './data/media',
     publicBase: (e.DBRIJ_MEDIA_PUBLIC_BASE || e.MEDIA_PUBLIC_BASE || '').replace(/\/$/, ''),
     cloudinary: { cloudName: e.CLOUDINARY_CLOUD_NAME, apiKey: e.CLOUDINARY_API_KEY, apiSecret: e.CLOUDINARY_API_SECRET },
     dbrij: { endpoint: e.DBRIJ_S3_ENDPOINT || 'https://s3.dbrij.com', region: e.DBRIJ_S3_REGION || 'auto', bucket: e.DBRIJ_BUCKET, accessKeyId: e.DBRIJ_KEY_ID, secretAccessKey: e.DBRIJ_KEY_SECRET, publicBase: (e.DBRIJ_MEDIA_PUBLIC_BASE || e.MEDIA_PUBLIC_BASE || '').replace(/\/$/, '') } },
