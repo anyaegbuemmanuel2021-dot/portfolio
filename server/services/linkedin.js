@@ -48,6 +48,7 @@ export function buildLinkedInPost(author, commentary, article) {
       source: source.href,
       title: String(article.title).slice(0, 200),
       description: String(article.description || '').slice(0, 1000),
+      ...(article.thumbnail ? { thumbnail: String(article.thumbnail) } : {}),
     } };
   }
   return payload;
@@ -140,12 +141,55 @@ export function linkedinService(db) {
     return { member_name: profile.name || '', expires_at: expiry };
   }
 
+
+  async function uploadArticleThumbnail(accessToken, author, imageUrl) {
+    if (!imageUrl) return null;
+    const source = new URL(String(imageUrl), config.siteUrl);
+    const site = new URL(config.siteUrl);
+    if (source.protocol !== 'https:' || source.origin !== site.origin) {
+      throw new Error('LinkedIn thumbnail must be a publicly reachable HTTPS image hosted on this portfolio site.');
+    }
+    const imageResponse = await fetch(source.href, { signal: AbortSignal.timeout(15000), redirect: 'error' });
+    if (!imageResponse.ok) throw new Error('Could not fetch the article featured image (HTTP ' + imageResponse.status + ').');
+    const contentType = (imageResponse.headers.get('content-type') || '').split(';')[0].toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/gif'].includes(contentType)) throw new Error('The article featured image must be JPG, PNG or GIF for LinkedIn.');
+    const declaredLength = Number(imageResponse.headers.get('content-length') || 0);
+    if (declaredLength > 8 * 1024 * 1024) throw new Error('The article featured image is larger than LinkedIn publishing allows (8 MB limit).');
+    const bytes = Buffer.from(await imageResponse.arrayBuffer());
+    if (!bytes.length || bytes.length > 8 * 1024 * 1024) throw new Error('The article featured image is empty or larger than 8 MB.');
+    const init = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Linkedin-Version': VERSION,
+      },
+      body: JSON.stringify({ initializeUploadRequest: { owner: author } }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const initData = await init.json().catch(() => ({}));
+    if (!init.ok || !initData.value?.uploadUrl || !initData.value?.image) {
+      throw new Error('LinkedIn could not initialize the thumbnail upload (HTTP ' + init.status + ').');
+    }
+    const uploaded = await fetch(initData.value.uploadUrl, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': contentType },
+      body: bytes,
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!uploaded.ok) throw new Error('LinkedIn thumbnail upload failed (HTTP ' + uploaded.status + ').');
+    return initData.value.image;
+  }
+
   async function publishPost(commentary, article) {
     const [encrypted, author, expires] = await Promise.all([get('access_token_enc'), get('author_urn'), get('expires_at')]);
     if (!encrypted || !author || !expires || new Date(expires).getTime() <= Date.now()) {
       throw new Error('LinkedIn is disconnected or its access token has expired. Reconnect LinkedIn in Social publishing.');
     }
     const accessToken = decryptLinkedInToken(encrypted);
+    const thumbnail = article?.image ? await uploadArticleThumbnail(accessToken, author, article.image) : null;
+    const postArticle = { ...article, thumbnail };
     const response = await fetch('https://api.linkedin.com/rest/posts', {
       method: 'POST',
       headers: {
@@ -154,7 +198,7 @@ export function linkedinService(db) {
         'X-Restli-Protocol-Version': '2.0.0',
         'Linkedin-Version': VERSION,
       },
-      body: JSON.stringify(buildLinkedInPost(author, commentary, article)),
+      body: JSON.stringify(buildLinkedInPost(author, commentary, postArticle)),
       signal: AbortSignal.timeout(20000),
     });
     if (!response.ok) {
