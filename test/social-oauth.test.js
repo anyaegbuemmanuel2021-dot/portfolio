@@ -42,23 +42,43 @@ test('social OAuth creates provider-scoped authorization URLs with state and PKC
   } finally { if (old.X_CLIENT_ID === undefined) delete process.env.X_CLIENT_ID; else process.env.X_CLIENT_ID=old.X_CLIENT_ID; if (old.X_CLIENT_SECRET === undefined) delete process.env.X_CLIENT_SECRET; else process.env.X_CLIENT_SECRET=old.X_CLIENT_SECRET; }
 });
 
-test('Instagram uses direct Instagram Login and does not require a Facebook Page or Facebook config', async () => {
-  const keys = ['META_APP_ID', 'META_APP_SECRET', 'META_LOGIN_CONFIG_ID', 'META_FACEBOOK_LOGIN_CONFIG_ID', 'META_INSTAGRAM_LOGIN_CONFIG_ID'];
+test('Instagram uses Unified Login configuration for newer Meta apps', async () => {
+  const keys = ['META_APP_ID', 'META_APP_SECRET', 'META_LOGIN_CONFIG_ID', 'META_INSTAGRAM_LOGIN_CONFIG_ID', 'META_FACEBOOK_LOGIN_CONFIG_ID'];
   const old = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   process.env.META_APP_ID = 'meta-test-client';
   process.env.META_APP_SECRET = 'meta-test-secret';
-  process.env.META_LOGIN_CONFIG_ID = '29641980198772563';
+  process.env.META_INSTAGRAM_LOGIN_CONFIG_ID = '29641980198772563';
+  delete process.env.META_LOGIN_CONFIG_ID;
+  try {
+    const oauth = socialOAuthService(memoryDb());
+    const instagram = new URL(await oauth.start('instagram'));
+    assert.equal(instagram.origin, 'https://www.facebook.com');
+    assert.equal(instagram.pathname, '/v27.0/dialog/oauth');
+    assert.equal(instagram.searchParams.get('client_id'), 'meta-test-client');
+    assert.equal(instagram.searchParams.get('config_id'), '29641980198772563');
+    assert.equal(instagram.searchParams.has('scope'), false);
+    assert.ok(instagram.searchParams.get('redirect_uri').endsWith('/api/integrations/instagram/callback'));
+  } finally {
+    for (const [key, value] of Object.entries(old)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
+
+test('Instagram keeps legacy direct login when no Unified Login configuration exists', async () => {
+  const keys = ['META_APP_ID', 'META_APP_SECRET', 'META_LOGIN_CONFIG_ID', 'META_INSTAGRAM_LOGIN_CONFIG_ID'];
+  const old = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  process.env.META_APP_ID = 'meta-test-client';
+  process.env.META_APP_SECRET = 'meta-test-secret';
+  delete process.env.META_LOGIN_CONFIG_ID;
   delete process.env.META_INSTAGRAM_LOGIN_CONFIG_ID;
-  delete process.env.META_FACEBOOK_LOGIN_CONFIG_ID;
   try {
     const oauth = socialOAuthService(memoryDb());
     const instagram = new URL(await oauth.start('instagram'));
     assert.equal(instagram.origin, 'https://www.instagram.com');
     assert.equal(instagram.pathname, '/oauth/authorize');
-    assert.equal(instagram.searchParams.get('client_id'), 'meta-test-client');
     assert.equal(instagram.searchParams.get('scope'), 'instagram_business_basic,instagram_business_content_publish');
     assert.equal(instagram.searchParams.has('config_id'), false);
-    assert.ok(instagram.searchParams.get('redirect_uri').endsWith('/api/integrations/instagram/callback'));
   } finally {
     for (const [key, value] of Object.entries(old)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
