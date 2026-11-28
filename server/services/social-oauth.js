@@ -73,13 +73,16 @@ export function socialOAuthService(db) {
       // Keep the legacy Instagram Login path available for older apps without a config ID.
       const unifiedConfigId = process.env.META_INSTAGRAM_LOGIN_CONFIG_ID || process.env.META_LOGIN_CONFIG_ID;
       if (unifiedConfigId) {
-        url = new URL('https://www.facebook.com/' + META_VERSION + '/dialog/oauth');
+        url = new URL('https://www.facebook.com/dialog/oauth');
         url.search = new URLSearchParams({
           client_id: clientId,
+          config_id: unifiedConfigId,
+          display: 'popup',
+          override_default_response_type: 'true',
           redirect_uri: callbacks.instagram,
           response_type: 'code',
-          config_id: unifiedConfigId,
           state,
+          prompt: 'login',
         }).toString();
       } else {
         url = new URL('https://www.instagram.com/oauth/authorize');
