@@ -34,6 +34,7 @@ export function socialOAuthService(db) {
     [key(provider, name), value == null ? null : String(value), new Date().toISOString()],
   );
   const remove = async provider => db.query("DELETE FROM site_settings WHERE key LIKE $1", ['social_oauth_' + provider + '_%']);
+  const instagramApiHost = async () => (await get('instagram', 'api_host')) || 'https://graph.instagram.com';
   const configured = p => Boolean(process.env[providerKeys[p].id] && process.env[providerKeys[p].secret]);
   const exchange = async (url, body, headers = {}) => {
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...headers }, body: new URLSearchParams(body), signal: AbortSignal.timeout(20000) });
@@ -68,15 +69,28 @@ export function socialOAuthService(db) {
       if (!loginConfigId) throw new HttpError(503, 'Facebook Login for Business configuration is missing. Add META_FACEBOOK_LOGIN_CONFIG_ID in Render.');
       url.search = new URLSearchParams({ client_id: clientId, redirect_uri: callbacks.facebook, state, response_type: 'code', config_id: loginConfigId }).toString();
     } else if (provider === 'instagram') {
-      // Instagram Login is independent of Facebook Login and does not require a Page.
-      url = new URL('https://www.instagram.com/oauth/authorize');
-      url.search = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: callbacks.instagram,
-        response_type: 'code',
-        scope: 'instagram_business_basic,instagram_business_content_publish',
-        state,
-      }).toString();
+      // New Meta apps use Instagram API Unified Login (Facebook Login for Business).
+      // Keep the legacy Instagram Login path available for older apps without a config ID.
+      const unifiedConfigId = process.env.META_INSTAGRAM_LOGIN_CONFIG_ID || process.env.META_LOGIN_CONFIG_ID;
+      if (unifiedConfigId) {
+        url = new URL('https://www.facebook.com/' + META_VERSION + '/dialog/oauth');
+        url.search = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: callbacks.instagram,
+          response_type: 'code',
+          config_id: unifiedConfigId,
+          state,
+        }).toString();
+      } else {
+        url = new URL('https://www.instagram.com/oauth/authorize');
+        url.search = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: callbacks.instagram,
+          response_type: 'code',
+          scope: 'instagram_business_basic,instagram_business_content_publish',
+          state,
+        }).toString();
+      }
     } else if (provider === 'x') {
       url = new URL('https://twitter.com/i/oauth2/authorize');
       url.search = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: callbacks.x, scope: 'users.read tweet.read tweet.write offline.access', state, code_challenge: challenge, code_challenge_method: 'S256' }).toString();
@@ -112,6 +126,36 @@ export function socialOAuthService(db) {
       return { connected: true, account_name: page.name };
     }
     if (provider === 'instagram') {
+      const unifiedConfigId = process.env.META_INSTAGRAM_LOGIN_CONFIG_ID || process.env.META_LOGIN_CONFIG_ID;
+      if (unifiedConfigId) {
+        // Unified Login returns a Meta business integration token on graph.facebook.com.
+        const tokenData = await exchange('https://graph.facebook.com/' + META_VERSION + '/oauth/access_token', {
+          client_id: clientId,
+          client_secret: secret,
+          redirect_uri: callbacks.instagram,
+          code,
+        });
+        if (!tokenData.access_token) throw new Error('Meta did not return an access token for Instagram Unified Login.');
+        const token = tokenData.access_token;
+        let accounts;
+        try {
+          accounts = await profileFetch('https://graph.facebook.com/' + META_VERSION + '/me/assigned_instagram_accounts?fields=id,username&limit=100', token);
+        } catch (error) {
+          throw new Error('Meta login succeeded, but Instagram asset discovery failed. In the Unified Login configuration, assign your Creator account as an Instagram asset and grant the required Instagram permissions. Details: ' + error.message);
+        }
+        const account = (accounts.data || []).find(item => item.id);
+        if (!account) {
+          throw new Error('Meta login succeeded, but no Instagram account was shared with this app. Check the Unified Login configuration and make sure your Creator account is selected as an Instagram asset.');
+        }
+        await set('instagram', 'access_token_enc', security.encrypt(token));
+        await set('instagram', 'account_id', String(account.id));
+        await set('instagram', 'account_name', String(account.username || 'Instagram Professional account'));
+        await set('instagram', 'api_host', 'https://graph.facebook.com');
+        await set('instagram', 'expires_at', Number(tokenData.expires_in) > 0 ? new Date(Date.now() + Number(tokenData.expires_in) * 1000).toISOString() : '');
+        return { connected: true, account_name: account.username || null };
+      }
+
+      // Legacy Instagram Login remains available for apps created before Unified Login.
       const tokenData = await exchange('https://api.instagram.com/oauth/access_token', {
         client_id: clientId,
         client_secret: secret,
@@ -133,6 +177,7 @@ export function socialOAuthService(db) {
       await set('instagram', 'access_token_enc', security.encrypt(longToken.access_token));
       await set('instagram', 'account_id', String(accountId));
       await set('instagram', 'account_name', String(profile.username || 'Instagram Professional account'));
+      await set('instagram', 'api_host', 'https://graph.instagram.com');
       await set('instagram', 'expires_at', longToken.expires_in ? new Date(Date.now() + Number(longToken.expires_in) * 1000).toISOString() : '');
       return { connected: true, account_name: profile.username || null };
     }
@@ -225,14 +270,15 @@ export function socialOAuthService(db) {
       const media = validMedia(mediaUrl);
       if (!media) throw new HttpError(422, 'Instagram publishing requires a public HTTPS image or video URL.');
       const isVideo = /\.(mp4|mov)(?:$|\?)/i.test(media);
-      const create = await fetch('https://graph.instagram.com/' + META_VERSION + '/' + igId + '/media', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ caption: text, ...(isVideo ? { media_type: 'REELS', video_url: media } : { image_url: media }), access_token: token }), signal: AbortSignal.timeout(30000) });
+      const igHost = await instagramApiHost();
+      const create = await fetch(igHost + '/' + META_VERSION + '/' + igId + '/media', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ caption: text, ...(isVideo ? { media_type: 'REELS', video_url: media } : { image_url: media }), access_token: token }), signal: AbortSignal.timeout(30000) });
       const container = await safeJson(create); if (!create.ok || container.error || !container.id) throw new Error(container.error?.message || 'Instagram media container creation failed');
       if (isVideo) {
         let ready = false;
-        for (let i=0;i<12;i++) { await new Promise(resolve => setTimeout(resolve, 5000)); const check = await safeJson(await fetch('https://graph.instagram.com/' + META_VERSION + '/' + container.id + '?fields=status_code', { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(10000) })); if (check.status_code === 'FINISHED') { ready = true; break; } if (check.status_code === 'ERROR') throw new Error('Instagram could not process the video asset'); }
+        for (let i=0;i<12;i++) { await new Promise(resolve => setTimeout(resolve, 5000)); const check = await safeJson(await fetch(igHost + '/' + META_VERSION + '/' + container.id + '?fields=status_code', { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(10000) })); if (check.status_code === 'FINISHED') { ready = true; break; } if (check.status_code === 'ERROR') throw new Error('Instagram could not process the video asset'); }
         if (!ready) throw new Error('Instagram video processing is still pending. Retry after a short wait.');
       }
-      const publishResponse = await fetch('https://graph.instagram.com/' + META_VERSION + '/' + igId + '/media_publish', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ creation_id: container.id, access_token: token }), signal: AbortSignal.timeout(30000) });
+      const publishResponse = await fetch(igHost + '/' + META_VERSION + '/' + igId + '/media_publish', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ creation_id: container.id, access_token: token }), signal: AbortSignal.timeout(30000) });
       const published = await safeJson(publishResponse); if (!publishResponse.ok || published.error || !published.id) throw new Error(published.error?.message || 'Instagram publish failed');
       return { id: published.id, url: 'https://www.instagram.com/' };
     }
