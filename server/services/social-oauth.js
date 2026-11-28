@@ -65,9 +65,16 @@ export function socialOAuthService(db) {
     if (provider === 'facebook' || provider === 'instagram') {
       url = new URL('https://www.facebook.com/' + META_VERSION + '/dialog/oauth');
       const metaParams = { client_id: clientId, redirect_uri: callbacks[provider], state, response_type: 'code' };
-      // Meta Unified Login configurations carry the approved permissions; do not
-      // also send legacy scope names, which Meta rejects for these configurations.
-      if (process.env.META_LOGIN_CONFIG_ID) metaParams.config_id = process.env.META_LOGIN_CONFIG_ID;
+      // Facebook Pages and Instagram use separate Meta Login for Business
+      // configurations. The existing META_LOGIN_CONFIG_ID is retained only as
+      // a backwards-compatible alias for the Instagram configuration.
+      const loginConfigId = provider === 'facebook'
+        ? process.env.META_FACEBOOK_LOGIN_CONFIG_ID
+        : (process.env.META_INSTAGRAM_LOGIN_CONFIG_ID || process.env.META_LOGIN_CONFIG_ID);
+      if (provider === 'facebook' && !loginConfigId) {
+        throw new HttpError(503, 'Facebook Login for Business configuration is missing. Add META_FACEBOOK_LOGIN_CONFIG_ID for a Pages-only configuration in Meta Developers.');
+      }
+      if (loginConfigId) metaParams.config_id = loginConfigId;
       else metaParams.scope = metaScopes.join(',');
       url.search = new URLSearchParams(metaParams).toString();
     } else if (provider === 'x') {
