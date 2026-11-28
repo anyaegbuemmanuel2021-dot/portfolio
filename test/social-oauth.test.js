@@ -41,3 +41,25 @@ test('social OAuth creates provider-scoped authorization URLs with state and PKC
     assert.ok(url.searchParams.get('scope').includes('tweet.write'));
   } finally { if (old.X_CLIENT_ID === undefined) delete process.env.X_CLIENT_ID; else process.env.X_CLIENT_ID=old.X_CLIENT_ID; if (old.X_CLIENT_SECRET === undefined) delete process.env.X_CLIENT_SECRET; else process.env.X_CLIENT_SECRET=old.X_CLIENT_SECRET; }
 });
+
+test('Meta Unified Login uses the configured config_id instead of deprecated scopes', async () => {
+  const old = { META_APP_ID: process.env.META_APP_ID, META_APP_SECRET: process.env.META_APP_SECRET, META_LOGIN_CONFIG_ID: process.env.META_LOGIN_CONFIG_ID };
+  process.env.META_APP_ID = 'meta-test-client';
+  process.env.META_APP_SECRET = 'meta-test-secret';
+  process.env.META_LOGIN_CONFIG_ID = '29641980198772563';
+  try {
+    const oauth = socialOAuthService(memoryDb());
+    for (const provider of ['facebook', 'instagram']) {
+      const url = new URL(await oauth.start(provider));
+      assert.equal(url.origin, 'https://www.facebook.com');
+      assert.equal(url.searchParams.get('client_id'), 'meta-test-client');
+      assert.equal(url.searchParams.get('config_id'), '29641980198772563');
+      assert.equal(url.searchParams.has('scope'), false);
+      assert.ok(url.searchParams.get('redirect_uri').endsWith('/api/integrations/' + provider + '/callback'));
+    }
+  } finally {
+    for (const [key, value] of Object.entries(old)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
+});
