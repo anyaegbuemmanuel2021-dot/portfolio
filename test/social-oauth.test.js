@@ -53,10 +53,13 @@ test('Instagram uses Unified Login configuration for newer Meta apps', async () 
     const oauth = socialOAuthService(memoryDb());
     const instagram = new URL(await oauth.start('instagram'));
     assert.equal(instagram.origin, 'https://www.facebook.com');
-    assert.equal(instagram.pathname, '/v27.0/dialog/oauth');
+    assert.equal(instagram.pathname, '/dialog/oauth');
     assert.equal(instagram.searchParams.get('client_id'), 'meta-test-client');
     assert.equal(instagram.searchParams.get('config_id'), '29641980198772563');
     assert.equal(instagram.searchParams.has('scope'), false);
+    assert.equal(instagram.searchParams.get('display'), 'popup');
+    assert.equal(instagram.searchParams.get('override_default_response_type'), 'true');
+    assert.equal(instagram.searchParams.get('prompt'), 'login');
     assert.ok(instagram.searchParams.get('redirect_uri').endsWith('/api/integrations/instagram/callback'));
   } finally {
     for (const [key, value] of Object.entries(old)) {
