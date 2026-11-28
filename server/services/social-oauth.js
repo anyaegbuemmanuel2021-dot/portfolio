@@ -64,7 +64,12 @@ export function socialOAuthService(db) {
     let url;
     if (provider === 'facebook' || provider === 'instagram') {
       url = new URL('https://www.facebook.com/' + META_VERSION + '/dialog/oauth');
-      url.search = new URLSearchParams({ client_id: clientId, redirect_uri: callbacks[provider], state, response_type: 'code', scope: metaScopes.join(',') }).toString();
+      const metaParams = { client_id: clientId, redirect_uri: callbacks[provider], state, response_type: 'code' };
+      // Meta Unified Login configurations carry the approved permissions; do not
+      // also send legacy scope names, which Meta rejects for these configurations.
+      if (process.env.META_LOGIN_CONFIG_ID) metaParams.config_id = process.env.META_LOGIN_CONFIG_ID;
+      else metaParams.scope = metaScopes.join(',');
+      url.search = new URLSearchParams(metaParams).toString();
     } else if (provider === 'x') {
       url = new URL('https://twitter.com/i/oauth2/authorize');
       url.search = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: callbacks.x, scope: 'users.read tweet.read tweet.write offline.access', state, code_challenge: challenge, code_challenge_method: 'S256' }).toString();
